@@ -8,6 +8,14 @@ import { sendMailToAdmin } from "@/lib/mail";
 export async function submitAccountRequest(email: string, message?: string) {
   const normalized = email.trim().toLowerCase();
 
+  // 全局节流：10 分钟内申请总数超过 5 条则拒绝（防刷申请 + 邮件轰炸）
+  const recentCount = await prisma.accountRequest.count({
+    where: { createdAt: { gt: new Date(Date.now() - 10 * 60 * 1000) } },
+  });
+  if (recentCount >= 5) {
+    return { ok: false, error: "申请过于频繁，请稍后再试" };
+  }
+
   const existingUser = await prisma.user.findUnique({ where: { email: normalized } });
   if (existingUser) {
     return { ok: false, error: "该邮箱已注册，请直接登录" };

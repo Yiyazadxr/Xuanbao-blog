@@ -26,6 +26,16 @@ export async function submitComment({
   if (!text) return { ok: false, error: "评论内容不能为空" };
   if (text.length > 1000) return { ok: false, error: "评论最多 1000 字" };
 
+  // 单用户节流：30 秒内只能发一条（防刷评论淹没审核后台）
+  const lastComment = await prisma.comment.findFirst({
+    where: { authorId: user.id },
+    orderBy: { createdAt: "desc" },
+    select: { createdAt: true },
+  });
+  if (lastComment && Date.now() - lastComment.createdAt.getTime() < 30 * 1000) {
+    return { ok: false, error: "评论太频繁了，请稍等 30 秒再试" };
+  }
+
   const post = await prisma.post.findFirst({ where: { id: postId, published: true } });
   if (!post) return { ok: false, error: "文章不存在" };
 
