@@ -24,6 +24,16 @@ export function Header() {
   // 路由变化时收起移动端菜单
   useEffect(() => setMenuOpen(false), [pathname]);
 
+  // Escape 键关闭移动端菜单
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
   return (
     <header
       className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${

@@ -12,10 +12,11 @@ export function Hero() {
   const reduceMotion = useReducedMotion();
   const glowRef = useRef<HTMLDivElement>(null);
 
-  // 鼠标跟随光晕：直接写 transform，不触发 React 重渲染
+  // 鼠标跟随光晕：直接写 transform，不触发 React 重渲染；首次移动前保持透明
   function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
     if (reduceMotion || !glowRef.current) return;
     const { left, top } = e.currentTarget.getBoundingClientRect();
+    glowRef.current.style.opacity = "1";
     glowRef.current.style.transform = `translate(${e.clientX - left - 200}px, ${
       e.clientY - top - 200
     }px)`;
@@ -42,7 +43,7 @@ export function Hero() {
         {/* 鼠标跟随光晕 */}
         <div
           ref={glowRef}
-          className="absolute size-[400px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,0.14),transparent_70%)] transition-transform duration-300 ease-out will-change-transform"
+          className="absolute size-[400px] rounded-full bg-[radial-gradient(circle,rgba(167,139,250,0.14),transparent_70%)] opacity-0 transition-[transform,opacity] duration-300 ease-out will-change-transform"
         />
         {/* 噪点纹理 */}
         <div className="bg-noise absolute inset-0 opacity-[0.035]" />
