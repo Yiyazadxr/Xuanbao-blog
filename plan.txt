@@ -1,0 +1,215 @@
+暄宝xr 个人博客 — 现代化架构设计与实施计划
+
+     Context
+
+     现有 D:\41211\Desktop\JiXun\Website 只有一个纯手写 HTML 导航栏骨架（完成度约 15%）。用户决定推倒重来，采用 Next.js 全栈架构全新设计一个现代化中文个人博客（站名「暄宝xr的博客」，栏目：首页/文章/社交/工具/关于作者）。
+
+     已确认的需求：
+     - 功能：文章分类/标签/归档、暗黑模式、评论系统、登录/用户系统、文章搜索、浏览量+点赞、阅读体验增强（进度条/阅读时长/上下篇）—— 架构上全部预留基础，分阶段实现，未完善的功能隐藏入口
+     - 登录方式（邀请码制）：访客提交邮箱申请账号 → 系统邮件通知博主 QQ 邮箱 → 博主在后台分配邀请码 → 用户凭邀请码+邮箱+密码完成注册
+     - UI 方向：首页简约 + 顶级独立站式的沉浸展示效果（参考：nanfu.global、cornrevolution.resn.global、activetheory.net/work/echo、samsy.ninja、fromanother.love、guildmind.app —— 均为深色底、大字排版、WebGL 动效、平滑滚动风格）；内页以阅读体验优先的简约风。主色调未定，用 CSS 变量集中管理，随时可调
+     - 后台编辑器：成熟组件 @uiw/react-md-editor
+     - 部署：暂不部署，选型需兼容未来上 Vercel
+     - 项目位置：直接在 Website/ 目录内重建（旧文件归档到 _legacy/）
+     - 用户偏初学者，方案循序渐进、避免过度工程化
+
+     UI 设计方向（渐进式动效策略）
+
+     参考站点是 Awwwards 级 WebGL 创意站，一步到位不现实。采用三层渐进，架构上把首页 Hero 做成独立可替换组件（components/home/Hero.tsx）：
+
+     1. 第一版（Phase 1）：深色沉浸首页 —— 超大字排版 Hero、CSS 渐变光斑/噪点背景、framer-motion 入场与滚动动画、鼠标跟随微交互。已能达到参考站"简约高级感"的大部分观感
+     2. 第二版（Phase 7 视觉升级）：Lenis 平滑滚动 + Canvas 粒子场/shader 渐变背景（React Three Fiber + drei），页面过渡动画
+     3. 远期：完整 3D 场景（R3F），仅替换 Hero 组件内部，不影响其余架构
+
+     - 配色：深色底（近黑）+ 高对比白字 + 单一强调色（先用荧光青/紫做占位，全部走 globals.css CSS 变量，后续一处改全站变）；内页文章页支持亮/暗双主题（next-themes）
+     - 字体：中文无衬线（系统字体栈优先，避免大字体文件），标题超大字重对比
+
+     技术选型
+
+     ┌───────────────┬─────────────────────────────────────────────────────────────────────────────────────────────────┬────────────────────────────────────────────────────────────────┐
+     │      项       │                                              选择                                               │                              理由                              │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 框架          │ Next.js（最新稳定版）+ App Router                                                               │ Server Components、嵌套布局适合博客；Vercel 原生支持           │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 语言          │ TypeScript（strict: false 起步）                                                                │ IDE 提示好，长期价值高；宽松模式降低初学门槛                   │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 样式          │ Tailwind CSS v4                                                                                 │ 上手快，官方模板自带；暗黑模式用 dark: 变体                    │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 动效          │ framer-motion（第一版）→ lenis + three/@react-three/fiber/@react-three/drei（视觉升级阶段再装） │ 渐进式，避免一开始陷入 WebGL                                   │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 暗黑模式      │ next-themes                                                                                     │ 成熟、无 FOUC，跟随系统 + 手动切换                             │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 图标          │ @iconify/react                                                                                  │ 延续旧项目的 Iconify 使用习惯                                  │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 数据库        │ SQLite（本地）→ 未来 Neon/Postgres                                                              │ 零配置；Prisma 换 datasource 一行即迁移                        │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ ORM           │ Prisma                                                                                          │ 声明式 schema + Prisma Studio 可视化，新手友好                 │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 认证          │ Auth.js v5（next-auth@beta）+ Credentials（邮箱密码，bcryptjs 哈希）+ JWT session               │ Credentials 必须配 JWT session；无状态兼容 Vercel              │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 邮件通知      │ Nodemailer + QQ 邮箱 SMTP（smtp.qq.com，需授权码）                                              │ 申请账号时通知博主 QQ 邮箱；本地无 SMTP 配置时降级为控制台打印 │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ Markdown 渲染 │ react-markdown + remark-gfm + rehype-highlight                                                  │ 服务端渲染 + 代码高亮                                          │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 后台编辑器    │ @uiw/react-md-editor                                                                            │ 自带工具栏、语法高亮、分屏预览（用户已选定）                   │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 搜索          │ Prisma contains 查询（标题+摘要+正文）                                                          │ 个人博客体量足够，零额外依赖                                   │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 评论          │ 自建（数据库 + 关联用户 + 审核制）                                                              │ 与邀请码用户体系天然集成                                       │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 包管理        │ pnpm                                                                                            │ 快、省磁盘                                                     │
+     ├───────────────┼─────────────────────────────────────────────────────────────────────────────────────────────────┼────────────────────────────────────────────────────────────────┤
+     │ 组件库        │ 暂不引入 shadcn/ui                                                                              │ UI 量小，Tailwind 手写原子组件即可                             │
+     └───────────────┴─────────────────────────────────────────────────────────────────────────────────────────────────┴────────────────────────────────────────────────────────────────┘
+
+     目录结构（核心部分）
+
+     Website/
+     ├── _legacy/                  # 旧代码归档（main.html、css/、js/、images/）
+     ├── prisma/
+     │   ├── schema.prisma         # 数据模型
+     │   └── seed.ts               # 种子数据（默认分类 + 示例文章 + 管理员账号）
+     ├── public/images/main_logo.webp   # 复用旧 Logo（压缩后 <100KB）
+     ├── app/
+     │   ├── layout.tsx            # 根布局：lang=zh-CN、ThemeProvider、Header、Footer
+     │   ├── page.tsx              # 首页（沉浸式 Hero + 精选文章）
+     │   ├── globals.css           # Tailwind + 主题 CSS 变量（主色调集中定义处）
+     │   ├── (blog)/
+     │   │   ├── blog/page.tsx                 # 文章列表（分页 + ?q= 搜索）
+     │   │   ├── blog/[slug]/page.tsx          # 文章详情 + 点赞 + 评论区 + 上下篇
+     │   │   ├── blog/category/[slug]/page.tsx # 分类筛选
+     │   │   ├── blog/tag/[slug]/page.tsx      # 标签筛选
+     │   │   ├── blog/archive/page.tsx         # 按年月归档
+     │   │   ├── social/page.tsx               # 社交/友链
+     │   │   └── tools/page.tsx                # 工具页
+     │   ├── about/page.tsx
+     │   ├── (auth)/
+     │   │   ├── login/page.tsx    # 邮箱密码登录
+     │   │   └── register/page.tsx # 两步：①提交邮箱申请 ②凭邀请码注册
+     │   ├── (admin)/
+     │   │   ├── layout.tsx        # 后台布局 + 鉴权（未登录/非管理员重定向）
+     │   │   └── admin/
+     │   │       ├── page.tsx              # 仪表盘
+     │   │       ├── posts/…               # 文章管理（列表/新建/编辑，@uiw/react-md-editor）
+     │   │       ├── comments/page.tsx     # 评论审核
+     │   │       └── invites/page.tsx      # 账号申请列表 + 邀请码生成/分配
+     │   └── api/auth/[...nextauth]/route.ts
+     ├── components/
+     │   ├── home/    Hero.tsx（可替换动效组件）FeaturedPosts.tsx
+     │   ├── layout/  Header.tsx Footer.tsx Sidebar.tsx(TOC)
+     │   ├── blog/    PostCard.tsx PostList.tsx PostContent.tsx SearchBox.tsx
+     │   │            ReadingProgress.tsx(顶部进度条) LikeButton.tsx PostNav.tsx(上下篇)
+     │   ├── comments/ CommentSection.tsx CommentItem.tsx CommentForm.tsx
+     │   ├── admin/   AdminSidebar.tsx PostEditor.tsx(封装 @uiw/react-md-editor)
+     │   ├── ui/      Button.tsx Pagination.tsx ThemeToggle.tsx
+     │   └── ThemeProvider.tsx
+     ├── lib/
+     │   ├── prisma.ts             # Prisma 单例
+     │   ├── auth.ts               # Auth.js 配置（Credentials provider）
+     │   ├── posts.ts comments.ts invites.ts likes.ts   # 数据查询层
+     │   ├── mail.ts               # Nodemailer 封装（无配置时 console 降级）
+     │   ├── markdown.ts utils.ts(阅读时长估算/slug 生成) constants.ts
+     ├── middleware.ts             # 保护 /admin/*
+     ├── .env / .env.example       # DATABASE_URL、AUTH_SECRET、SMTP_*、ADMIN_EMAIL
+     └── types/index.ts
+
+     数据写操作优先用 Server Actions（少写 API 路由，对初学者更直观）；只有确需对外暴露的接口才建 app/api/。
+
+     数据模型（prisma/schema.prisma）
+
+     - User：id、name、email(unique)、password(bcrypt 哈希)、image、role(READER|ADMIN)
+     - Post：title、slug(unique)、content(Markdown)、excerpt、coverImage、published、featured、viewCount、authorId→User、categoryId→Category
+     - Category：name、slug、description ←1:N→ Post
+     - Tag ←N:N→ Post（中间表 PostTag）
+     - Comment：content、postId→Post、authorId→User、parentId 自引用（嵌套回复）、isApproved(默认 false，审核制)
+     - Like：userId + postId（联合唯一，登录用户一文一赞）
+     - AccountRequest：email、message、status(PENDING|APPROVED|REJECTED)、createdAt —— 访客的账号申请
+     - InviteCode：code(unique)、email(可绑定指定邮箱)、usedById→User?、expiresAt —— 博主分配的邀请码
+
+     注册/登录流程（邀请码制）
+
+     1. 访客在 /register 提交邮箱 + 申请说明 → 写入 AccountRequest + lib/mail.ts 发邮件到博主 QQ 邮箱（ADMIN_EMAIL）
+     2. 博主登录后台 /admin/invites：查看申请 → 生成邀请码（可绑定申请者邮箱）→ 发给申请者
+     3. 申请者回到 /register 填写 邀请码 + 邮箱 + 密码 → 校验邀请码有效且未使用（若绑定了邮箱须一致）→ 创建 User、标记邀请码已用
+     4. /login 邮箱密码登录（Auth.js Credentials + JWT session）
+     5. 种子脚本直接创建博主的 ADMIN 账号（不走邀请码）
+
+     分阶段实施
+
+     Phase 0：清理旧代码 + 项目初始化
+
+     1. Website/ 内新建 _legacy/，将 main.html、css/、js/、images/ 移入
+     2. create-next-app 不接受非空目录 → 在 JiXun/ 下临时目录脚手架：pnpm create next-app@latest blog-tmp --typescript --tailwind --eslint --app --no-src-dir --import-alias "@/*"，然后把 blog-tmp 全部内容（含隐藏文件）移入 Website/，删除临时目录
+     3. git init + 首次提交（.gitignore 含 .env、*.db）
+     4. 安装依赖：prisma @prisma/client next-auth@beta @auth/prisma-adapter next-themes react-markdown remark-gfm rehype-highlight bcryptjs nodemailer @iconify/react framer-motion @uiw/react-md-editor（+ -D @types/bcryptjs @types/nodemailer tsx）
+     5. prisma init（SQLite，DATABASE_URL="file:./dev.db"）→ 写入 schema → prisma migrate dev --name init
+     6. prisma/seed.ts：默认分类（技术/生活/随笔）、2-3 篇示例文章、博主 ADMIN 账号
+     7. 压缩 main_logo.webp（865KB → <100KB）放入 public/images/
+
+     验收：pnpm dev 启动正常；npx prisma studio 可见表和种子数据。
+
+     Phase 1：基础布局 + 沉浸式首页第一版 + 暗黑模式
+
+     1. app/layout.tsx（zh-CN、suppressHydrationWarning、站点 metadata）、globals.css 主题 CSS 变量（深色底 + 占位强调色）
+     2. Header（半透明模糊吸顶导航：Logo + 5 栏目 + 登录入口 + 主题切换）、Footer、移动端汉堡菜单
+     3. 首页 Hero（components/home/Hero.tsx）：全屏深色、超大字标题（打字/逐字入场）、CSS 渐变光斑 + 噪点背景、framer-motion 滚动入场动画、鼠标跟随微交互
+     4. next-themes 亮暗切换（首页恒深色风、内页双主题）
+
+     验收：首页有"独立站感"的深色大字 Hero 且动效流畅；亮暗切换无闪白且刷新保持；375px 宽度下正常。
+
+     Phase 2：文章系统（公开侧）+ 阅读体验
+
+     1. lib/posts.ts 查询层（分页/分类/标签/归档/搜索 contains/上一篇下一篇）
+     2. PostCard/PostList → /blog 列表页（searchParams 分页 + SearchBox 搜索框 ?q=）
+     3. PostContent（react-markdown + 代码高亮）→ /blog/[slug] 详情页（generateMetadata 动态 SEO、viewCount 访问 +1）
+     4. 阅读体验：ReadingProgress 顶部进度条、lib/utils.ts 阅读时长估算（按字数）、PostNav 上下篇导航、浮动 TOC（Sidebar，IntersectionObserver）
+     5. 分类/标签/归档页
+
+     验收：列表/搜索/筛选从数据库正确读取；Markdown 渲染与代码高亮正常；进度条、阅读时长、上下篇、TOC 均可用；刷新详情页浏览量递增。
+
+     Phase 3：认证 + 邀请码注册
+
+     lib/auth.ts（Credentials + JWT）→ /login、/register（申请 + 邀请码注册两步）→ lib/mail.ts（QQ SMTP 通知，未配置时 console 输出）→ lib/invites.ts → middleware.ts 保护 /admin/* → Header 登录态（头像下拉：后台/退出）。
+
+     验收：提交申请后 AccountRequest 入库（邮件送达或控制台可见）；种子 ADMIN 可登录；有效邀请码可注册、无效/已用被拒；未登录访问 /admin 跳转登录页。
+
+     Phase 4：后台管理
+
+     后台布局 + AdminSidebar → 仪表盘（文章/评论/申请/浏览量统计）→ 文章 CRUD（PostEditor 封装 @uiw/react-md-editor，注意需 next/dynamic 关闭 SSR 加载；slug 自动生成，草稿/发布切换）→ /admin/invites（申请审批 + 邀请码生成）。写操作用 Server Actions + 服务端角色校验。
+
+     验收：后台可新建/编辑/删除文章（编辑器工具栏可用）；草稿前台不可见、发布后可见；可生成邀请码并完成一次完整注册闭环。
+
+     Phase 5：评论 + 点赞
+
+     1. lib/comments.ts → CommentForm（登录可评，未登录提示去登录）→ CommentItem（嵌套一层回复）→ CommentSection 集成到文章页 → /admin/comments 审核（isApproved 默认 false）
+     2. lib/likes.ts + LikeButton（登录用户点赞/取消，乐观更新）
+     3. 功能未完善前可整体不渲染（"即将开放"占位）
+
+     验收：登录用户可评论/回复/点赞（重复点赞被去重）；未审核评论前台不可见，审核通过后可见。
+
+     Phase 6：内容页填充
+
+     关于作者（简介/技能/时间线）、社交页（GitHub/B站等 + 友链）、工具页、首页下半部分（精选文章 + 最新文章 + 分类入口，滚动进入视口时动画呈现）。
+
+     验收：5 个栏目均有真实内容，无空白页。
+
+     Phase 7：视觉升级 + 打磨优化
+
+     1. 首页动效第二版：安装 lenis three @react-three/fiber @react-three/drei，Lenis 平滑滚动、Hero 换 R3F 粒子场/shader 渐变背景（只改 components/home/Hero.tsx 内部）
+     2. 全站 generateMetadata、sitemap.ts/robots.ts、RSS（app/feed.xml/route.ts）、next/image、无障碍、README + .env.example
+
+     验收：pnpm build 无错误；首页滚动如丝般顺滑、WebGL 背景 60fps；Lighthouse Performance/A11y/SEO > 90。
+
+     验证方式
+
+     - 全程保持 pnpm dev，每个 Phase 按上述验收标准在浏览器实测
+     - 数据检查用 npx prisma studio
+     - 关键端到端流：申请账号 → 后台发邀请码 → 注册 → 登录 → 评论/点赞 → 后台审核 → 前台可见；后台写文章（草稿）→ 发布 → 前台列表/搜索/详情/分类/归档出现
+     - 最终 pnpm build && pnpm start 验证生产构建
+
+     备注
+
+     - SQLite 不能跑在 Vercel Serverless 上；未来部署时把 Prisma datasource 换成 Neon Postgres + 迁移即可，代码层零改动
+     - QQ 邮箱 SMTP 需要在 QQ 邮箱设置中开启 SMTP 服务并获取授权码（不是 QQ 密码），填入 .env 的 SMTP_PASS
+     - 主色调所有取色集中在 globals.css 的 CSS 变量，用户想好配色后一处修改全站生效
+     - @uiw/react-md-editor 是客户端组件，需用 next/dynamic + ssr: false 引入，并适配暗色主题（data-color-mode）

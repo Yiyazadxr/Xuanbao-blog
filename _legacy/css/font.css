@@ -1,0 +1,29 @@
+/* 暄宝xr */
+/* 暄宝xr */
+/* 暄宝xr */
+/* 暄宝xr */
+/* 暄宝xr */
+
+#main-logo-text {
+    font-size: 19px;
+    font-weight: 700;
+    margin: 5px 5px;
+    letter-spacing: 1px;
+    background: #404040ff;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 2px 2px 4px 0px rgba(0,0,0,0.1);
+}
+
+.nav-link {
+    font-size: 18px;
+    font-weight: 600;
+    margin: 5px 5px;
+    letter-spacing: 1px;
+    background: #404040ff;
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    text-shadow: 2px 2px 4px 0px rgba(0,0,0,0.1);
+}

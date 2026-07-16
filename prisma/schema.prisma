@@ -1,0 +1,131 @@
+// 暄宝xr 的博客 — 数据模型
+// SQLite 不支持枚举，角色/状态字段用 String 存储约定值
+
+generator client {
+  provider = "prisma-client"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+// 用户：role 取值 READER | ADMIN
+model User {
+  id        String   @id @default(cuid())
+  name      String
+  email     String   @unique
+  password  String // bcrypt 哈希
+  image     String?
+  role      String   @default("READER")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  posts      Post[]
+  comments   Comment[]
+  likes      Like[]
+  inviteCode InviteCode? // 该用户注册时使用的邀请码
+}
+
+// 文章分类（一篇文章属于一个分类）
+model Category {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  posts       Post[]
+}
+
+// 标签（与文章多对多）
+model Tag {
+  id    String    @id @default(cuid())
+  name  String    @unique
+  slug  String    @unique
+  posts PostTag[]
+}
+
+// 文章：content 为 Markdown 文本
+model Post {
+  id         String   @id @default(cuid())
+  title      String
+  slug       String   @unique
+  content    String
+  excerpt    String?
+  coverImage String?
+  published  Boolean  @default(false)
+  featured   Boolean  @default(false)
+  viewCount  Int      @default(0)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  authorId   String
+  author     User      @relation(fields: [authorId], references: [id])
+  categoryId String?
+  category   Category? @relation(fields: [categoryId], references: [id])
+  tags       PostTag[]
+  comments   Comment[]
+  likes      Like[]
+
+  @@index([published, createdAt])
+}
+
+// 文章-标签 中间表
+model PostTag {
+  postId String
+  tagId  String
+  post   Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+
+  @@id([postId, tagId])
+}
+
+// 评论：审核制（isApproved 默认 false），parentId 支持嵌套回复
+model Comment {
+  id         String   @id @default(cuid())
+  content    String
+  isApproved Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  postId   String
+  post     Post   @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  parentId String?
+  parent   Comment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies  Comment[] @relation("CommentReplies")
+
+  @@index([postId, isApproved])
+}
+
+// 点赞：一个用户对一篇文章只能赞一次
+model Like {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+// 账号申请：status 取值 PENDING | APPROVED | REJECTED
+model AccountRequest {
+  id        String   @id @default(cuid())
+  email     String
+  message   String?
+  status    String   @default("PENDING")
+  createdAt DateTime @default(now())
+}
+
+// 邀请码：可绑定指定邮箱，使用后关联注册用户
+model InviteCode {
+  id        String    @id @default(cuid())
+  code      String    @unique
+  email     String? // 绑定邮箱（可选），绑定后仅该邮箱可用
+  usedById  String?   @unique
+  usedBy    User?     @relation(fields: [usedById], references: [id])
+  createdAt DateTime  @default(now())
+  expiresAt DateTime?
+}
