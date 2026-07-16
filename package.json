@@ -13,6 +13,7 @@
     "@iconify/react": "^6.0.2",
     "@prisma/adapter-better-sqlite3": "^7.8.0",
     "@prisma/client": "^7.8.0",
+    "@uiw/react-markdown-preview": "^5.2.1",
     "@uiw/react-md-editor": "^4.1.1",
     "bcryptjs": "^3.0.3",
     "framer-motion": "^12.42.2",
