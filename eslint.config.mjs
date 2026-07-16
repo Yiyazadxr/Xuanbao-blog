@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // 项目自定义忽略：旧代码归档与 Prisma 生成代码
+    "_legacy/**",
+    "lib/generated/**",
   ]),
 ]);
 

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LikeButton } from "@/components/blog/LikeButton";
 import { PostContent } from "@/components/blog/PostContent";
@@ -39,8 +40,8 @@ export default async function BlogPostPage({
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  // 浏览量异步 +1（不阻塞页面渲染）
-  incrementViewCount(post.id).catch(() => {});
+  // 浏览量异步 +1（不阻塞页面渲染，内部已捕获异常）
+  void incrementViewCount(post.id);
 
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
@@ -71,13 +72,13 @@ export default async function BlogPostPage({
           {post.tags.length > 0 && (
             <div className="mt-4 flex flex-wrap gap-2">
               {post.tags.map(({ tag }) => (
-                <a
+                <Link
                   key={tag.id}
                   href={`/blog/tag/${tag.slug}`}
                   className="text-xs text-muted transition-colors duration-200 hover:text-accent"
                 >
                   #{tag.name}
-                </a>
+                </Link>
               ))}
             </div>
           )}

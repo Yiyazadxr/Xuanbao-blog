@@ -22,9 +22,6 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 路由变化时收起移动端菜单
-  useEffect(() => setMenuOpen(false), [pathname]);
-
   // Escape 键关闭移动端菜单
   useEffect(() => {
     if (!menuOpen) return;
@@ -123,6 +120,7 @@ export function Header() {
                   key={link.href}
                   href={link.href}
                   aria-current={active ? "page" : undefined}
+                  onClick={() => setMenuOpen(false)}
                   className={`rounded-lg px-4 py-3 text-base font-medium transition-colors duration-200 ${
                     active
                       ? "bg-foreground/5 text-foreground"
