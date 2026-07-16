@@ -1,0 +1,83 @@
+"use client";
+
+import { useSession } from "next-auth/react";
+import Link from "next/link";
+import { useState, useTransition } from "react";
+import { submitComment } from "@/app/(blog)/blog/actions";
+import { errorCls, primaryBtnCls, successCls } from "@/components/ui/form-styles";
+
+// 评论表单：顶层评论与回复共用（parentId 区分）
+export function CommentForm({
+  postId,
+  slug,
+  parentId,
+  onDone,
+}: {
+  postId: string;
+  slug: string;
+  parentId?: string;
+  onDone?: () => void;
+}) {
+  const { data: session } = useSession();
+  const [content, setContent] = useState("");
+  const [feedback, setFeedback] = useState<{ ok: boolean; text: string } | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  if (!session?.user) {
+    return (
+      <p className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted">
+        <Link href="/login" className="text-accent hover:underline">
+          登录
+        </Link>{" "}
+        后参与评论（本站注册采用邀请制，可在
+        <Link href="/register" className="text-accent hover:underline">
+          注册页
+        </Link>
+        提交申请）
+      </p>
+    );
+  }
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setFeedback(null);
+    startTransition(async () => {
+      const result = await submitComment({ postId, slug, content, parentId });
+      if (result.ok) {
+        setContent("");
+        setFeedback({ ok: true, text: result.message ?? "已提交" });
+        onDone?.();
+      } else {
+        setFeedback({ ok: false, text: result.error ?? "提交失败" });
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {feedback && (
+        <p role={feedback.ok ? "status" : "alert"} className={feedback.ok ? successCls : errorCls}>
+          {feedback.text}
+        </p>
+      )}
+      <label htmlFor={`comment-${parentId ?? "root"}`} className="sr-only">
+        {parentId ? "回复内容" : "评论内容"}
+      </label>
+      <textarea
+        id={`comment-${parentId ?? "root"}`}
+        value={content}
+        onChange={(e) => setContent(e.target.value)}
+        rows={parentId ? 2 : 3}
+        maxLength={1000}
+        required
+        placeholder={parentId ? "写下你的回复…" : "友好交流，评论需审核后展示"}
+        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
+      />
+      <div className="flex justify-end">
+        <button type="submit" disabled={pending} className={`${primaryBtnCls} w-auto px-6`}>
+          {pending ? "提交中…" : parentId ? "回复" : "发表评论"}
+        </button>
+      </div>
+    </form>
+  );
+}

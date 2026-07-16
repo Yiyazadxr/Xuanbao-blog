@@ -160,6 +160,35 @@ export async function deleteInvite(id: string): Promise<AdminActionState> {
   return { ok: true, message: "已删除" };
 }
 
+// 审核通过评论
+export async function approveComment(id: string): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "无权限" };
+  const comment = await prisma.comment.update({
+    where: { id },
+    data: { isApproved: true },
+    include: { post: { select: { slug: true } } },
+  });
+  revalidatePath(`/blog/${comment.post.slug}`);
+  revalidatePath("/admin/comments");
+  return { ok: true, message: "已通过" };
+}
+
+// 删除评论（连带回复一起删）
+export async function deleteComment(id: string): Promise<AdminActionState> {
+  const admin = await requireAdmin();
+  if (!admin) return { ok: false, error: "无权限" };
+  const comment = await prisma.comment.findUnique({
+    where: { id },
+    include: { post: { select: { slug: true } } },
+  });
+  if (!comment) return { ok: false, error: "评论不存在" };
+  await prisma.comment.deleteMany({ where: { OR: [{ id }, { parentId: id }] } });
+  revalidatePath(`/blog/${comment.post.slug}`);
+  revalidatePath("/admin/comments");
+  return { ok: true, message: "已删除" };
+}
+
 // 删除文章后跳回列表（供编辑页用）
 export async function deletePostAndRedirect(id: string) {
   const result = await deletePost(id);

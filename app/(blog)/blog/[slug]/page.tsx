@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { LikeButton } from "@/components/blog/LikeButton";
 import { PostContent } from "@/components/blog/PostContent";
 import { PostNav } from "@/components/blog/PostNav";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
+import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { getCurrentUser } from "@/lib/auth";
+import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
 import { getAdjacentPosts, getPostBySlug, incrementViewCount } from "@/lib/posts";
 import { formatDate, readingTime } from "@/lib/utils";
@@ -40,7 +44,11 @@ export default async function BlogPostPage({
 
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
-  const adjacent = await getAdjacentPosts(post.createdAt);
+  const user = await getCurrentUser();
+  const [adjacent, like] = await Promise.all([
+    getAdjacentPosts(post.createdAt),
+    getLikeInfo(post.id, user?.id),
+  ]);
 
   return (
     <>
@@ -79,7 +87,22 @@ export default async function BlogPostPage({
         <div className="flex gap-12 xl:gap-16">
           <div className="min-w-0 flex-1">
             <PostContent content={post.content} />
+
+            {/* 点赞 */}
+            <div className="mt-12 flex justify-center">
+              <LikeButton
+                postId={post.id}
+                slug={post.slug}
+                initialCount={like.count}
+                initialLiked={like.liked}
+                isLoggedIn={Boolean(user)}
+              />
+            </div>
+
             <PostNav prev={adjacent.prev} next={adjacent.next} />
+
+            {/* 评论区 */}
+            <CommentSection postId={post.id} slug={post.slug} />
           </div>
           <aside className="hidden w-56 flex-shrink-0 xl:block">
             <Sidebar toc={toc} />
