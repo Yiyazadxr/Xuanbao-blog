@@ -4,6 +4,7 @@ import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
 import { Providers } from "@/components/Providers";
+import { SmoothScroll } from "@/components/SmoothScroll";
 import { SITE } from "@/lib/constants";
 
 // 展示字体：仅拉丁字符（标题里的英文/数字），中文回落系统字体栈
@@ -20,11 +21,15 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE.url),
   title: {
     default: SITE.name,
     template: `%s | ${SITE.name}`,
   },
   description: SITE.description,
+  alternates: {
+    types: { "application/rss+xml": `${SITE.url}/feed.xml` },
+  },
 };
 
 export default function RootLayout({
@@ -41,6 +46,7 @@ export default function RootLayout({
     >
       <body className="flex min-h-dvh flex-col">
         <Providers>
+          <SmoothScroll />
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

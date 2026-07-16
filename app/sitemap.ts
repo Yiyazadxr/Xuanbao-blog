@@ -1,0 +1,47 @@
+import type { MetadataRoute } from "next";
+import { SITE } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
+
+// 每次请求实时生成，保证新发布的文章立即出现在站点地图里
+export const dynamic = "force-dynamic";
+
+// 站点地图：静态页 + 全部已发布文章 + 分类/标签
+export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  const [posts, categories, tags] = await Promise.all([
+    prisma.post.findMany({
+      where: { published: true },
+      select: { slug: true, updatedAt: true },
+    }),
+    prisma.category.findMany({ select: { slug: true } }),
+    prisma.tag.findMany({ select: { slug: true } }),
+  ]);
+
+  const staticPages: MetadataRoute.Sitemap = [
+    { url: SITE.url, changeFrequency: "daily", priority: 1 },
+    { url: `${SITE.url}/blog`, changeFrequency: "daily", priority: 0.9 },
+    { url: `${SITE.url}/blog/archive`, changeFrequency: "weekly", priority: 0.5 },
+    { url: `${SITE.url}/about`, changeFrequency: "monthly", priority: 0.6 },
+    { url: `${SITE.url}/social`, changeFrequency: "monthly", priority: 0.4 },
+    { url: `${SITE.url}/tools`, changeFrequency: "monthly", priority: 0.4 },
+  ];
+
+  return [
+    ...staticPages,
+    ...posts.map((post) => ({
+      url: `${SITE.url}/blog/${post.slug}`,
+      lastModified: post.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    })),
+    ...categories.map((c) => ({
+      url: `${SITE.url}/blog/category/${c.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+    })),
+    ...tags.map((t) => ({
+      url: `${SITE.url}/blog/tag/${t.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.4,
+    })),
+  ];
+}

@@ -2,9 +2,16 @@
 
 import { Icon } from "@iconify/react";
 import { motion, useReducedMotion } from "framer-motion";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import { useRef } from "react";
 import { SITE } from "@/lib/constants";
+
+// R3F 粒子层体积大且依赖 WebGL，动态引入并关闭 SSR
+const HeroParticles = dynamic(
+  () => import("@/components/home/HeroParticles").then((m) => m.HeroParticles),
+  { ssr: false }
+);
 
 // 首页 Hero（第一版）：深色沉浸、超大字排版、渐变光斑 + 噪点背景、鼠标跟随微交互
 // Phase 7 会在此组件内部升级为 R3F 粒子/shader 背景，外部接口不变
@@ -47,6 +54,12 @@ export function Hero() {
         />
         {/* 噪点纹理 */}
         <div className="bg-noise absolute inset-0 opacity-[0.035]" />
+        {/* WebGL 粒子场（reduced-motion 或 WebGL 不可用时自动缺席，CSS 光斑兜底） */}
+        {!reduceMotion && (
+          <div className="absolute inset-0">
+            <HeroParticles />
+          </div>
+        )}
       </div>
 
       <div className="relative mx-auto w-full max-w-6xl px-4 pt-16 sm:px-6">
