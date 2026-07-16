@@ -1,26 +1,100 @@
 @import "tailwindcss";
 
+/* next-themes 的 class 策略：.dark 挂在 <html> 上 */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* ===== 主题色板（全站唯一取色处，想换主色改这里）===== */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fafaf9;
+  --foreground: #1c1917;
+  --muted: #78716c;
+  --surface: #ffffff; /* 卡片/面板底色（Phase 2 文章卡片使用） */
+  --border: #e7e5e4;
+  --accent: #7c3aed;
+  --accent-foreground: #ffffff;
+  /* Hero 光斑：Hero 恒为深色背景，只需一套深色调优值，不随主题切换 */
+  --glow-1: rgba(124, 58, 237, 0.35);
+  --glow-2: rgba(34, 211, 238, 0.25);
+}
+
+.dark {
+  --background: #0a0a0b;
+  --foreground: #fafaf9;
+  --muted: #a1a1aa;
+  --surface: #141416;
+  --border: rgba(255, 255, 255, 0.08);
+  --accent: #a78bfa;
+  --accent-foreground: #17103a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-muted: var(--muted);
+  --color-surface: var(--surface);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  /* 中文正文字体栈：系统字体优先，避免加载大字体文件 */
+  --font-sans: system-ui, -apple-system, "Segoe UI", "PingFang SC",
+    "Hiragino Sans GB", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif;
+  /* 展示字体：英文/数字用 Space Grotesk，中文回落到系统黑体 */
+  --font-display: var(--font-space-grotesk), system-ui, "PingFang SC",
+    "Microsoft YaHei", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Code", monospace;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+::selection {
+  background: var(--accent);
+  color: var(--accent-foreground);
+}
+
+/* ===== 首页 Hero 专用：渐变光斑浮动动画（仅 transform/opacity）===== */
+@keyframes blob-float-a {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(6vw, -4vh) scale(1.15);
+  }
+}
+
+@keyframes blob-float-b {
+  0%,
+  100% {
+    transform: translate(0, 0) scale(1);
+  }
+  50% {
+    transform: translate(-5vw, 5vh) scale(0.9);
+  }
+}
+
+.animate-blob-a {
+  animation: blob-float-a 18s ease-in-out infinite;
+}
+
+.animate-blob-b {
+  animation: blob-float-b 22s ease-in-out infinite;
+}
+
+/* 噪点纹理叠层（SVG feTurbulence，内联 data URI，零请求） */
+.bg-noise {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* 尊重用户的减少动效偏好 */
+@media (prefers-reduced-motion: reduce) {
+  .animate-blob-a,
+  .animate-blob-b {
+    animation: none;
+  }
 }
