@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import { motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRef } from "react";
+import { useRef, useSyncExternalStore } from "react";
 import { SITE } from "@/lib/constants";
 
 // R3F 粒子层体积大且依赖 WebGL，动态引入并关闭 SSR
@@ -13,10 +13,25 @@ const HeroParticles = dynamic(
   { ssr: false }
 );
 
+// 是否桌面端（≥768px）：移动端不加载 1MB 的 three.js 粒子层，省流量与 GPU
+const DESKTOP_QUERY = "(min-width: 768px)";
+function useIsDesktop() {
+  return useSyncExternalStore(
+    (onChange) => {
+      const mq = window.matchMedia(DESKTOP_QUERY);
+      mq.addEventListener("change", onChange);
+      return () => mq.removeEventListener("change", onChange);
+    },
+    () => window.matchMedia(DESKTOP_QUERY).matches,
+    () => false // SSR 时不渲染
+  );
+}
+
 // 首页 Hero（第一版）：深色沉浸、超大字排版、渐变光斑 + 噪点背景、鼠标跟随微交互
 // Phase 7 会在此组件内部升级为 R3F 粒子/shader 背景，外部接口不变
 export function Hero() {
   const reduceMotion = useReducedMotion();
+  const isDesktop = useIsDesktop();
   const glowRef = useRef<HTMLDivElement>(null);
 
   // 鼠标跟随光晕：直接写 transform，不触发 React 重渲染；首次移动前保持透明
@@ -54,8 +69,8 @@ export function Hero() {
         />
         {/* 噪点纹理 */}
         <div className="bg-noise absolute inset-0 opacity-[0.035]" />
-        {/* WebGL 粒子场（reduced-motion 或 WebGL 不可用时自动缺席，CSS 光斑兜底） */}
-        {!reduceMotion && (
+        {/* WebGL 粒子场：仅桌面端 + 非 reduced-motion 时加载，CSS 光斑始终兜底 */}
+        {!reduceMotion && isDesktop && (
           <div className="absolute inset-0">
             <HeroParticles />
           </div>
