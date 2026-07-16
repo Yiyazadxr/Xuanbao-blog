@@ -1,4 +1,8 @@
 @import "tailwindcss";
+/* 代码块高亮主题（亮暗主题下都用深色代码块，阅读舒适） */
+@import "highlight.js/styles/github-dark.css";
+/* 文章正文排版（prose 类） */
+@plugin "@tailwindcss/typography";
 
 /* next-themes 的 class 策略：.dark 挂在 <html> 上 */
 @custom-variant dark (&:where(.dark, .dark *));
