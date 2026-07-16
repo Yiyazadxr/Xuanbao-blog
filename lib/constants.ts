@@ -14,3 +14,69 @@ export const NAV_LINKS = [
   { label: "工具", href: "/tools" },
   { label: "关于作者", href: "/about" },
 ] as const;
+
+/* ===== 以下为内容配置：改这里即可更新对应页面 ===== */
+
+// 社交链接（social 页 + 关于页使用）
+export const SOCIAL_LINKS = [
+  {
+    name: "GitHub",
+    icon: "ph:github-logo-bold",
+    url: "https://github.com/",
+    description: "我的开源项目和代码",
+  },
+  {
+    name: "哔哩哔哩",
+    icon: "ph:television-bold",
+    url: "https://space.bilibili.com/",
+    description: "偶尔发点视频",
+  },
+  {
+    name: "邮箱",
+    icon: "ph:envelope-bold",
+    url: "mailto:me@example.com",
+    description: "合作与交流请发邮件",
+  },
+] as const;
+
+// 友情链接（social 页使用）
+export const FRIEND_LINKS: { name: string; url: string; description: string }[] = [
+  // { name: "示例友链", url: "https://example.com", description: "一句话介绍" },
+];
+
+// 常用工具推荐（tools 页使用）
+export const TOOLS = [
+  {
+    name: "VS Code",
+    icon: "ph:code-bold",
+    url: "https://code.visualstudio.com/",
+    description: "主力代码编辑器，插件生态丰富",
+  },
+  {
+    name: "Iconify",
+    icon: "ph:palette-bold",
+    url: "https://icon-sets.iconify.design/",
+    description: "20 万+ 免费图标，本站图标都来自这里",
+  },
+  {
+    name: "TinyPNG",
+    icon: "ph:image-bold",
+    url: "https://tinypng.com/",
+    description: "在线图片压缩，博客配图必备",
+  },
+  {
+    name: "Excalidraw",
+    icon: "ph:pencil-line-bold",
+    url: "https://excalidraw.com/",
+    description: "手绘风格白板，画示意图很好看",
+  },
+] as const;
+
+// 技能标签（about 页使用）
+export const SKILLS = ["HTML / CSS", "JavaScript", "TypeScript", "React", "Next.js", "Node.js"] as const;
+
+// 时间线（about 页使用，从新到旧）
+export const TIMELINE = [
+  { time: "2026", title: "博客全站重构", description: "用 Next.js 全栈重写个人博客，就是你现在看到的这个网站" },
+  { time: "2025", title: "开始搭建个人博客", description: "从纯手写 HTML/CSS 起步，迈出建站第一步" },
+] as const;
