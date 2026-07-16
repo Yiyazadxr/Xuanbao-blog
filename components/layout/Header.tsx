@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { NAV_LINKS, SITE } from "@/lib/constants";
+import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 // 全站吸顶导航：玻璃拟态，滚动后加深背景；移动端折叠为汉堡菜单
@@ -90,14 +91,7 @@ export function Header() {
 
         <div className="flex items-center gap-1">
           <ThemeToggle />
-          {/* 登录入口（Phase 3 接入登录态） */}
-          <Link
-            href="/login"
-            aria-label="登录"
-            className="hidden size-10 cursor-pointer items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-foreground/10 hover:text-foreground focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent md:inline-flex"
-          >
-            <Icon icon="ph:user-circle-bold" width={22} height={22} />
-          </Link>
+          <UserMenu />
           {/* 移动端汉堡按钮 */}
           <button
             type="button"
@@ -139,12 +133,6 @@ export function Header() {
                 </Link>
               );
             })}
-            <Link
-              href="/login"
-              className="rounded-lg px-4 py-3 text-base font-medium text-muted transition-colors duration-200 hover:bg-foreground/5 hover:text-foreground"
-            >
-              登录
-            </Link>
           </div>
         </div>
       )}

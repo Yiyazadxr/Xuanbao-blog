@@ -3,7 +3,7 @@ import { Geist_Mono, Space_Grotesk } from "next/font/google";
 import "./globals.css";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
-import { ThemeProvider } from "@/components/ThemeProvider";
+import { Providers } from "@/components/Providers";
 import { SITE } from "@/lib/constants";
 
 // 展示字体：仅拉丁字符（标题里的英文/数字），中文回落系统字体栈
@@ -40,11 +40,11 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-dvh flex-col">
-        <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+        <Providers>
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />
-        </ThemeProvider>
+        </Providers>
       </body>
     </html>
   );
