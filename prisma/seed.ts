@@ -12,7 +12,8 @@ const prisma = new PrismaClient({ adapter });
 
 async function main() {
   // 1. 博主 ADMIN 账号（凭据从 .env 读取，未配置时用默认值）
-  const adminEmail = process.env.ADMIN_EMAIL ?? "admin@example.com";
+  // 邮箱统一小写：登录时 authorize 会把输入转小写查库，此处必须一致
+  const adminEmail = (process.env.ADMIN_EMAIL ?? "admin@example.com").trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD ?? "admin123456";
   const adminName = process.env.ADMIN_NAME ?? "暄宝xr";
 

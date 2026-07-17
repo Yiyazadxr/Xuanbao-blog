@@ -24,9 +24,12 @@ export function MaskedText({
   }
 
   return (
-    <span className={className} aria-label={text} role="text">
+    <span className={className}>
+      {/* 屏幕阅读器读完整文本（role="text" 非标准，用 sr-only 方案）；动画字符层整体隐藏 */}
+      <span className="sr-only">{text}</span>
+      <span aria-hidden>
       {chars.map((char, i) => (
-        <span key={i} aria-hidden className="inline-block overflow-hidden align-bottom">
+        <span key={i} className="inline-block overflow-hidden align-bottom">
           <motion.span
             className="inline-block will-change-transform"
             initial={{ y: "110%" }}
@@ -41,6 +44,7 @@ export function MaskedText({
           </motion.span>
         </span>
       ))}
+      </span>
     </span>
   );
 }

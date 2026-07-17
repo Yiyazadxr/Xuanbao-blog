@@ -73,20 +73,29 @@ export async function registerWithInvite({
   if (existing) return { ok: false, error: "该邮箱已注册，请直接登录" };
 
   const hashed = await bcrypt.hash(password, 10);
-  await prisma.$transaction(async (tx) => {
-    const user = await tx.user.create({
-      data: { name: name.trim(), email: normalized, password: hashed, role: "READER" },
+  try {
+    await prisma.$transaction(async (tx) => {
+      const user = await tx.user.create({
+        data: { name: name.trim(), email: normalized, password: hashed, role: "READER" },
+      });
+      // 原子抢占邀请码：条件更新（usedById 仍为空才生效），防止并发时同一邀请码被两个账号使用
+      const claimed = await tx.inviteCode.updateMany({
+        where: { id: invite.id, usedById: null },
+        data: { usedById: user.id },
+      });
+      if (claimed.count === 0) throw new Error("INVITE_TAKEN");
+      // 同步把对应申请标记为已通过
+      await tx.accountRequest.updateMany({
+        where: { email: normalized, status: "PENDING" },
+        data: { status: "APPROVED" },
+      });
     });
-    await tx.inviteCode.update({
-      where: { id: invite.id },
-      data: { usedById: user.id },
-    });
-    // 同步把对应申请标记为已通过
-    await tx.accountRequest.updateMany({
-      where: { email: normalized, status: "PENDING" },
-      data: { status: "APPROVED" },
-    });
-  });
+  } catch (e) {
+    if (e instanceof Error && e.message === "INVITE_TAKEN") {
+      return { ok: false, error: "邀请码刚刚被别人使用了" };
+    }
+    throw e;
+  }
 
   return { ok: true };
 }

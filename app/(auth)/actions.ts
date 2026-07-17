@@ -62,6 +62,7 @@ export async function registerAction(
     return { ok: false, error: "请输入有效的邮箱地址" };
   }
   if (password.length < 8) return { ok: false, error: "密码至少 8 位" };
+  if (password.length > 72) return { ok: false, error: "密码最长 72 位" }; // bcrypt 上限
 
   const result = await registerWithInvite({ code, email, password, name });
   return result.ok
