@@ -4,8 +4,10 @@ import { Icon } from "@iconify/react";
 import { motion, useReducedMotion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useSyncExternalStore } from "react";
 import { SITE } from "@/lib/constants";
+import { EASE_OUT } from "@/lib/motion";
+import { MaskedLine, MaskedText } from "@/components/ui/MaskedText";
 
 // R3F 粒子层体积大且依赖 WebGL，动态引入并关闭 SSR
 const HeroParticles = dynamic(
@@ -33,6 +35,24 @@ export function Hero() {
   const reduceMotion = useReducedMotion();
   const isDesktop = useIsDesktop();
   const glowRef = useRef<HTMLDivElement>(null);
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // 章节变色：Hero 在视口内时给 <html> 挂 home-in-hero，全站临时切深色配色
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        document.documentElement.classList.toggle("home-in-hero", entry.isIntersecting);
+      },
+      { threshold: 0.15 }
+    );
+    observer.observe(section);
+    return () => {
+      observer.disconnect();
+      document.documentElement.classList.remove("home-in-hero");
+    };
+  }, []);
 
   // 鼠标跟随光晕：直接写 transform，不触发 React 重渲染；首次移动前保持透明
   function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
@@ -49,12 +69,13 @@ export function Hero() {
     visible: (i: number) => ({
       opacity: 1,
       y: 0,
-      transition: { duration: 0.7, delay: 0.12 * i, ease: [0.22, 1, 0.36, 1] as const },
+      transition: { duration: 0.7, delay: 0.12 * i, ease: EASE_OUT },
     }),
   };
 
   return (
     <section
+      ref={sectionRef}
       onMouseMove={handleMouseMove}
       className="relative flex min-h-dvh flex-col justify-center overflow-hidden bg-[#0a0a0b] text-[#fafaf9]"
     >
@@ -88,20 +109,16 @@ export function Hero() {
           Blog · Life · Code
         </motion.p>
 
-        {/* 超大字标题：中英混排，clamp 自适应 */}
-        <motion.h1
-          custom={1}
-          initial="hidden"
-          animate="visible"
-          variants={fadeUp}
-          className="font-display text-[clamp(3rem,9vw,7.5rem)] leading-[1.05] font-bold tracking-tight"
-        >
-          你好，我是
-          <br />
-          <span className="bg-gradient-to-r from-[#a78bfa] via-[#818cf8] to-[#22d3ee] bg-clip-text text-transparent">
+        {/* 超大字标题：第一行逐字揭开，渐变行整行揭开 */}
+        <h1 className="font-display text-[clamp(3rem,9vw,7.5rem)] leading-[1.05] font-bold tracking-tight">
+          <MaskedText text="你好，我是" delay={0.15} />
+          <MaskedLine
+            delay={0.55}
+            className="bg-gradient-to-r from-[#a78bfa] via-[#818cf8] to-[#22d3ee] bg-clip-text pb-2 text-transparent"
+          >
             暄宝xr
-          </span>
-        </motion.h1>
+          </MaskedLine>
+        </h1>
 
         <motion.p
           custom={2}
@@ -141,24 +158,31 @@ export function Hero() {
         </motion.div>
       </div>
 
-      {/* 底部滚动提示 */}
-      {!reduceMotion && (
-        <motion.div
-          aria-hidden
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 1.4, duration: 0.8 }}
-          className="absolute bottom-8 left-1/2 -translate-x-1/2"
-        >
-          <motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="text-[#a1a1aa]"
-          >
-            <Icon icon="ph:arrow-down-bold" width={18} height={18} />
-          </motion.div>
-        </motion.div>
-      )}
+      {/* 底部跑马灯：无限滚动关键词条（学自 sondaven.com） */}
+      <motion.div
+        aria-hidden
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1.4, duration: 0.8 }}
+        className="absolute inset-x-0 bottom-0 overflow-hidden border-t border-white/10 py-4"
+      >
+        <div className="animate-marquee flex w-max whitespace-nowrap">
+          {[0, 1].map((dup) => (
+            <span key={dup} className="flex shrink-0">
+              {["博客", "Blog", "代码", "Code", "生活", "Life", "记录", "Design"].map(
+                (word) => (
+                  <span
+                    key={word}
+                    className="font-display mx-8 text-sm uppercase tracking-[0.3em] text-white/25"
+                  >
+                    {word} ✦
+                  </span>
+                )
+              )}
+            </span>
+          ))}
+        </div>
+      </motion.div>
     </section>
   );
 }
