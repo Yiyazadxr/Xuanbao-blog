@@ -1,7 +1,8 @@
 import { Icon } from "@iconify/react";
 import type { Metadata } from "next";
+import { EmailCard, MailtoButton } from "@/components/ui/EmailCard";
 import { QQCard } from "@/components/ui/QQCard";
-import { CONTACT, FRIEND_LINKS, SOCIAL_LINKS } from "@/lib/constants";
+import { FRIEND_LINKS, SOCIAL_LINKS } from "@/lib/constants";
 
 export const metadata: Metadata = { title: "社交" };
 
@@ -32,6 +33,7 @@ export default function SocialPage() {
             </span>
           </a>
         ))}
+        <EmailCard />
         <QQCard />
       </div>
 
@@ -39,13 +41,10 @@ export default function SocialPage() {
       {FRIEND_LINKS.length === 0 ? (
         <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border p-10 text-center">
           <p className="text-sm text-muted">想和我交换友链？随时欢迎联系我</p>
-          <a
-            href={`mailto:${CONTACT.email}`}
-            className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90"
-          >
+          <MailtoButton className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90">
             <Icon icon="ph:envelope-bold" width={16} height={16} aria-hidden />
             联系我
-          </a>
+          </MailtoButton>
         </div>
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

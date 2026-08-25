@@ -4,7 +4,7 @@ import { getArchive } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "归档" };
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 // 时间线归档：按年分组，最新的在上面
 export default async function ArchivePage() {

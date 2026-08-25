@@ -1,6 +1,7 @@
 "use client";
 
 import { Canvas, useFrame } from "@react-three/fiber";
+import { useTheme } from "next-themes";
 import { useMemo, useRef } from "react";
 import * as THREE from "three";
 
@@ -15,8 +16,8 @@ function mulberry32(seed: number) {
   };
 }
 
-// 粒子场：缓慢自转 + 鼠标视差（只在 Hero 深色背景上使用）
-function Particles({ count = 2400 }: { count?: number }) {
+// 粒子场：缓慢自转 + 鼠标视差；颜色随主题切换（亮色用深紫，暗色用亮紫）
+function Particles({ count = 2400, dark }: { count?: number; dark: boolean }) {
   const ref = useRef<THREE.Points>(null);
 
   // 随机分布在扁平的空间盒里，营造星野纵深感
@@ -55,9 +56,9 @@ function Particles({ count = 2400 }: { count?: number }) {
       </bufferGeometry>
       <pointsMaterial
         size={0.04}
-        color="#a78bfa"
+        color={dark ? "#a78bfa" : "#6d28d9"}
         transparent
-        opacity={0.55}
+        opacity={dark ? 0.55 : 0.3}
         sizeAttenuation
         depthWrite={false}
       />
@@ -67,6 +68,9 @@ function Particles({ count = 2400 }: { count?: number }) {
 
 // Hero 背景粒子层（Canvas 挂在绝对定位容器里，指针事件穿透）
 export function HeroParticles() {
+  const { resolvedTheme } = useTheme();
+  const dark = resolvedTheme === "dark";
+
   return (
     <Canvas
       camera={{ position: [0, 0, 8], fov: 60 }}
@@ -74,7 +78,8 @@ export function HeroParticles() {
       gl={{ antialias: false, alpha: true, powerPreference: "low-power" }}
       style={{ pointerEvents: "none" }}
     >
-      <Particles />
+      <Particles dark={dark} />
     </Canvas>
   );
 }
+

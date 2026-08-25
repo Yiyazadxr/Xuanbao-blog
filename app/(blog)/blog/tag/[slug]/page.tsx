@@ -5,7 +5,7 @@ import { Pagination } from "@/components/ui/Pagination";
 import { getPosts } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
 export async function generateMetadata({
   params,

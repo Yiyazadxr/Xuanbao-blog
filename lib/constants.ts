@@ -7,7 +7,8 @@ export const SITE = {
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 };
 
-// 联系方式（集中管理，避免散落硬编码）
+// 联系方式（集中管理，避免散落硬编码）。
+// 邮箱与 QQ 号仅在客户端组件中拼接渲染，不出现在 SSR HTML（见 EmailCard / QQCard）
 export const CONTACT = {
   email: "412110785@qq.com",
   qq: "412110785",
@@ -25,19 +26,13 @@ export const NAV_LINKS = [
 /* ===== 以下为内容配置：改这里即可更新对应页面 ===== */
 
 // 社交链接（social 页 + 关于页使用）
-// 注意：QQ 号不在此列，改为客户端组件 QQCard 反爬取渲染，见 components/ui/QQCard.tsx
+// 注意：QQ 号 / 邮箱不在此列，改为客户端组件 QQCard / EmailCard 反爬取渲染
 export const SOCIAL_LINKS = [
   {
     name: "GitHub",
     icon: "ph:github-logo-bold",
     url: "https://github.com/Yiyazadxr",
     description: "我的开源项目和代码",
-  },
-  {
-    name: "邮箱",
-    icon: "ph:envelope-bold",
-    url: `mailto:${CONTACT.email}`,
-    description: "合作与交流请发邮件",
   },
 ] as const;
 

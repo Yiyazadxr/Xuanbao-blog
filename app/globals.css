@@ -31,6 +31,9 @@
   --border: rgba(255, 255, 255, 0.08);
   --accent: #a78bfa;
   --accent-foreground: #17103a;
+  /* Hero 光斑：暗色模式用更亮的光斑，避免过于暗淡 */
+  --glow-1: rgba(167, 139, 250, 0.28);
+  --glow-2: rgba(34, 211, 238, 0.18);
 }
 
 @theme inline {

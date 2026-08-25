@@ -2,24 +2,25 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
 import { PostList } from "@/components/blog/PostList";
-import { SearchBox } from "@/components/blog/SearchBox";
+import { PostSearch } from "@/components/blog/PostSearch";
 import { Pagination } from "@/components/ui/Pagination";
-import { getCategoriesWithCount, getPosts } from "@/lib/posts";
+import { getCategoriesWithCount, getPosts, getSearchIndex } from "@/lib/posts";
 
 export const metadata: Metadata = { title: "文章" };
-export const dynamic = "force-dynamic";
+export const revalidate = 60;
 
-// 文章列表页：分页 + ?q= 搜索 + 分类快捷入口
+// 文章列表页：分页 + 客户端模糊搜索 + 分类快捷入口
 export default async function BlogPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; q?: string }>;
+  searchParams: Promise<{ page?: string }>;
 }) {
-  const { page: pageParam, q } = await searchParams;
+  const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
-  const [{ posts, total, totalPages }, categories] = await Promise.all([
-    getPosts({ page, q }),
+  const [{ posts, total, totalPages }, categories, searchIndex] = await Promise.all([
+    getPosts({ page }),
     getCategoriesWithCount(),
+    getSearchIndex(),
   ]);
 
   return (
@@ -27,12 +28,10 @@ export default async function BlogPage({
       <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
         <div>
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">文章</h1>
-          <p className="mt-3 text-muted">
-            {q ? `「${q}」的搜索结果，共 ${total} 篇` : `共 ${total} 篇文章`}
-          </p>
+          <p className="mt-3 text-muted">共 {total} 篇文章</p>
         </div>
         <Suspense>
-          <SearchBox />
+          <PostSearch index={searchIndex} />
         </Suspense>
       </div>
 
@@ -61,7 +60,7 @@ export default async function BlogPage({
         <PostList posts={posts} />
       </div>
 
-      <Pagination page={page} totalPages={totalPages} basePath="/blog" searchParams={{ q }} />
+      <Pagination page={page} totalPages={totalPages} basePath="/blog" />
     </>
   );
 }
