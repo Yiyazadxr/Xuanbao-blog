@@ -68,7 +68,7 @@ async function main() {
   });
   assert("已用邀请码被拒", reuse.ok === false);
 
-  // 8. 注册后申请状态变为 APPROVED、用户角色为 READER
+  // 8. 注册后申请状态变为 APPROVED、用户角色为 MEMBER
   const req = await prisma.accountRequest.findFirst({ where: { email: TEST_EMAIL } });
   const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL } });
   assert("申请状态已变更为 APPROVED", req?.status === "APPROVED");

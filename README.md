@@ -21,7 +21,7 @@ npx prisma db seed         # 填充种子数据（默认分类 + 示例文章 + 
 pnpm dev                   # 启动开发服务器 → http://localhost:3000
 ```
 
-管理员账号来自 `.env` 的 `ADMIN_EMAIL` / `ADMIN_PASSWORD`（种子脚本创建）。
+超级管理员账号来自 `.env` 的 `ADMIN_EMAIL` / `ADMIN_PASSWORD`（种子脚本创建，角色为 SUPER_ADMIN）。
 
 常用命令：
 
