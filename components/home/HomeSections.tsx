@@ -1,19 +1,13 @@
 import Link from "next/link";
 import { PostCard } from "@/components/blog/PostCard";
 import { Reveal } from "@/components/ui/Reveal";
-import { getCategoriesWithCount, getPosts } from "@/lib/posts";
-import { prisma } from "@/lib/prisma";
+import { getCategoriesWithCount, getFeaturedPosts, getPosts } from "@/lib/posts";
 
 // 首页下半部分：精选文章 + 最新文章 + 分类入口（服务端取数）
 export async function HomeSections() {
   const [featured, { posts: latest }, categories] = await Promise.all([
-    prisma.post.findMany({
-      where: { published: true, archived: false, featured: true },
-      orderBy: { createdAt: "desc" },
-      take: 3,
-      include: { category: true, tags: { include: { tag: true } } },
-    }),
-    getPosts({ page: 1 }),
+    getFeaturedPosts(),
+    getPosts(),
     getCategoriesWithCount(),
   ]);
 

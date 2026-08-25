@@ -1,24 +1,17 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PostList } from "@/components/blog/PostList";
+import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { PostSearch } from "@/components/blog/PostSearch";
-import { Pagination } from "@/components/ui/Pagination";
 import { getCategoriesWithCount, getPosts, getSearchIndex } from "@/lib/posts";
 
 export const metadata: Metadata = { title: "文章" };
 export const revalidate = 60;
 
-// 文章列表页：分页 + 客户端模糊搜索 + 分类快捷入口
-export default async function BlogPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ page?: string }>;
-}) {
-  const { page: pageParam } = await searchParams;
-  const page = Math.max(1, Number(pageParam) || 1);
-  const [{ posts, total, totalPages }, categories, searchIndex] = await Promise.all([
-    getPosts({ page }),
+// 文章列表页：服务端一次性取全部文章（ISR），分页在客户端完成 + 客户端模糊搜索
+export default async function BlogPage() {
+  const [{ posts, total }, categories, searchIndex] = await Promise.all([
+    getPosts(),
     getCategoriesWithCount(),
     getSearchIndex(),
   ]);
@@ -30,9 +23,7 @@ export default async function BlogPage({
           <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">文章</h1>
           <p className="mt-3 text-muted">共 {total} 篇文章</p>
         </div>
-        <Suspense>
-          <PostSearch index={searchIndex} />
-        </Suspense>
+        <PostSearch index={searchIndex} />
       </div>
 
       {/* 分类快捷入口 + 归档 */}
@@ -57,10 +48,10 @@ export default async function BlogPage({
       </div>
 
       <div className="mt-10">
-        <PostList posts={posts} />
+        <Suspense>
+          <PostListPaginated posts={posts} basePath="/blog" />
+        </Suspense>
       </div>
-
-      <Pagination page={page} totalPages={totalPages} basePath="/blog" />
     </>
   );
 }

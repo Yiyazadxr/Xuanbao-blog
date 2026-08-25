@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { PostListItem } from "@/lib/posts";
-import { formatDate, plainExcerpt, readingTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 
 // 文章卡片：列表页/首页复用
 export function PostCard({ post }: { post: PostListItem }) {
@@ -16,7 +16,7 @@ export function PostCard({ post }: { post: PostListItem }) {
           </Link>
         )}
         <time dateTime={post.createdAt.toISOString()}>{formatDate(post.createdAt)}</time>
-        <span>约 {readingTime(post.content)} 分钟</span>
+        <span>约 {post.readingTime} 分钟</span>
       </div>
 
       <h3 className="mt-4 text-lg font-bold leading-snug tracking-tight">
@@ -30,7 +30,7 @@ export function PostCard({ post }: { post: PostListItem }) {
       </h3>
 
       <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted">
-        {post.excerpt || plainExcerpt(post.content)}
+        {post.excerpt}
       </p>
 
       {post.tags.length > 0 && (

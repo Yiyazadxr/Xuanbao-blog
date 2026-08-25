@@ -1,11 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { PostList } from "@/components/blog/PostList";
-import { Pagination } from "@/components/ui/Pagination";
+import { Suspense } from "react";
+import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { getPosts } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 60;
+
+export async function generateStaticParams() {
+  const categories = await prisma.category.findMany({ select: { slug: true } });
+  return categories.map((c) => ({ slug: c.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -19,17 +24,14 @@ export async function generateMetadata({
 
 export default async function CategoryPage({
   params,
-  searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ page?: string }>;
 }) {
-  const [{ slug }, { page: pageParam }] = await Promise.all([params, searchParams]);
+  const { slug } = await params;
   const cat = await prisma.category.findUnique({ where: { slug } });
   if (!cat) notFound();
 
-  const page = Math.max(1, Number(pageParam) || 1);
-  const { posts, total, totalPages } = await getPosts({ page, categorySlug: slug });
+  const { posts, total } = await getPosts({ categorySlug: slug });
 
   return (
     <>
@@ -39,14 +41,10 @@ export default async function CategoryPage({
       {cat.description && <p className="mt-2 text-muted">{cat.description}</p>}
       <p className="mt-1 text-sm text-muted">共 {total} 篇文章</p>
       <div className="mt-8">
-        <PostList posts={posts} />
+        <Suspense>
+          <PostListPaginated posts={posts} basePath={`/blog/category/${slug}`} />
+        </Suspense>
       </div>
-      <Pagination
-        page={page}
-        totalPages={totalPages}
-        basePath={`/blog/category/${slug}`}
-        searchParams={{ page: page > 1 ? String(page) : undefined }}
-      />
     </>
   );
 }

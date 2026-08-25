@@ -1,18 +1,57 @@
 // 文章数据查询层：所有文章相关的数据库读写集中在这里
 import { prisma } from "@/lib/prisma";
-
-export const PAGE_SIZE = 9;
+import { plainExcerpt, readingTime } from "@/lib/utils";
 
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
 const PUBLISHED_FILTER = { published: true, archived: false } as const;
 
-// 文章列表（分页 + 分类/标签筛选，仅公开可见；置顶优先）
+// 列表项类型：不含正文，readingTime 与摘要已在服务端算好（供卡片/客户端分页使用）
+export type PostListItem = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string;
+  readingTime: number;
+  createdAt: Date;
+  category: { id: string; name: string; slug: string } | null;
+  tags: { tag: { id: string; name: string; slug: string } }[];
+};
+
+type ListPostRow = {
+  id: string;
+  slug: string;
+  title: string;
+  excerpt: string | null;
+  content: string;
+  createdAt: Date;
+  category: { id: string; name: string; slug: string } | null;
+  tags: { tag: { id: string; name: string; slug: string } }[];
+};
+
+// 把数据库行映射为轻量列表项（服务端算好摘要与阅读时长，正文不下发到客户端）
+function toListItem(row: ListPostRow): PostListItem {
+  return {
+    id: row.id,
+    slug: row.slug,
+    title: row.title,
+    excerpt: row.excerpt ?? plainExcerpt(row.content),
+    readingTime: readingTime(row.content),
+    createdAt: row.createdAt,
+    category: row.category,
+    tags: row.tags,
+  };
+}
+
+const listInclude = {
+  category: true,
+  tags: { include: { tag: true } },
+} as const;
+
+// 文章列表（全部公开文章，客户端分页；置顶优先）
 export async function getPosts({
-  page = 1,
   categorySlug,
   tagSlug,
 }: {
-  page?: number;
   categorySlug?: string;
   tagSlug?: string;
 } = {}) {
@@ -22,25 +61,26 @@ export async function getPosts({
     ...(tagSlug ? { tags: { some: { tag: { slug: tagSlug } } } } : {}),
   };
 
-  const [posts, total] = await Promise.all([
-    prisma.post.findMany({
-      where,
-      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-      skip: (page - 1) * PAGE_SIZE,
-      take: PAGE_SIZE,
-      include: {
-        category: true,
-        tags: { include: { tag: true } },
-      },
-    }),
-    prisma.post.count({ where }),
-  ]);
+  const rows = await prisma.post.findMany({
+    where,
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    include: listInclude,
+  });
 
-  return { posts, total, totalPages: Math.max(1, Math.ceil(total / PAGE_SIZE)) };
+  const posts = rows.map(toListItem);
+  return { posts, total: posts.length };
 }
 
-// 列表项类型（组件 props 用）
-export type PostListItem = Awaited<ReturnType<typeof getPosts>>["posts"][number];
+// 首页精选文章
+export async function getFeaturedPosts() {
+  const rows = await prisma.post.findMany({
+    where: { ...PUBLISHED_FILTER, featured: true },
+    orderBy: { createdAt: "desc" },
+    take: 3,
+    include: listInclude,
+  });
+  return rows.map(toListItem);
+}
 
 // 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）
 export async function getSearchIndex() {
