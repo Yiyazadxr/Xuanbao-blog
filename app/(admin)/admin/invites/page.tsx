@@ -4,11 +4,14 @@ import {
   DeleteInviteButton,
   RequestActions,
 } from "@/components/admin/InviteActions";
+import { Pagination } from "@/components/ui/Pagination";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "申请与邀请码" };
 export const dynamic = "force-dynamic";
+
+const PAGE_SIZE = 20;
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   PENDING: { text: "待处理", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
@@ -16,16 +19,33 @@ const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   REJECTED: { text: "已拒绝", cls: "bg-red-500/10 text-red-500" },
 };
 
-// 账号申请列表 + 邀请码管理
-export default async function AdminInvitesPage() {
-  const [requests, invites] = await Promise.all([
-    prisma.accountRequest.findMany({ orderBy: { createdAt: "desc" }, take: 50 }),
+// 账号申请列表 + 邀请码管理（两处均分页）
+export default async function AdminInvitesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ req?: string; inv?: string }>;
+}) {
+  const { req: reqParam, inv: invParam } = await searchParams;
+  const reqPage = Math.max(1, Number(reqParam) || 1);
+  const invPage = Math.max(1, Number(invParam) || 1);
+
+  const [requests, reqTotal, invites, invTotal] = await Promise.all([
+    prisma.accountRequest.findMany({
+      orderBy: { createdAt: "desc" },
+      skip: (reqPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+    }),
+    prisma.accountRequest.count(),
     prisma.inviteCode.findMany({
       orderBy: { createdAt: "desc" },
-      take: 50,
+      skip: (invPage - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
       include: { usedBy: { select: { name: true, email: true } } },
     }),
+    prisma.inviteCode.count(),
   ]);
+  const reqTotalPages = Math.max(1, Math.ceil(reqTotal / PAGE_SIZE));
+  const invTotalPages = Math.max(1, Math.ceil(invTotal / PAGE_SIZE));
 
   return (
     <>
@@ -67,6 +87,13 @@ export default async function AdminInvitesPage() {
           </ul>
         )}
       </div>
+
+      <Pagination
+        page={reqPage}
+        totalPages={reqTotalPages}
+        basePath="/admin/invites"
+        searchParams={{ inv: invPage > 1 ? String(invPage) : undefined }}
+      />
 
       {/* 邀请码 */}
       <h2 className="mt-10 text-lg font-bold">邀请码</h2>
@@ -114,6 +141,13 @@ export default async function AdminInvitesPage() {
           </ul>
         )}
       </div>
+
+      <Pagination
+        page={invPage}
+        totalPages={invTotalPages}
+        basePath="/admin/invites"
+        searchParams={{ req: reqPage > 1 ? String(reqPage) : undefined }}
+      />
     </>
   );
 }

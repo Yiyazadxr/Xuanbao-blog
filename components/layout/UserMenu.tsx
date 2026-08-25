@@ -5,12 +5,17 @@ import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { canAccessAdmin } from "@/lib/roles";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // 导航栏右侧用户区：未登录显示登录图标；已登录显示头像下拉菜单
 export function UserMenu() {
   const { data: session, status } = useSession();
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // 下拉打开时锁定焦点、关闭时归还给触发按钮
+  useFocusTrap(panelRef, open);
 
   // 点击外部 / Escape 关闭下拉
   useEffect(() => {
@@ -66,6 +71,7 @@ export function UserMenu() {
 
       {open && (
         <div
+          ref={panelRef}
           role="menu"
           className="absolute right-0 top-12 w-44 overflow-hidden rounded-xl border border-border bg-background shadow-lg"
         >

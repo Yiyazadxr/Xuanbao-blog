@@ -3,8 +3,15 @@ export const SITE = {
   name: "Xuanbao.dev",
   shortName: "暄宝xr",
   description: "暄宝xr的个人博客——记录技术、生活与一切让我着迷的东西。",
-  url: "http://localhost:3000", // 部署后替换为正式域名
+  // 生产环境通过 NEXT_PUBLIC_SITE_URL 注入正式域名，用于 sitemap/RSS/元数据
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
 };
+
+// 联系方式（集中管理，避免散落硬编码）
+export const CONTACT = {
+  email: "412110785@qq.com",
+  qq: "412110785",
+} as const;
 
 // 顶部导航栏目
 export const NAV_LINKS = [
@@ -29,7 +36,7 @@ export const SOCIAL_LINKS = [
   {
     name: "邮箱",
     icon: "ph:envelope-bold",
-    url: "mailto:412110785@qq.com",
+    url: `mailto:${CONTACT.email}`,
     description: "合作与交流请发邮件",
   },
 ] as const;

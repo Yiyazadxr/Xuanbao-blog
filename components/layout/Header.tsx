@@ -8,6 +8,7 @@ import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // 全站吸顶导航：玻璃拟态，滚动后加深背景；移动端折叠为汉堡菜单
 export function Header() {
@@ -24,15 +25,8 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 移动端菜单打开时把焦点移到第一个导航链接，关闭时归还给汉堡按钮
-  useEffect(() => {
-    if (menuOpen) {
-      const firstLink = menuPanelRef.current?.querySelector<HTMLAnchorElement>("a");
-      firstLink?.focus();
-    } else {
-      menuBtnRef.current?.focus();
-    }
-  }, [menuOpen]);
+  // 移动端菜单打开时锁定焦点、关闭时归还给汉堡按钮
+  useFocusTrap(menuPanelRef, menuOpen);
 
   // Escape 键关闭移动端菜单
   useEffect(() => {

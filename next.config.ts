@@ -1,5 +1,32 @@
 import type { NextConfig } from "next";
 
+// 基础安全响应头（dev/prod 都生效，无副作用）
+const baseSecurityHeaders = [
+  { key: "X-Frame-Options", value: "DENY" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+  { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+  { key: "X-DNS-Prefetch-Control", value: "on" },
+  { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
+];
+
+// CSP 仅在生产环境启用，避免干扰 Turbopack 开发模式（HMR/eval）
+// script-src 'unsafe-inline' 为 next-themes 注入内联脚本所需；style-src 'unsafe-inline' 为 React/framer-motion 内联样式所需
+const cspHeader = {
+  key: "Content-Security-Policy",
+  value: [
+    "default-src 'self'",
+    "script-src 'self' 'unsafe-inline'",
+    "style-src 'self' 'unsafe-inline'",
+    "img-src 'self' data: https://avatars.githubusercontent.com https://*.githubusercontent.com",
+    "font-src 'self' data:",
+    "connect-src 'self' https://api.iconify.design",
+    "object-src 'none'",
+    "base-uri 'self'",
+    "form-action 'self'",
+    "frame-ancestors 'none'",
+  ].join("; "),
+};
+
 const nextConfig: NextConfig = {
   images: {
     formats: ["image/webp"],
@@ -7,6 +34,15 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       { protocol: "https", hostname: "**.githubusercontent.com" },
     ],
+  },
+  async headers() {
+    const isProd = process.env.NODE_ENV === "production";
+    return [
+      {
+        source: "/(.*)",
+        headers: isProd ? [...baseSecurityHeaders, cspHeader] : baseSecurityHeaders,
+      },
+    ];
   },
 };
 

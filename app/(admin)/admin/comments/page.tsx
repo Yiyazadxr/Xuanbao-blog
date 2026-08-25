@@ -1,25 +1,39 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CommentModerationActions } from "@/components/admin/CommentModerationActions";
+import { Pagination } from "@/components/ui/Pagination";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "评论审核" };
 export const dynamic = "force-dynamic";
 
-// 评论审核：待审在前，已通过在后
-export default async function AdminCommentsPage() {
-  const comments = await prisma.comment.findMany({
-    orderBy: [{ isApproved: "asc" }, { createdAt: "desc" }],
-    take: 100,
-    include: {
-      author: { select: { name: true, email: true } },
-      post: { select: { title: true, slug: true } },
-      parent: { select: { content: true, author: { select: { name: true } } } },
-    },
-  });
+const PAGE_SIZE = 20;
 
-  const pendingCount = comments.filter((c) => !c.isApproved).length;
+// 评论审核：待审在前，已通过在后，分页
+export default async function AdminCommentsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  const [comments, total, pendingCount] = await Promise.all([
+    prisma.comment.findMany({
+      orderBy: [{ isApproved: "asc" }, { createdAt: "desc" }],
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: {
+        author: { select: { name: true, email: true } },
+        post: { select: { title: true, slug: true } },
+        parent: { select: { content: true, author: { select: { name: true } } } },
+      },
+    }),
+    prisma.comment.count(),
+    prisma.comment.count({ where: { isApproved: false } }),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -74,6 +88,8 @@ export default async function AdminCommentsPage() {
           </ul>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} basePath="/admin/comments" />
     </>
   );
 }

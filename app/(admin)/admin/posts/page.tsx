@@ -1,18 +1,34 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { PostRowActions } from "@/components/admin/PostRowActions";
+import { Pagination } from "@/components/ui/Pagination";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "文章管理" };
 export const dynamic = "force-dynamic";
 
-// 文章管理列表：全部文章（含草稿）
-export default async function AdminPostsPage() {
-  const posts = await prisma.post.findMany({
-    orderBy: { updatedAt: "desc" },
-    include: { category: true },
-  });
+const PAGE_SIZE = 20;
+
+// 文章管理列表：全部文章（含草稿），分页
+export default async function AdminPostsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const { page: pageParam } = await searchParams;
+  const page = Math.max(1, Number(pageParam) || 1);
+
+  const [posts, total] = await Promise.all([
+    prisma.post.findMany({
+      orderBy: { updatedAt: "desc" },
+      skip: (page - 1) * PAGE_SIZE,
+      take: PAGE_SIZE,
+      include: { category: true },
+    }),
+    prisma.post.count(),
+  ]);
+  const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
   return (
     <>
@@ -78,6 +94,8 @@ export default async function AdminPostsPage() {
           </ul>
         )}
       </div>
+
+      <Pagination page={page} totalPages={totalPages} basePath="/admin/posts" />
     </>
   );
 }

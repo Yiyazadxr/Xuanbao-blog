@@ -1,9 +1,10 @@
 "use client";
 
 import { Icon } from "@iconify/react";
+import { CONTACT } from "@/lib/constants";
 
 // QQ 联系卡片：QQ 号拆分为片段，仅在客户端拼接，避免明文出现在 SSR HTML 里被爬虫抓取
-const QQ_PARTS = ["412", "110", "785"] as const;
+const QQ_PARTS = [CONTACT.qq.slice(0, 3), CONTACT.qq.slice(3, 6), CONTACT.qq.slice(6)];
 
 export function QQCard() {
   function openQQ() {

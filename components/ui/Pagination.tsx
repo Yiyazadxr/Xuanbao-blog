@@ -37,9 +37,11 @@ export function Pagination({
           上一页
         </Link>
       ) : (
-        <span className={disabledCls}>上一页</span>
+        <span className={disabledCls} aria-disabled="true">
+          上一页
+        </span>
       )}
-      <span className="text-sm text-muted">
+      <span className="text-sm text-muted" aria-live="polite">
         第 {page} / {totalPages} 页
       </span>
       {page < totalPages ? (
@@ -47,7 +49,9 @@ export function Pagination({
           下一页
         </Link>
       ) : (
-        <span className={disabledCls}>下一页</span>
+        <span className={disabledCls} aria-disabled="true">
+          下一页
+        </span>
       )}
     </nav>
   );

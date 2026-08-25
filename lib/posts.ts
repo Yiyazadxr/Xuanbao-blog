@@ -15,16 +15,18 @@ export async function getPosts({
   tagSlug?: string;
   q?: string;
 } = {}) {
+  // 截断超长关键词：content 的 LIKE 全表扫描会随查询串变长放大，限制长度防滥用
+  const query = q?.trim().slice(0, 50);
   const where = {
     published: true,
     ...(categorySlug ? { category: { slug: categorySlug } } : {}),
     ...(tagSlug ? { tags: { some: { tag: { slug: tagSlug } } } } : {}),
-    ...(q
+    ...(query
       ? {
           OR: [
-            { title: { contains: q } },
-            { excerpt: { contains: q } },
-            { content: { contains: q } },
+            { title: { contains: query } },
+            { excerpt: { contains: query } },
+            { content: { contains: query } },
           ],
         }
       : {}),
@@ -84,8 +86,9 @@ export async function getAdjacentPosts(createdAt: Date) {
 export async function incrementViewCount(id: string) {
   try {
     await prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
-  } catch {
-    // 忽略计数失败
+  } catch (e) {
+    // 计数失败不影响渲染，记录日志便于排查
+    console.error("浏览量计数失败：", e);
   }
 }
 
