@@ -1,9 +1,10 @@
 "use server";
 
-// 后台管理 Server Actions：每个操作都先校验 ADMIN 角色（双重保险）
+// 后台管理 Server Actions：每个操作都按具体权限校验（双重保险）
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { createInviteCode } from "@/lib/invites";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
@@ -26,7 +27,7 @@ export type PostPayload = {
 export async function savePost(
   payload: PostPayload
 ): Promise<AdminActionState & { id?: string }> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
 
   const title = payload.title.trim();
@@ -40,6 +41,12 @@ export async function savePost(
     where: { slug, ...(payload.id ? { id: { not: payload.id } } : {}) },
   });
   if (dup) return { ok: false, error: `slug「${slug}」已被文章「${dup.title}」占用` };
+
+  // 校验分类存在（可选字段，但传入的值必须真实，防伪造 categoryId 触发外键错误）
+  if (payload.categoryId) {
+    const category = await prisma.category.findUnique({ where: { id: payload.categoryId } });
+    if (!category) return { ok: false, error: "分类不存在" };
+  }
 
   // 解析标签：逗号/顿号分隔，去重
   const tagNames = [
@@ -89,6 +96,7 @@ export async function savePost(
     return id;
   });
 
+  revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath("/admin/posts");
   return { ok: true, message: payload.id ? "已保存" : "已创建", id: postId };
@@ -96,9 +104,10 @@ export async function savePost(
 
 // 删除文章
 export async function deletePost(id: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
   await prisma.post.delete({ where: { id } });
+  revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath("/admin/posts");
   return { ok: true, message: "已删除" };
@@ -106,11 +115,12 @@ export async function deletePost(id: string): Promise<AdminActionState> {
 
 // 切换发布状态
 export async function togglePublish(id: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
   const post = await prisma.post.findUnique({ where: { id } });
   if (!post) return { ok: false, error: "文章不存在" };
   await prisma.post.update({ where: { id }, data: { published: !post.published } });
+  revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath("/admin/posts");
   return { ok: true, message: post.published ? "已转为草稿" : "已发布" };
@@ -118,7 +128,7 @@ export async function togglePublish(id: string): Promise<AdminActionState> {
 
 // 为申请生成绑定邮箱的邀请码
 export async function approveRequest(requestId: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
   if (!admin) return { ok: false, error: "无权限" };
   const request = await prisma.accountRequest.findUnique({ where: { id: requestId } });
   if (!request) return { ok: false, error: "申请不存在" };
@@ -129,8 +139,10 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
 
 // 拒绝申请
 export async function rejectRequest(requestId: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
   if (!admin) return { ok: false, error: "无权限" };
+  const request = await prisma.accountRequest.findUnique({ where: { id: requestId } });
+  if (!request) return { ok: false, error: "申请不存在" };
   await prisma.accountRequest.update({
     where: { id: requestId },
     data: { status: "REJECTED" },
@@ -141,7 +153,7 @@ export async function rejectRequest(requestId: string): Promise<AdminActionState
 
 // 生成不绑定邮箱的通用邀请码
 export async function createFreeInvite(): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
   if (!admin) return { ok: false, error: "无权限" };
   const invite = await createInviteCode();
   revalidatePath("/admin/invites");
@@ -150,7 +162,7 @@ export async function createFreeInvite(): Promise<AdminActionState> {
 
 // 删除未使用的邀请码
 export async function deleteInvite(id: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
   if (!admin) return { ok: false, error: "无权限" };
   const invite = await prisma.inviteCode.findUnique({ where: { id } });
   if (!invite) return { ok: false, error: "邀请码不存在" };
@@ -162,13 +174,14 @@ export async function deleteInvite(id: string): Promise<AdminActionState> {
 
 // 审核通过评论
 export async function approveComment(id: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.APPROVE_COMMENTS);
   if (!admin) return { ok: false, error: "无权限" };
-  const comment = await prisma.comment.update({
+  const comment = await prisma.comment.findUnique({
     where: { id },
-    data: { isApproved: true },
     include: { post: { select: { slug: true } } },
   });
+  if (!comment) return { ok: false, error: "评论不存在" };
+  await prisma.comment.update({ where: { id }, data: { isApproved: true } });
   revalidatePath(`/blog/${comment.post.slug}`);
   revalidatePath("/admin/comments");
   return { ok: true, message: "已通过" };
@@ -176,7 +189,7 @@ export async function approveComment(id: string): Promise<AdminActionState> {
 
 // 删除评论（连带回复一起删）
 export async function deleteComment(id: string): Promise<AdminActionState> {
-  const admin = await requireAdmin();
+  const admin = await requirePermission(PERMISSIONS.DELETE_COMMENTS);
   if (!admin) return { ok: false, error: "无权限" };
   const comment = await prisma.comment.findUnique({
     where: { id },

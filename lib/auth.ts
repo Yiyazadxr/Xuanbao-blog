@@ -3,10 +3,13 @@ import bcrypt from "bcryptjs";
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
-import { canAccessAdmin, isSuperAdmin, type Role } from "@/lib/roles";
+import { type Permission } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions-server";
+import { type Role } from "@/lib/roles";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  trustHost: true, // 本地/自托管环境信任 Host 头
+  // 本地/自托管开发环境信任 Host 头；生产默认关闭，防 Host 头注入，可用 AUTH_TRUST_HOST=true 显式开启
+  trustHost: process.env.AUTH_TRUST_HOST === "true" || process.env.NODE_ENV !== "production",
   session: { strategy: "jwt" },
   pages: { signIn: "/login" },
   providers: [
@@ -79,16 +82,10 @@ export async function getFreshUser() {
   });
 }
 
-// 后台守卫：SUPER_ADMIN 或 ADMIN 通过，否则返回 null
-export async function requireAdmin() {
+// 按具体权限校验：用户拥有该权限时返回用户，否则返回 null
+export async function requirePermission(permission: Permission) {
   const user = await getFreshUser();
-  if (!user || !canAccessAdmin(user.role)) return null;
-  return user;
-}
-
-// 超级管理员守卫：仅 SUPER_ADMIN 通过（用于用户角色管理）
-export async function requireSuperAdmin() {
-  const user = await getFreshUser();
-  if (!user || !isSuperAdmin(user.role)) return null;
-  return user;
+  if (!user) return null;
+  const ok = await hasPermission(user.role as Role, permission);
+  return ok ? user : null;
 }

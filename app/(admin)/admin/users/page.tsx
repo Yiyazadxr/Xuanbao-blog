@@ -2,20 +2,31 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { UserRowActions } from "@/components/admin/UserRowActions";
 import { getFreshUser } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions-server";
 import { prisma } from "@/lib/prisma";
-import { isSuperAdmin, ROLE_BADGE_CLS, ROLE_LABELS, type Role } from "@/lib/roles";
+import { ROLE_BADGE_CLS, ROLE_LABELS, type Role } from "@/lib/roles";
 import { formatDate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "用户管理" };
 export const dynamic = "force-dynamic";
 
-// 用户管理：仅超级管理员可见，管理成员 ↔ 管理员角色、删除用户
-export default async function AdminUsersPage() {
+// 用户管理：拥有 manage_users 权限者可见，管理成员 ↔ 管理员角色、删除用户
+export default async function AdminUsersPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string }>;
+}) {
+  const { q } = await searchParams;
   const me = await getFreshUser();
   if (!me) redirect("/");
-  if (!isSuperAdmin(me.role)) redirect("/admin");
+  if (!(await hasPermission(me.role as Role, PERMISSIONS.MANAGE_USERS))) redirect("/admin");
 
+  const keyword = q?.trim();
   const users = await prisma.user.findMany({
+    where: keyword
+      ? { OR: [{ name: { contains: keyword } }, { email: { contains: keyword } }] }
+      : undefined,
     orderBy: { createdAt: "asc" },
     include: { _count: { select: { posts: true, comments: true } } },
   });
@@ -27,7 +38,24 @@ export default async function AdminUsersPage() {
         角色层级：超级管理员 &gt; 管理员 &gt; 成员。管理员可管理文章/评论/邀请码；成员可评论点赞。
       </p>
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-border">
+      {/* 搜索 */}
+      <form action="/admin/users" method="get" className="mt-6 flex max-w-sm gap-2">
+        <input
+          type="search"
+          name="q"
+          defaultValue={keyword}
+          placeholder="搜索昵称或邮箱"
+          className="h-10 w-full rounded-xl border border-border bg-surface px-4 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
+        />
+        <button
+          type="submit"
+          className="inline-flex h-10 shrink-0 cursor-pointer items-center justify-center rounded-xl bg-accent px-4 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90"
+        >
+          搜索
+        </button>
+      </form>
+
+      <div className="mt-6 overflow-x-auto rounded-2xl border border-border">
         <table className="w-full min-w-[640px] text-sm">
           <thead className="border-b border-border bg-surface text-left text-muted">
             <tr>
@@ -40,36 +68,44 @@ export default async function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
-            {users.map((u) => {
-              const role = u.role as Role;
-              return (
-                <tr key={u.id}>
-                  <td className="px-5 py-3">
-                    <p className="font-medium">{u.name}</p>
-                    <p className="text-xs text-muted">{u.email}</p>
-                  </td>
-                  <td className="px-5 py-3">
-                    <span
-                      className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                        ROLE_BADGE_CLS[role] ?? ROLE_BADGE_CLS.MEMBER
-                      }`}
-                    >
-                      {ROLE_LABELS[role] ?? u.role}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3 tabular-nums">{u._count.posts}</td>
-                  <td className="px-5 py-3 tabular-nums">{u._count.comments}</td>
-                  <td className="px-5 py-3 text-muted">{formatDate(u.createdAt)}</td>
-                  <td className="px-5 py-3">
-                    {role === "SUPER_ADMIN" ? (
-                      <span className="text-xs text-muted">—</span>
-                    ) : (
-                      <UserRowActions userId={u.id} currentRole={u.role} />
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {users.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-5 py-10 text-center text-muted">
+                  没有匹配的用户
+                </td>
+              </tr>
+            ) : (
+              users.map((u) => {
+                const role = u.role as Role;
+                return (
+                  <tr key={u.id}>
+                    <td className="px-5 py-3">
+                      <p className="font-medium">{u.name}</p>
+                      <p className="text-xs text-muted">{u.email}</p>
+                    </td>
+                    <td className="px-5 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                          ROLE_BADGE_CLS[role] ?? ROLE_BADGE_CLS.MEMBER
+                        }`}
+                      >
+                        {ROLE_LABELS[role] ?? u.role}
+                      </span>
+                    </td>
+                    <td className="px-5 py-3 tabular-nums">{u._count.posts}</td>
+                    <td className="px-5 py-3 tabular-nums">{u._count.comments}</td>
+                    <td className="px-5 py-3 text-muted">{formatDate(u.createdAt)}</td>
+                    <td className="px-5 py-3">
+                      {role === "SUPER_ADMIN" ? (
+                        <span className="text-xs text-muted">—</span>
+                      ) : (
+                        <UserRowActions userId={u.id} currentRole={u.role} />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>

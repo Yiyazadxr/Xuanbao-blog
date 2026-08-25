@@ -1,8 +1,9 @@
 "use server";
 
-// 用户管理 Server Actions（仅 SUPER_ADMIN 可调用）
+// 用户管理 Server Actions（按 manage_users 权限校验）
 import { revalidatePath } from "next/cache";
-import { requireSuperAdmin } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/roles";
 
@@ -11,11 +12,15 @@ export type UserActionState = { ok: boolean; error?: string; message?: string };
 // 修改用户角色：仅支持 MEMBER ↔ ADMIN 之间切换（SUPER_ADMIN 保留，不通过界面授予）
 export async function updateUserRole(
   userId: string,
-  role: "ADMIN" | "MEMBER"
+  role: string
 ): Promise<UserActionState> {
-  const admin = await requireSuperAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_USERS);
   if (!admin) return { ok: false, error: "无权限" };
   if (admin.id === userId) return { ok: false, error: "不能修改自己的角色" };
+  // 运行时校验角色值（类型标注不防伪造）：仅允许 ADMIN/MEMBER，杜绝客户端传入 SUPER_ADMIN 提权
+  if (role !== ROLES.ADMIN && role !== ROLES.MEMBER) {
+    return { ok: false, error: "无效的角色" };
+  }
 
   const target = await prisma.user.findUnique({ where: { id: userId } });
   if (!target) return { ok: false, error: "用户不存在" };
@@ -28,7 +33,7 @@ export async function updateUserRole(
 
 // 删除用户：评论/点赞级联删除，邀请码解除绑定；有文章的用户不可删
 export async function deleteUser(userId: string): Promise<UserActionState> {
-  const admin = await requireSuperAdmin();
+  const admin = await requirePermission(PERMISSIONS.MANAGE_USERS);
   if (!admin) return { ok: false, error: "无权限" };
   if (admin.id === userId) return { ok: false, error: "不能删除自己" };
 

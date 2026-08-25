@@ -1,8 +1,9 @@
 "use server";
 
-// 评论与点赞 Server Actions（公开侧，需登录）
+// 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
 import { revalidatePath } from "next/cache";
-import { getCurrentUser } from "@/lib/auth";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
@@ -19,7 +20,7 @@ export async function submitComment({
   content: string;
   parentId?: string;
 }): Promise<CommentActionState> {
-  const user = await getCurrentUser();
+  const user = await requirePermission(PERMISSIONS.COMMENT);
   if (!user) return { ok: false, error: "请先登录再评论" };
 
   const text = content.trim();
@@ -60,8 +61,15 @@ export async function toggleLike(
   postId: string,
   slug: string
 ): Promise<CommentActionState & { liked?: boolean; count?: number }> {
-  const user = await getCurrentUser();
+  const user = await requirePermission(PERMISSIONS.LIKE);
   if (!user) return { ok: false, error: "请先登录再点赞" };
+
+  // 校验文章存在（防伪造 postId 触发外键错误 / 给不存在的文章点赞）
+  const post = await prisma.post.findFirst({
+    where: { id: postId, published: true },
+    select: { id: true },
+  });
+  if (!post) return { ok: false, error: "文章不存在" };
 
   const key = { userId_postId: { userId: user.id, postId } };
   const existing = await prisma.like.findUnique({ where: key });

@@ -129,3 +129,11 @@ model InviteCode {
   createdAt DateTime  @default(now())
   expiresAt DateTime?
 }
+
+// 角色权限配置：role 为角色，permissions 存 JSON 数组（如 ["comment","like"]）
+// 超级管理员固定全开不在此表；未配置的角色回落到代码默认值，新增权限零迁移成本
+model RolePermission {
+  role        String   @id
+  permissions String // JSON 数组字符串
+  updatedAt   DateTime @updatedAt
+}
