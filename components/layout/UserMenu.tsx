@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
+import { canAccessAdmin } from "@/lib/roles";
 
 // 导航栏右侧用户区：未登录显示登录图标；已登录显示头像下拉菜单
 export function UserMenu() {
@@ -72,7 +73,15 @@ export function UserMenu() {
             <span className="block font-medium">{user.name}</span>
             <span className="mt-0.5 block truncate text-xs text-muted">{user.email}</span>
           </p>
-          {user.role === "ADMIN" && (
+          <Link
+            href="/settings"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2.5 text-sm text-muted transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground"
+          >
+            个人资料
+          </Link>
+          {canAccessAdmin(user.role) && (
             <Link
               href="/admin"
               role="menuitem"

@@ -72,7 +72,7 @@ async function main() {
   const req = await prisma.accountRequest.findFirst({ where: { email: TEST_EMAIL } });
   const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL } });
   assert("申请状态已变更为 APPROVED", req?.status === "APPROVED");
-  assert("新用户角色为 READER 且密码已哈希", user?.role === "READER" && user.password !== "password123");
+  assert("新用户角色为 MEMBER 且密码已哈希", user?.role === "MEMBER" && user.password !== "password123");
 
   await cleanup();
   console.log("\n自测完成");

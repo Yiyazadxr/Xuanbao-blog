@@ -3,20 +3,23 @@
 import { Icon } from "@iconify/react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isSuperAdmin } from "@/lib/roles";
 
 const ADMIN_LINKS = [
   { label: "仪表盘", href: "/admin", icon: "ph:gauge-bold", exact: true },
   { label: "文章管理", href: "/admin/posts", icon: "ph:article-bold", exact: false },
   { label: "评论审核", href: "/admin/comments", icon: "ph:chats-bold", exact: false },
   { label: "申请与邀请码", href: "/admin/invites", icon: "ph:ticket-bold", exact: false },
+  { label: "用户管理", href: "/admin/users", icon: "ph:users-bold", exact: false, superOnly: true },
 ];
 
-// 后台侧栏导航（移动端为横向标签）
-export function AdminSidebar() {
+// 后台侧栏导航（移动端为横向标签）；用户管理仅超级管理员可见
+export function AdminSidebar({ role }: { role?: string }) {
   const pathname = usePathname();
+  const links = ADMIN_LINKS.filter((l) => !l.superOnly || isSuperAdmin(role));
   return (
     <nav aria-label="后台导航" className="flex gap-1 overflow-x-auto md:w-48 md:flex-col">
-      {ADMIN_LINKS.map((link) => {
+      {links.map((link) => {
         const active = link.exact ? pathname === link.href : pathname.startsWith(link.href);
         return (
           <Link

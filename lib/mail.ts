@@ -17,7 +17,7 @@ export async function sendMailToAdmin(subject: string, text: string) {
   });
 
   await transporter.sendMail({
-    from: `"${process.env.ADMIN_NAME ?? "博客通知"}" <${SMTP_USER}>`,
+    from: `"博客通知" <${SMTP_USER}>`,
     to: ADMIN_EMAIL || SMTP_USER,
     subject,
     text,

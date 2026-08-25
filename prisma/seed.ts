@@ -11,20 +11,19 @@ const adapter = new PrismaBetterSqlite3({
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // 1. 博主 ADMIN 账号（凭据从 .env 读取，未配置时用默认值）
+  // 1. 博主 SUPER_ADMIN 账号（邮箱/密码从 .env 读取；昵称可在个人资料里修改）
   // 邮箱统一小写：登录时 authorize 会把输入转小写查库，此处必须一致
   const adminEmail = process.env.ADMIN_EMAIL.trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD;
-  const adminName = process.env.ADMIN_NAME;
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
     update: {},
     create: {
-      name: adminName,
+      name: "暄宝xr",
       email: adminEmail,
       password: await bcrypt.hash(adminPassword, 10),
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
     },
   });
   console.log(`✔ 管理员账号：${adminEmail}（密码见 .env 的 ADMIN_PASSWORD）`);

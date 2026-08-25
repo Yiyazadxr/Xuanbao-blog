@@ -76,7 +76,7 @@ export async function registerWithInvite({
   try {
     await prisma.$transaction(async (tx) => {
       const user = await tx.user.create({
-        data: { name: name.trim(), email: normalized, password: hashed, role: "READER" },
+        data: { name: name.trim(), email: normalized, password: hashed, role: "MEMBER" },
       });
       // 原子抢占邀请码：条件更新（usedById 仍为空才生效），防止并发时同一邀请码被两个账号使用
       const claimed = await tx.inviteCode.updateMany({

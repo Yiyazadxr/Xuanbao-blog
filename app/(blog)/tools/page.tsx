@@ -9,7 +9,7 @@ export default function ToolsPage() {
   return (
     <>
       <h1 className="font-display text-4xl font-bold tracking-tight sm:text-5xl">工具</h1>
-      <p className="mt-3 text-muted">我日常在用、也推荐给你的工具（在 lib/constants.ts 中配置）</p>
+      <p className="mt-3 text-muted">我日常在用、也推荐给你的工具</p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">
         {TOOLS.map((tool) => (

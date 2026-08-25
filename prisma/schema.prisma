@@ -10,14 +10,14 @@ datasource db {
   provider = "sqlite"
 }
 
-// 用户：role 取值 READER | ADMIN
+// 用户：role 取值 SUPER_ADMIN | ADMIN | MEMBER（游客无账号记录）
 model User {
   id        String   @id @default(cuid())
   name      String
   email     String   @unique
   password  String // bcrypt 哈希
   image     String?
-  role      String   @default("READER")
+  role      String   @default("MEMBER")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
