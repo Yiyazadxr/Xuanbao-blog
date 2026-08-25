@@ -6,6 +6,7 @@
 import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 import { signIn } from "@/lib/auth";
+import { verifyHCaptcha } from "@/lib/hcaptcha";
 import { registerWithInvite, submitAccountRequest } from "@/lib/invites";
 import { rateLimit } from "@/lib/rate-limit";
 import { applySchema, loginSchema, parseInput, registerSchema } from "@/lib/validation";
@@ -70,6 +71,11 @@ export async function applyAction(
   });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
+  // hCaptcha 人机验证（未配置密钥时降级放行）
+  if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
+    return { ok: false, error: "人机验证未通过，请重新验证" };
+  }
+
   const ip = await getClientIp();
   const check = await rateLimit.isBlocked("apply", ip, 5);
   if (check.blocked) {
@@ -96,6 +102,11 @@ export async function registerAction(
     password: String(formData.get("password") ?? ""),
   });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+
+  // hCaptcha 人机验证（未配置密钥时降级放行）
+  if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
+    return { ok: false, error: "人机验证未通过，请重新验证" };
+  }
 
   const ip = await getClientIp();
   const check = await rateLimit.isBlocked("register", ip, 10);

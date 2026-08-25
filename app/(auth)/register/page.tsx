@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { useActionState, useState } from "react";
 import { applyAction, registerAction, type ActionState } from "@/app/(auth)/actions";
+import { ConsentCheckbox } from "@/components/ui/ConsentCheckbox";
+import { HCaptcha } from "@/components/ui/HCaptcha";
 import {
   errorCls,
   inputCls,
@@ -12,12 +14,24 @@ import {
 } from "@/components/ui/form-styles";
 
 const initialState: ActionState = { ok: false };
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 
 // 注册页（邀请码制）：两步 —— ①提交邮箱申请 ②凭邀请码注册
 export default function RegisterPage() {
   const [tab, setTab] = useState<"apply" | "register">("apply");
   const [applyState, applyFormAction, applyPending] = useActionState(applyAction, initialState);
   const [regState, regFormAction, regPending] = useActionState(registerAction, initialState);
+  const [consent, setConsent] = useState(false);
+  const [captchaToken, setCaptchaToken] = useState("");
+
+  // 配置了 hCaptcha Site Key 时才要求人机验证
+  const captchaRequired = Boolean(HCAPTCHA_SITE_KEY);
+  const canSubmit = consent && (!captchaRequired || captchaToken);
+
+  function switchTab(next: "apply" | "register") {
+    setTab(next);
+    setCaptchaToken(""); // 切换时重置验证码，需重新通过
+  }
 
   const tabCls = (active: boolean) =>
     `flex-1 cursor-pointer rounded-xl py-2.5 text-sm font-medium transition-colors duration-200 ${
@@ -39,7 +53,7 @@ export default function RegisterPage() {
         <button
           role="tab"
           aria-selected={tab === "apply"}
-          onClick={() => setTab("apply")}
+          onClick={() => switchTab("apply")}
           className={tabCls(tab === "apply")}
         >
           ① 申请账号
@@ -47,7 +61,7 @@ export default function RegisterPage() {
         <button
           role="tab"
           aria-selected={tab === "register"}
-          onClick={() => setTab("register")}
+          onClick={() => switchTab("register")}
           className={tabCls(tab === "register")}
         >
           ② 我有邀请码
@@ -66,6 +80,7 @@ export default function RegisterPage() {
               {applyState.message}
             </p>
           )}
+          <input type="hidden" name="captcha" value={captchaToken} />
           <div>
             <label htmlFor="apply-email" className={labelCls}>
               邮箱
@@ -93,7 +108,9 @@ export default function RegisterPage() {
               className={`${inputCls} h-auto py-3`}
             />
           </div>
-          <button type="submit" disabled={applyPending} className={primaryBtnCls}>
+          {captchaRequired && <HCaptcha siteKey={HCAPTCHA_SITE_KEY} onVerify={setCaptchaToken} />}
+          <ConsentCheckbox checked={consent} onCheckedChange={setConsent} />
+          <button type="submit" disabled={applyPending || !canSubmit} className={primaryBtnCls}>
             {applyPending ? "提交中…" : "提交申请"}
           </button>
         </form>
@@ -112,6 +129,7 @@ export default function RegisterPage() {
               </Link>
             </p>
           )}
+          <input type="hidden" name="captcha" value={captchaToken} />
           <div>
             <label htmlFor="reg-code" className={labelCls}>
               邀请码
@@ -170,23 +188,13 @@ export default function RegisterPage() {
             />
             <p className="mt-1.5 text-xs text-muted">建议使用字母 + 数字组合，至少 8 位</p>
           </div>
-          <button type="submit" disabled={regPending} className={primaryBtnCls}>
+          {captchaRequired && <HCaptcha siteKey={HCAPTCHA_SITE_KEY} onVerify={setCaptchaToken} />}
+          <ConsentCheckbox checked={consent} onCheckedChange={setConsent} />
+          <button type="submit" disabled={regPending || !canSubmit} className={primaryBtnCls}>
             {regPending ? "注册中…" : "注册"}
           </button>
         </form>
       )}
-
-      <p className="mt-6 text-xs leading-relaxed text-muted">
-        提交即表示您已阅读并同意本站的
-        <Link href="/terms" className="text-accent hover:underline">
-          《用户协议》
-        </Link>
-        与
-        <Link href="/privacy" className="text-accent hover:underline">
-          《隐私政策》
-        </Link>
-        。
-      </p>
     </>
   );
 }
