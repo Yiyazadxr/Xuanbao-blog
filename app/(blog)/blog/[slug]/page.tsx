@@ -8,6 +8,7 @@ import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
+import { SITE } from "@/lib/constants";
 import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
 import { getAdjacentPosts, getPostBySlug, incrementViewCount } from "@/lib/posts";
@@ -15,7 +16,7 @@ import { formatDate, readingTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
-// 动态 SEO：标题 + 摘要
+// 动态 SEO：标题 + 摘要 + OpenGraph/Twitter 分享信息
 export async function generateMetadata({
   params,
 }: {
@@ -24,9 +25,27 @@ export async function generateMetadata({
   const { slug } = await params;
   const post = await getPostBySlug(slug);
   if (!post) return { title: "文章未找到" };
+
+  const description = post.excerpt ?? post.title;
+  const url = `${SITE.url}/blog/${post.slug}`;
+
   return {
     title: post.title,
-    description: post.excerpt ?? post.title,
+    description,
+    openGraph: {
+      type: "article",
+      url,
+      title: post.title,
+      description,
+      publishedTime: post.createdAt.toISOString(),
+      modifiedTime: post.updatedAt.toISOString(),
+      tags: post.tags.map((t) => t.tag.name),
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: post.title,
+      description,
+    },
   };
 }
 
