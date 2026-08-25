@@ -5,27 +5,18 @@ import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { commentSchema, likeSchema, parseInput } from "@/lib/validation";
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
 
 // 提交评论（审核制：默认不可见）
-export async function submitComment({
-  postId,
-  slug,
-  content,
-  parentId,
-}: {
-  postId: string;
-  slug: string;
-  content: string;
-  parentId?: string;
-}): Promise<CommentActionState> {
+export async function submitComment(payload: unknown): Promise<CommentActionState> {
   const user = await requirePermission(PERMISSIONS.COMMENT);
   if (!user) return { ok: false, error: "请先登录再评论" };
 
-  const text = content.trim();
-  if (!text) return { ok: false, error: "评论内容不能为空" };
-  if (text.length > 1000) return { ok: false, error: "评论最多 1000 字" };
+  const parsed = parseInput(commentSchema, payload);
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { postId, slug, content, parentId } = parsed.data;
 
   // 单用户节流：30 秒内只能发一条（防刷评论淹没审核后台）
   const lastComment = await prisma.comment.findFirst({
@@ -37,7 +28,7 @@ export async function submitComment({
     return { ok: false, error: "评论太频繁了，请稍等 30 秒再试" };
   }
 
-  const post = await prisma.post.findFirst({ where: { id: postId, published: true } });
+  const post = await prisma.post.findFirst({ where: { id: postId, published: true, archived: false } });
   if (!post) return { ok: false, error: "文章不存在" };
 
   if (parentId) {
@@ -49,7 +40,7 @@ export async function submitComment({
   }
 
   await prisma.comment.create({
-    data: { content: text, postId, authorId: user.id, parentId: parentId ?? null },
+    data: { content, postId, authorId: user.id, parentId: parentId ?? null },
   });
 
   revalidatePath(`/blog/${slug}`);
@@ -64,22 +55,26 @@ export async function toggleLike(
   const user = await requirePermission(PERMISSIONS.LIKE);
   if (!user) return { ok: false, error: "请先登录再点赞" };
 
+  const parsed = parseInput(likeSchema, { postId, slug });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { postId: pid } = parsed.data;
+
   // 校验文章存在（防伪造 postId 触发外键错误 / 给不存在的文章点赞）
   const post = await prisma.post.findFirst({
-    where: { id: postId, published: true },
+    where: { id: pid, published: true, archived: false },
     select: { id: true },
   });
   if (!post) return { ok: false, error: "文章不存在" };
 
-  const key = { userId_postId: { userId: user.id, postId } };
+  const key = { userId_postId: { userId: user.id, postId: pid } };
   const existing = await prisma.like.findUnique({ where: key });
   if (existing) {
     await prisma.like.delete({ where: key });
   } else {
-    await prisma.like.create({ data: { userId: user.id, postId } });
+    await prisma.like.create({ data: { userId: user.id, postId: pid } });
   }
-  const count = await prisma.like.count({ where: { postId } });
+  const count = await prisma.like.count({ where: { postId: pid } });
 
-  revalidatePath(`/blog/${slug}`);
+  revalidatePath(`/blog/${parsed.data.slug}`);
   return { ok: true, liked: !existing, count };
 }

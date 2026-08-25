@@ -16,7 +16,7 @@ function escapeXml(text: string): string {
 
 export async function GET() {
   const posts = await prisma.post.findMany({
-    where: { published: true },
+    where: { published: true, archived: false },
     orderBy: { createdAt: "desc" },
     take: 20,
     select: { title: true, slug: true, excerpt: true, content: true, createdAt: true },

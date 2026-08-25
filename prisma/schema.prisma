@@ -45,18 +45,22 @@ model Tag {
 }
 
 // 文章：content 为 Markdown 文本
+// 状态语义：published=false 为草稿(DRAFT)；published=true 且 archived=false 为已发布(PUBLISHED)；archived=true 为已归档(ARCHIVED)
 model Post {
-  id         String   @id @default(cuid())
-  title      String
-  slug       String   @unique
-  content    String
-  excerpt    String?
-  coverImage String?
-  published  Boolean  @default(false)
-  featured   Boolean  @default(false)
-  viewCount  Int      @default(0)
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id          String    @id @default(cuid())
+  title       String
+  slug        String    @unique
+  content     String
+  excerpt     String?
+  coverImage  String?
+  published   Boolean   @default(false)
+  publishedAt DateTime? // 首次发布时间
+  archived    Boolean   @default(false)
+  pinned      Boolean   @default(false) // 置顶（列表页排最前）
+  featured    Boolean   @default(false)
+  viewCount   Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
 
   authorId   String
   author     User      @relation(fields: [authorId], references: [id])

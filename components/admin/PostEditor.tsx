@@ -3,8 +3,8 @@
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
-import { useState, useTransition } from "react";
-import { savePost, type PostPayload } from "@/app/(admin)/admin/actions";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { savePost } from "@/app/(admin)/admin/actions";
 import { errorCls, inputCls, labelCls, primaryBtnCls } from "@/components/ui/form-styles";
 import { slugify } from "@/lib/utils";
 import "@uiw/react-md-editor/markdown-editor.css";
@@ -30,9 +30,13 @@ type EditorPost = {
   excerpt: string | null;
   categoryId: string | null;
   published: boolean;
+  pinned: boolean;
   featured: boolean;
   tags: { tag: { name: string } }[];
 };
+
+// 草稿自动保存：仅新建文章时生效，保存在 localStorage（浏览器崩溃/误关可恢复）
+const DRAFT_KEY = "post-draft-v1";
 
 // 文章编辑器：新建（post 为空）与编辑共用
 export function PostEditor({ categories, post }: { categories: Category[]; post?: EditorPost }) {
@@ -46,9 +50,57 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [categoryId, setCategoryId] = useState(post?.categoryId ?? "");
   const [tags, setTags] = useState(post?.tags.map((t) => t.tag.name).join(", ") ?? "");
+  const [pinned, setPinned] = useState(post?.pinned ?? false);
   const [featured, setFeatured] = useState(post?.featured ?? false);
   const [content, setContent] = useState(post?.content ?? "");
   const [error, setError] = useState("");
+  const [autosaved, setAutosaved] = useState(false);
+
+  // 新建文章时恢复上次的草稿（仅在客户端挂载时执行一次；从 localStorage 同步外部状态）
+  /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+  useEffect(() => {
+    if (post) return;
+    try {
+      const raw = localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw) as Partial<EditorPost> & { tags?: string };
+      if (d.title) setTitle(d.title);
+      if (d.slug) {
+        setSlug(d.slug);
+        setSlugTouched(true);
+      }
+      if (d.excerpt) setExcerpt(d.excerpt);
+      if (d.categoryId) setCategoryId(d.categoryId);
+      if (typeof d.tags === "string") setTags(d.tags);
+      if (typeof d.pinned === "boolean") setPinned(d.pinned);
+      if (typeof d.featured === "boolean") setFeatured(d.featured);
+      if (d.content) setContent(d.content);
+    } catch {
+      // 忽略损坏的草稿
+    }
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
+
+  // 自动保存草稿（防抖，仅新建文章时）
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  useEffect(() => {
+    if (post) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          DRAFT_KEY,
+          JSON.stringify({ title, slug, excerpt, categoryId, tags, pinned, featured, content })
+        );
+        setAutosaved(true);
+      } catch {
+        // 存储失败忽略
+      }
+    }, 800);
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [title, slug, excerpt, categoryId, tags, pinned, featured, content, post]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
@@ -58,7 +110,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
 
   function submit(published: boolean) {
     setError("");
-    const payload: PostPayload = {
+    const payload = {
       id: post?.id,
       title,
       slug,
@@ -68,10 +120,13 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
       tags,
       published,
       featured,
+      pinned,
+      archived: false,
     };
     startTransition(async () => {
       const result = await savePost(payload);
       if (result.ok) {
+        localStorage.removeItem(DRAFT_KEY);
         router.push("/admin/posts");
         router.refresh();
       } else {
@@ -172,17 +227,28 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
         <MDEditor value={content} onChange={(v) => setContent(v ?? "")} height={420} />
       </div>
 
-      <label className="flex cursor-pointer items-center gap-2 text-sm">
-        <input
-          type="checkbox"
-          checked={featured}
-          onChange={(e) => setFeatured(e.target.checked)}
-          className="size-4 cursor-pointer accent-[var(--accent)]"
-        />
-        设为精选（首页展示）
-      </label>
+      <div className="flex flex-wrap gap-5">
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={pinned}
+            onChange={(e) => setPinned(e.target.checked)}
+            className="size-4 cursor-pointer accent-[var(--accent)]"
+          />
+          置顶（列表页排最前）
+        </label>
+        <label className="flex cursor-pointer items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            checked={featured}
+            onChange={(e) => setFeatured(e.target.checked)}
+            className="size-4 cursor-pointer accent-[var(--accent)]"
+          />
+          设为精选（首页展示）
+        </label>
+      </div>
 
-      <div className="flex flex-wrap gap-3 pt-2">
+      <div className="flex flex-wrap items-center gap-3 pt-2">
         <button
           type="button"
           disabled={pending}
@@ -199,6 +265,9 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
         >
           存为草稿
         </button>
+        {!post && autosaved && (
+          <span className="text-xs text-muted">已自动保存草稿</span>
+        )}
       </div>
     </div>
   );

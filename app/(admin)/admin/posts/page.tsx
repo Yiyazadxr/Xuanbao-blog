@@ -60,34 +60,55 @@ export default async function AdminPostsPage({
                     >
                       {post.title}
                     </Link>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        post.published
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                      }`}
-                    >
-                      {post.published ? "已发布" : "草稿"}
-                    </span>
-                    {post.featured && (
+                    {post.archived ? (
+                      <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-500">
+                        已归档
+                      </span>
+                    ) : post.published ? (
+                      <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                        已发布
+                      </span>
+                    ) : (
+                      <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                        草稿
+                      </span>
+                    )}
+                    {post.pinned && (
                       <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
+                        置顶
+                      </span>
+                    )}
+                    {post.featured && (
+                      <span className="rounded-full bg-sky-500/10 px-2 py-0.5 text-xs font-medium text-sky-600 dark:text-sky-400">
                         精选
                       </span>
                     )}
                   </div>
                   <p className="mt-1 text-xs text-muted">
-                    {post.category?.name ?? "无分类"} · {formatDate(post.updatedAt)} ·{" "}
-                    {post.viewCount} 次浏览
+                    {post.category?.name ?? "无分类"} ·{" "}
+                    {post.publishedAt ? `发布于 ${formatDate(post.publishedAt)}` : `更新于 ${formatDate(post.updatedAt)}`}{" "}
+                    · {post.viewCount} 次浏览
                   </p>
                 </div>
                 <div className="flex shrink-0 items-center gap-2">
+                  <Link
+                    href={`/admin/posts/${post.id}/preview`}
+                    className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-muted transition-colors duration-200 hover:bg-foreground/5 hover:text-foreground"
+                  >
+                    预览
+                  </Link>
                   <Link
                     href={`/admin/posts/${post.id}/edit`}
                     className="cursor-pointer rounded-lg px-3 py-1.5 text-xs font-medium text-muted transition-colors duration-200 hover:bg-foreground/5 hover:text-foreground"
                   >
                     编辑
                   </Link>
-                  <PostRowActions id={post.id} published={post.published} />
+                  <PostRowActions
+                    id={post.id}
+                    published={post.published}
+                    pinned={post.pinned}
+                    archived={post.archived}
+                  />
                 </div>
               </li>
             ))}

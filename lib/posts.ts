@@ -3,39 +3,29 @@ import { prisma } from "@/lib/prisma";
 
 export const PAGE_SIZE = 9;
 
-// 文章列表（分页 + 分类/标签/关键词筛选，仅已发布）
+// 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
+const PUBLISHED_FILTER = { published: true, archived: false } as const;
+
+// 文章列表（分页 + 分类/标签筛选，仅公开可见；置顶优先）
 export async function getPosts({
   page = 1,
   categorySlug,
   tagSlug,
-  q,
 }: {
   page?: number;
   categorySlug?: string;
   tagSlug?: string;
-  q?: string;
 } = {}) {
-  // 截断超长关键词：content 的 LIKE 全表扫描会随查询串变长放大，限制长度防滥用
-  const query = q?.trim().slice(0, 50);
   const where = {
-    published: true,
+    ...PUBLISHED_FILTER,
     ...(categorySlug ? { category: { slug: categorySlug } } : {}),
     ...(tagSlug ? { tags: { some: { tag: { slug: tagSlug } } } } : {}),
-    ...(query
-      ? {
-          OR: [
-            { title: { contains: query } },
-            { excerpt: { contains: query } },
-            { content: { contains: query } },
-          ],
-        }
-      : {}),
   };
 
   const [posts, total] = await Promise.all([
     prisma.post.findMany({
       where,
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: {
@@ -52,10 +42,21 @@ export async function getPosts({
 // 列表项类型（组件 props 用）
 export type PostListItem = Awaited<ReturnType<typeof getPosts>>["posts"][number];
 
+// 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）
+export async function getSearchIndex() {
+  return prisma.post.findMany({
+    where: PUBLISHED_FILTER,
+    orderBy: { createdAt: "desc" },
+    select: { slug: true, title: true, excerpt: true, createdAt: true },
+  });
+}
+
+export type SearchIndexItem = Awaited<ReturnType<typeof getSearchIndex>>[number];
+
 // 单篇文章详情
 export async function getPostBySlug(slug: string) {
   return prisma.post.findFirst({
-    where: { slug, published: true },
+    where: { slug, ...PUBLISHED_FILTER },
     include: {
       author: { select: { name: true, image: true } },
       category: true,
@@ -69,12 +70,12 @@ export async function getAdjacentPosts(createdAt: Date) {
   const select = { title: true, slug: true } as const;
   const [prev, next] = await Promise.all([
     prisma.post.findFirst({
-      where: { published: true, createdAt: { lt: createdAt } },
+      where: { ...PUBLISHED_FILTER, createdAt: { lt: createdAt } },
       orderBy: { createdAt: "desc" },
       select,
     }),
     prisma.post.findFirst({
-      where: { published: true, createdAt: { gt: createdAt } },
+      where: { ...PUBLISHED_FILTER, createdAt: { gt: createdAt } },
       orderBy: { createdAt: "asc" },
       select,
     }),
@@ -92,28 +93,30 @@ export async function incrementViewCount(id: string) {
   }
 }
 
-// 分类列表（带已发布文章数）
+// 分类列表（带公开文章数）
 export async function getCategoriesWithCount() {
   const categories = await prisma.category.findMany({
-    include: { _count: { select: { posts: { where: { published: true } } } } },
+    include: { _count: { select: { posts: { where: PUBLISHED_FILTER } } } },
     orderBy: { name: "asc" },
   });
   return categories.map((c) => ({ ...c, postCount: c._count.posts }));
 }
 
-// 标签列表（带已发布文章数）
+// 标签列表（带公开文章数）
 export async function getTagsWithCount() {
   const tags = await prisma.tag.findMany({
-    include: { _count: { select: { posts: { where: { post: { published: true } } } } } },
+    include: {
+      _count: { select: { posts: { where: { post: PUBLISHED_FILTER } } } },
+    },
     orderBy: { name: "asc" },
   });
   return tags.map((t) => ({ ...t, postCount: t._count.posts }));
 }
 
-// 归档：全部已发布文章按年份分组（新→旧）
+// 归档：全部公开文章按年份分组（新→旧）
 export async function getArchive() {
   const posts = await prisma.post.findMany({
-    where: { published: true },
+    where: PUBLISHED_FILTER,
     orderBy: { createdAt: "desc" },
     select: { title: true, slug: true, createdAt: true },
   });

@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 export default async function AdminPage() {
   const [publishedCount, draftCount, pendingComments, pendingRequests, viewSum, userCount] =
     await Promise.all([
-      prisma.post.count({ where: { published: true } }),
-      prisma.post.count({ where: { published: false } }),
+      prisma.post.count({ where: { published: true, archived: false } }),
+      prisma.post.count({ where: { published: false, archived: false } }),
       prisma.comment.count({ where: { isApproved: false } }),
       prisma.accountRequest.count({ where: { status: "PENDING" } }),
       prisma.post.aggregate({ _sum: { viewCount: true } }),

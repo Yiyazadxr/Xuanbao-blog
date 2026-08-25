@@ -8,7 +8,7 @@ import { prisma } from "@/lib/prisma";
 export async function HomeSections() {
   const [featured, { posts: latest }, categories] = await Promise.all([
     prisma.post.findMany({
-      where: { published: true, featured: true },
+      where: { published: true, archived: false, featured: true },
       orderBy: { createdAt: "desc" },
       take: 3,
       include: { category: true, tags: { include: { tag: true } } },
