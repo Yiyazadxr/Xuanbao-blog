@@ -19,6 +19,18 @@ export function Footer() {
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/privacy"
+            className="text-sm text-muted transition-colors duration-200 hover:text-foreground"
+          >
+            隐私政策
+          </Link>
+          <Link
+            href="/terms"
+            className="text-sm text-muted transition-colors duration-200 hover:text-foreground"
+          >
+            用户协议
+          </Link>
         </nav>
       </div>
     </footer>

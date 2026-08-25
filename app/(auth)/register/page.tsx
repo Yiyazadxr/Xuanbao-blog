@@ -175,6 +175,18 @@ export default function RegisterPage() {
           </button>
         </form>
       )}
+
+      <p className="mt-6 text-xs leading-relaxed text-muted">
+        提交即表示您已阅读并同意本站的
+        <Link href="/terms" className="text-accent hover:underline">
+          《用户协议》
+        </Link>
+        与
+        <Link href="/privacy" className="text-accent hover:underline">
+          《隐私政策》
+        </Link>
+        。
+      </p>
     </>
   );
 }
