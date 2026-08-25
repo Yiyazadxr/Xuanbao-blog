@@ -4,7 +4,7 @@ import { Icon } from "@iconify/react";
 import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS, SITE } from "@/lib/constants";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
@@ -14,6 +14,8 @@ export function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const menuBtnRef = useRef<HTMLButtonElement>(null);
+  const menuPanelRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 8);
@@ -21,6 +23,16 @@ export function Header() {
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // 移动端菜单打开时把焦点移到第一个导航链接，关闭时归还给汉堡按钮
+  useEffect(() => {
+    if (menuOpen) {
+      const firstLink = menuPanelRef.current?.querySelector<HTMLAnchorElement>("a");
+      firstLink?.focus();
+    } else {
+      menuBtnRef.current?.focus();
+    }
+  }, [menuOpen]);
 
   // Escape 键关闭移动端菜单
   useEffect(() => {
@@ -91,6 +103,7 @@ export function Header() {
           <UserMenu />
           {/* 移动端汉堡按钮 */}
           <button
+            ref={menuBtnRef}
             type="button"
             onClick={() => setMenuOpen((v) => !v)}
             aria-expanded={menuOpen}
@@ -106,6 +119,7 @@ export function Header() {
       {/* 移动端下拉菜单 */}
       {menuOpen && (
         <div
+          ref={menuPanelRef}
           id="mobile-menu"
           className="border-b border-border bg-background/95 backdrop-blur-md md:hidden"
         >

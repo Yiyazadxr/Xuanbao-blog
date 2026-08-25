@@ -1,6 +1,6 @@
 // 站点全局配置常量
 export const SITE = {
-  name: "暄宝xr的博客",
+  name: "Xuanbao.dev",
   shortName: "暄宝xr",
   description: "暄宝xr的个人博客——记录技术、生活与一切让我着迷的东西。",
   url: "http://localhost:3000", // 部署后替换为正式域名
@@ -18,23 +18,18 @@ export const NAV_LINKS = [
 /* ===== 以下为内容配置：改这里即可更新对应页面 ===== */
 
 // 社交链接（social 页 + 关于页使用）
+// 注意：QQ 号不在此列，改为客户端组件 QQCard 反爬取渲染，见 components/ui/QQCard.tsx
 export const SOCIAL_LINKS = [
   {
     name: "GitHub",
     icon: "ph:github-logo-bold",
-    url: "https://github.com/",
+    url: "https://github.com/Yiyazadxr",
     description: "我的开源项目和代码",
-  },
-  {
-    name: "哔哩哔哩",
-    icon: "ph:television-bold",
-    url: "https://space.bilibili.com/",
-    description: "偶尔发点视频",
   },
   {
     name: "邮箱",
     icon: "ph:envelope-bold",
-    url: "mailto:me@example.com",
+    url: "mailto:412110785@qq.com",
     description: "合作与交流请发邮件",
   },
 ] as const;

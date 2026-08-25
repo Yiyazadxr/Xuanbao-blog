@@ -16,26 +16,14 @@
   --border: #e7e5e4;
   --accent: #7c3aed;
   --accent-foreground: #ffffff;
-  /* Hero 光斑：Hero 恒为深色背景，只需一套深色调优值，不随主题切换 */
-  --glow-1: rgba(124, 58, 237, 0.35);
-  --glow-2: rgba(34, 211, 238, 0.25);
+  /* Hero 光斑：亮色模式用更柔和的光斑 */
+  --glow-1: rgba(124, 58, 237, 0.15);
+  --glow-2: rgba(34, 211, 238, 0.12);
   /* 全站统一缓动（与 lib/motion.ts 的 EASE_DRAMATIC 一致） */
   --ease-custom: cubic-bezier(0.79, 0, 0.06, 1);
 }
 
 .dark {
-  --background: #0a0a0b;
-  --foreground: #fafaf9;
-  --muted: #a1a1aa;
-  --surface: #141416;
-  --border: rgba(255, 255, 255, 0.08);
-  --accent: #a78bfa;
-  --accent-foreground: #17103a;
-}
-
-/* 章节变色（学自 shelby.ashfall.studio）：首页 Hero 在视口内时全站临时切到深色配色，
-   离开 Hero 后随 body 的过渡平滑回到当前主题色。由 Hero 的 IntersectionObserver 切换。 */
-html.home-in-hero {
   --background: #0a0a0b;
   --foreground: #fafaf9;
   --muted: #a1a1aa;
@@ -117,20 +105,6 @@ body {
   animation: blob-float-b 22s ease-in-out infinite;
 }
 
-/* 跑马灯（学自 sondaven.com）：内容复制两份，位移 -50% 实现无缝循环 */
-@keyframes marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-.animate-marquee {
-  animation: marquee 26s linear infinite;
-}
-
 /* 噪点纹理叠层（SVG feTurbulence，内联 data URI，零请求） */
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
@@ -139,8 +113,7 @@ body {
 /* 尊重用户的减少动效偏好 */
 @media (prefers-reduced-motion: reduce) {
   .animate-blob-a,
-  .animate-blob-b,
-  .animate-marquee {
+  .animate-blob-b {
     animation: none;
   }
 }

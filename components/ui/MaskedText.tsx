@@ -1,7 +1,8 @@
 "use client";
 
-import { motion, useReducedMotion } from "framer-motion";
+import { motion } from "framer-motion";
 import { EASE_DRAMATIC } from "@/lib/motion";
+import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 // 逐字遮罩揭开（仿 GSAP SplitText，学自 sondaven.com）：
 // 每个字符包在 overflow-hidden 的遮罩里，从下方 110% 位置揭开升起
@@ -16,7 +17,7 @@ export function MaskedText({
   stagger?: number;
   className?: string;
 }) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
   const chars = [...text]; // 按 Unicode 码点拆分，中文/emoji 安全
 
   if (reduceMotion) {
@@ -60,7 +61,7 @@ export function MaskedLine({
   delay?: number;
   className?: string;
 }) {
-  const reduceMotion = useReducedMotion();
+  const reduceMotion = usePrefersReducedMotion();
 
   if (reduceMotion) {
     return <span className={className}>{children}</span>;
