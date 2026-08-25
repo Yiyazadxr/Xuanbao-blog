@@ -141,3 +141,11 @@ model RolePermission {
   permissions String // JSON 数组字符串
   updatedAt   DateTime @updatedAt
 }
+
+// 限流计数：key 为限流维度（如 login:email:ip），固定窗口计数，多实例共享（生产用 Postgres）
+model RateLimit {
+  key       String   @id
+  count     Int      @default(0)
+  resetAt   DateTime
+  updatedAt DateTime @updatedAt
+}

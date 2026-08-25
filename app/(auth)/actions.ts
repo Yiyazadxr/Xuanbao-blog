@@ -30,30 +30,29 @@ export async function loginAction(
     password: String(formData.get("password") ?? ""),
   });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
-  const { email, password } = parsed.data;
+  const { email } = parsed.data;
 
   const ip = await getClientIp();
-  const emailKey = `login:${email}:${ip}`;
-  const ipKey = `login:ip:${ip}`;
+  const emailKey = `${email}:${ip}`;
 
-  const emailCheck = rateLimit.isBlocked(emailKey, 5);
+  const emailCheck = await rateLimit.isBlocked("login", emailKey, 5);
   if (emailCheck.blocked) {
     return { ok: false, error: `尝试次数过多，请 ${emailCheck.retryAfterSec} 秒后再试` };
   }
-  const ipCheck = rateLimit.isBlocked(ipKey, 20);
+  const ipCheck = await rateLimit.isBlocked("login-ip", ip, 20);
   if (ipCheck.blocked) {
     return { ok: false, error: "尝试次数过多，请稍后再试" };
   }
 
   try {
-    await signIn("credentials", { email, password, redirectTo: "/" });
-    rateLimit.reset(emailKey);
+    await signIn("credentials", { email, password: parsed.data.password, redirectTo: "/" });
+    await rateLimit.reset("login", emailKey);
     return { ok: true };
   } catch (error) {
     // signIn 成功时会抛 NEXT_REDIRECT，必须原样抛出让框架处理跳转
     if (error instanceof AuthError) {
-      rateLimit.hit(emailKey, 15 * 60 * 1000);
-      rateLimit.hit(ipKey, 15 * 60 * 1000);
+      await rateLimit.hit("login", emailKey, 15 * 60 * 1000);
+      await rateLimit.hit("login-ip", ip, 15 * 60 * 1000);
       return { ok: false, error: "邮箱或密码不正确" };
     }
     throw error;
@@ -72,15 +71,14 @@ export async function applyAction(
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
   const ip = await getClientIp();
-  const key = `apply:${ip}`;
-  const check = rateLimit.isBlocked(key, 5);
+  const check = await rateLimit.isBlocked("apply", ip, 5);
   if (check.blocked) {
     return { ok: false, error: "申请过于频繁，请稍后再试" };
   }
-  rateLimit.hit(key, 10 * 60 * 1000);
+  await rateLimit.hit("apply", ip, 10 * 60 * 1000);
 
   const result = await submitAccountRequest(parsed.data.email, parsed.data.message);
-  if (result.ok) rateLimit.reset(key);
+  if (result.ok) await rateLimit.reset("apply", ip);
   return result.ok
     ? { ok: true, message: "申请已提交！博主审核后会向你提供邀请码" }
     : { ok: false, error: result.error };
@@ -100,15 +98,14 @@ export async function registerAction(
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
   const ip = await getClientIp();
-  const key = `register:${ip}`;
-  const check = rateLimit.isBlocked(key, 10);
+  const check = await rateLimit.isBlocked("register", ip, 10);
   if (check.blocked) {
     return { ok: false, error: "注册太频繁，请稍后再试" };
   }
-  rateLimit.hit(key, 60 * 60 * 1000);
+  await rateLimit.hit("register", ip, 60 * 60 * 1000);
 
   const result = await registerWithInvite(parsed.data);
-  if (result.ok) rateLimit.reset(key);
+  if (result.ok) await rateLimit.reset("register", ip);
   return result.ok
     ? { ok: true, message: "注册成功！现在可以登录了" }
     : { ok: false, error: result.error };

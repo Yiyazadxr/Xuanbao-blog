@@ -1,35 +1,40 @@
-// 内存固定窗口限流（单进程有效）。
-// 生产环境多实例/Serverless 部署时应替换为共享存储（如 Upstash Redis / 数据库表），
-// 否则各实例各自计数，限流会被放大失效。
-const buckets = new Map<string, { count: number; resetAt: number }>();
+// 数据库限流（固定窗口计数）：多实例/Serverless 部署下共享同一计数，
+// 生产环境配合 Postgres（Neon）使用，避免内存限流在重启/多实例间失效。
+import { prisma } from "@/lib/prisma";
 
-function get(key: string, now: number) {
-  const b = buckets.get(key);
-  if (!b) return null;
-  if (now >= b.resetAt) {
-    buckets.delete(key);
-    return null;
-  }
-  return b;
+function keyName(prefix: string, value: string) {
+  return `${prefix}:${value}`;
 }
 
 export const rateLimit = {
-  // 当前是否已被限流（超过阈值）
-  isBlocked(key: string, limit: number) {
+  // 当前是否已被限流（超过阈值）。窗口过期则视为未限流。
+  async isBlocked(prefix: string, value: string, limit: number) {
+    const key = keyName(prefix, value);
     const now = Date.now();
-    const b = get(key, now);
-    if (!b || b.count < limit) return { blocked: false, retryAfterSec: 0 };
-    return { blocked: true, retryAfterSec: Math.ceil((b.resetAt - now) / 1000) };
+    const row = await prisma.rateLimit.findUnique({ where: { key } });
+    if (!row || row.resetAt.getTime() <= now) return { blocked: false, retryAfterSec: 0 };
+    if (row.count >= limit) {
+      return { blocked: true, retryAfterSec: Math.ceil((row.resetAt.getTime() - now) / 1000) };
+    }
+    return { blocked: false, retryAfterSec: 0 };
   },
-  // 记录一次（失败时调用）
-  hit(key: string, windowMs: number) {
+  // 记录一次（失败时调用）；窗口过期则重置计数
+  async hit(prefix: string, value: string, windowMs: number) {
+    const key = keyName(prefix, value);
     const now = Date.now();
-    const b = get(key, now);
-    if (!b) buckets.set(key, { count: 1, resetAt: now + windowMs });
-    else b.count += 1;
+    const row = await prisma.rateLimit.findUnique({ where: { key } });
+    if (!row || row.resetAt.getTime() <= now) {
+      await prisma.rateLimit.upsert({
+        where: { key },
+        update: { count: 1, resetAt: new Date(now + windowMs) },
+        create: { key, count: 1, resetAt: new Date(now + windowMs) },
+      });
+    } else {
+      await prisma.rateLimit.update({ where: { key }, data: { count: { increment: 1 } } });
+    }
   },
   // 清除（成功时调用）
-  reset(key: string) {
-    buckets.delete(key);
+  async reset(prefix: string, value: string) {
+    await prisma.rateLimit.deleteMany({ where: { key: keyName(prefix, value) } });
   },
 };

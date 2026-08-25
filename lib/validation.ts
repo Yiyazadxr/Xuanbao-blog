@@ -4,7 +4,11 @@ import { z } from "zod";
 // 通用：数据库记录 ID（cuid 等字符串主键）
 export const idSchema = z.object({ id: z.string().trim().min(1, "缺少 ID").max(100) });
 
-export const emailSchema = z.string().trim().toLowerCase().email("邮箱格式不正确");
+export const emailSchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .refine((v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v), "邮箱格式不正确");
 
 // 登录
 export const loginSchema = z.object({
