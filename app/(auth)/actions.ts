@@ -1,70 +1,114 @@
 "use server";
 
 // 登录/注册相关 Server Actions
+// CSRF 说明：Next.js Server Action 默认校验 Origin/Host（同源），跨站请求会被拒绝，
+// 因此这里无需额外手写 CSRF token；本文件的重点是与 Auth.js 配合的登录/注册与防暴力破解限流。
 import { AuthError } from "next-auth";
+import { headers } from "next/headers";
 import { signIn } from "@/lib/auth";
 import { registerWithInvite, submitAccountRequest } from "@/lib/invites";
+import { rateLimit } from "@/lib/rate-limit";
+import { applySchema, loginSchema, parseInput, registerSchema } from "@/lib/validation";
 
 export type ActionState = { ok: boolean; error?: string; message?: string };
 
-// 邮箱密码登录
+// 从请求头解析客户端 IP（Vercel/反向代理下取 x-forwarded-for 第一跳）
+async function getClientIp(): Promise<string> {
+  const h = await headers();
+  const fwd = h.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]?.trim() || "unknown";
+  return h.get("x-real-ip") ?? "unknown";
+}
+
+// 邮箱密码登录（防暴力破解：按邮箱 + 按 IP 双重限流）
 export async function loginAction(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
+  const parsed = parseInput(loginSchema, {
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { email, password } = parsed.data;
+
+  const ip = await getClientIp();
+  const emailKey = `login:${email}:${ip}`;
+  const ipKey = `login:ip:${ip}`;
+
+  const emailCheck = rateLimit.isBlocked(emailKey, 5);
+  if (emailCheck.blocked) {
+    return { ok: false, error: `尝试次数过多，请 ${emailCheck.retryAfterSec} 秒后再试` };
+  }
+  const ipCheck = rateLimit.isBlocked(ipKey, 20);
+  if (ipCheck.blocked) {
+    return { ok: false, error: "尝试次数过多，请稍后再试" };
+  }
+
   try {
-    await signIn("credentials", {
-      email: formData.get("email"),
-      password: formData.get("password"),
-      redirectTo: "/",
-    });
+    await signIn("credentials", { email, password, redirectTo: "/" });
+    rateLimit.reset(emailKey);
     return { ok: true };
   } catch (error) {
     // signIn 成功时会抛 NEXT_REDIRECT，必须原样抛出让框架处理跳转
     if (error instanceof AuthError) {
+      rateLimit.hit(emailKey, 15 * 60 * 1000);
+      rateLimit.hit(ipKey, 15 * 60 * 1000);
       return { ok: false, error: "邮箱或密码不正确" };
     }
     throw error;
   }
 }
 
-// 退出登录改由客户端 next-auth/react 的 signOut 处理（见 Header）
-
-// 提交账号申请
+// 提交账号申请（已有全局节流在 submitAccountRequest 内部；此处再按 IP 限流）
 export async function applyAction(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const email = String(formData.get("email") ?? "").trim();
-  const message = String(formData.get("message") ?? "");
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { ok: false, error: "请输入有效的邮箱地址" };
+  const parsed = parseInput(applySchema, {
+    email: String(formData.get("email") ?? ""),
+    message: String(formData.get("message") ?? ""),
+  });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+
+  const ip = await getClientIp();
+  const key = `apply:${ip}`;
+  const check = rateLimit.isBlocked(key, 5);
+  if (check.blocked) {
+    return { ok: false, error: "申请过于频繁，请稍后再试" };
   }
-  const result = await submitAccountRequest(email, message);
+  rateLimit.hit(key, 10 * 60 * 1000);
+
+  const result = await submitAccountRequest(parsed.data.email, parsed.data.message);
+  if (result.ok) rateLimit.reset(key);
   return result.ok
     ? { ok: true, message: "申请已提交！博主审核后会向你提供邀请码" }
     : { ok: false, error: result.error };
 }
 
-// 凭邀请码注册
+// 凭邀请码注册（按 IP 限流，防脚本批量注册）
 export async function registerAction(
   _prev: ActionState,
   formData: FormData
 ): Promise<ActionState> {
-  const code = String(formData.get("code") ?? "").trim();
-  const name = String(formData.get("name") ?? "").trim();
-  const email = String(formData.get("email") ?? "").trim();
-  const password = String(formData.get("password") ?? "");
+  const parsed = parseInput(registerSchema, {
+    code: String(formData.get("code") ?? ""),
+    name: String(formData.get("name") ?? ""),
+    email: String(formData.get("email") ?? ""),
+    password: String(formData.get("password") ?? ""),
+  });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
-  if (!code) return { ok: false, error: "请输入邀请码" };
-  if (!name) return { ok: false, error: "请输入昵称" };
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { ok: false, error: "请输入有效的邮箱地址" };
+  const ip = await getClientIp();
+  const key = `register:${ip}`;
+  const check = rateLimit.isBlocked(key, 10);
+  if (check.blocked) {
+    return { ok: false, error: "注册太频繁，请稍后再试" };
   }
-  if (password.length < 8) return { ok: false, error: "密码至少 8 位" };
-  if (password.length > 72) return { ok: false, error: "密码最长 72 位" }; // bcrypt 上限
+  rateLimit.hit(key, 60 * 60 * 1000);
 
-  const result = await registerWithInvite({ code, email, password, name });
+  const result = await registerWithInvite(parsed.data);
+  if (result.ok) rateLimit.reset(key);
   return result.ok
     ? { ok: true, message: "注册成功！现在可以登录了" }
     : { ok: false, error: result.error };

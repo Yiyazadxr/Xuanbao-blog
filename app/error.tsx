@@ -3,8 +3,8 @@
 import { useEffect } from "react";
 import Link from "next/link";
 
-// 后台错误边界：不向用户展示错误详情（避免泄露内部信息）
-export default function AdminError({
+// 全局错误边界（页面运行时错误兜底）：不向用户展示错误详情（避免泄露内部信息）
+export default function GlobalError({
   error,
   unstable_retry,
 }: {
@@ -12,12 +12,14 @@ export default function AdminError({
   unstable_retry: () => void;
 }) {
   useEffect(() => {
-    console.error("后台页面错误：", error.digest ?? error);
+    // 仅记录到服务端日志，digest 可用于匹配服务端日志
+    console.error("页面错误：", error.digest ?? error);
   }, [error]);
 
   return (
-    <div className="flex min-h-[50vh] flex-col items-center justify-center">
-      <h2 className="text-xl font-bold tracking-tight">后台出错了</h2>
+    <div className="flex min-h-[70vh] flex-col items-center justify-center px-4 text-center">
+      <p className="font-display text-6xl font-bold tracking-tight text-muted/40">500</p>
+      <h2 className="mt-4 text-xl font-bold tracking-tight">页面出错了</h2>
       <p className="mt-2 text-sm text-muted">出了点小问题，请稍后重试</p>
       <div className="mt-6 flex gap-3">
         <button
@@ -27,10 +29,10 @@ export default function AdminError({
           重试
         </button>
         <Link
-          href="/admin"
+          href="/"
           className="inline-flex h-11 cursor-pointer items-center rounded-xl border border-border px-6 text-sm font-semibold transition-colors duration-200 hover:border-accent hover:text-accent"
         >
-          返回后台
+          返回首页
         </Link>
       </div>
     </div>
