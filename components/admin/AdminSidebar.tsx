@@ -24,6 +24,12 @@ const ADMIN_LINKS: AdminLink[] = [
     permissions: [PERMISSIONS.MANAGE_POSTS],
   },
   {
+    label: "分类与标签",
+    href: "/admin/taxonomy",
+    icon: "ph:tag-bold",
+    permissions: [PERMISSIONS.MANAGE_POSTS],
+  },
+  {
     label: "评论审核",
     href: "/admin/comments",
     icon: "ph:chats-bold",

@@ -74,6 +74,24 @@ export const permissionSchema = z.object({
   permissions: z.array(z.string().max(100)),
 });
 
+// 分类
+export const categorySchema = z.object({
+  name: z.string().trim().min(1, "名称不能为空").max(50, "名称最长 50 字"),
+  description: z.string().trim().max(200, "描述最长 200 字").optional().default(""),
+});
+
+// 标签
+export const tagSchema = z.object({
+  name: z.string().trim().min(1, "名称不能为空").max(50, "名称最长 50 字"),
+});
+
+// 文章批量操作
+export const batchPostsSchema = z.object({
+  ids: z.array(z.string().min(1).max(100)).min(1, "请选择文章").max(200, "一次最多 200 篇"),
+  operation: z.enum(["publish", "unpublish", "archive", "delete", "category"]),
+  categoryId: z.string().max(100).nullable().optional(),
+});
+
 // 通用解析：返回统一错误信息，避免把 Zod 原始错误结构暴露给客户端
 export type ParseOutcome<T> = { data: T | null; error?: string };
 

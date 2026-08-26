@@ -8,7 +8,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { createInviteCode } from "@/lib/invites";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-import { parseId, parseInput, postSchema } from "@/lib/validation";
+import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
 
 export type AdminActionState = { ok: boolean; error?: string; message?: string };
 
@@ -265,4 +265,43 @@ export async function deletePostAndRedirect(id: string) {
   const result = await deletePost(id);
   if (result.ok) redirect("/admin/posts");
   return result;
+}
+
+// 批量操作：发布 / 转草稿 / 归档 / 改分类 / 删除
+export async function batchPosts(
+  ids: unknown,
+  operation: string,
+  categoryId?: unknown
+): Promise<AdminActionState> {
+  const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
+  if (!admin) return { ok: false, error: "无权限" };
+
+  const parsed = parseInput(batchPostsSchema, { ids, operation, categoryId });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { ids: idList, operation: op, categoryId: cid } = parsed.data;
+
+  if (op === "delete") {
+    await prisma.post.deleteMany({ where: { id: { in: idList } } });
+  } else if (op === "publish") {
+    // 首次发布补齐发布时间
+    await prisma.post.updateMany({
+      where: { id: { in: idList }, publishedAt: null },
+      data: { publishedAt: new Date() },
+    });
+    await prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: true } });
+  } else if (op === "unpublish") {
+    await prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: false } });
+  } else if (op === "archive") {
+    await prisma.post.updateMany({ where: { id: { in: idList } }, data: { archived: true } });
+  } else if (op === "category") {
+    await prisma.post.updateMany({
+      where: { id: { in: idList } },
+      data: { categoryId: cid || null },
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/blog");
+  revalidatePath("/admin/posts");
+  return { ok: true, message: "已批量处理" };
 }
