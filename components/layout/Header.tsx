@@ -49,7 +49,7 @@ export function Header() {
     >
       <nav
         aria-label="主导航"
-        className="mx-auto flex h-16 max-w-6xl items-center justify-between px-4 sm:px-6"
+        className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center justify-between px-4 sm:px-6"
       >
         {/* Logo + 站名 */}
         <Link

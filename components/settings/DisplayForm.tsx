@@ -1,0 +1,225 @@
+"use client";
+
+import { useState } from "react";
+import {
+  clearDisplayPreferences,
+  getDisplayPreferences,
+  saveDisplayPreferences,
+} from "@/app/settings/display-actions";
+import {
+  applyDisplay,
+  DENSITY_OPTIONS,
+  FONT_SCALE_MAX,
+  FONT_SCALE_MIN,
+  FONT_SCALE_STEP,
+  FOOTER_PY_MAX,
+  FOOTER_PY_MIN,
+  HEADER_H_MAX,
+  HEADER_H_MIN,
+  isSyncEnabled,
+  readDensity,
+  readFooterPy,
+  readFontScale,
+  readHeaderH,
+  setSyncEnabled,
+  writeDensity,
+  writeFontScale,
+  writeFooterPy,
+  writeHeaderH,
+  type Density,
+} from "@/lib/display";
+import { successCls } from "@/components/ui/form-styles";
+
+const rangeCls =
+  "mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-foreground/10 accent-[var(--accent)]";
+
+// 显示设置：字体缩放 + 界面密度（含自定义导航栏/页脚）+ 跨设备同步
+export function DisplayForm() {
+  const [fontScale, setFontScale] = useState(readFontScale);
+  const [density, setDensity] = useState<Density>(readDensity);
+  const [headerH, setHeaderH] = useState(readHeaderH);
+  const [footerPy, setFooterPy] = useState(readFooterPy);
+  const [sync, setSync] = useState(isSyncEnabled());
+  const [syncPending, setSyncPending] = useState(false);
+  const [msg, setMsg] = useState("");
+
+  function persist(scale: number, d: Density, hh: number, fp: number) {
+    if (!sync) return;
+    void saveDisplayPreferences(scale, d, d === "custom" ? hh : null, d === "custom" ? fp : null);
+  }
+
+  function changeFontScale(v: number) {
+    setFontScale(v);
+    writeFontScale(v);
+    applyDisplay(v, density, headerH, footerPy);
+    persist(v, density, headerH, footerPy);
+  }
+
+  function changeDensity(d: Density) {
+    setDensity(d);
+    writeDensity(d);
+    applyDisplay(fontScale, d, headerH, footerPy);
+    persist(fontScale, d, headerH, footerPy);
+  }
+
+  function changeHeaderH(px: number) {
+    setHeaderH(px);
+    writeHeaderH(px);
+    applyDisplay(fontScale, density, px, footerPy);
+    persist(fontScale, density, px, footerPy);
+  }
+
+  function changeFooterPy(px: number) {
+    setFooterPy(px);
+    writeFooterPy(px);
+    applyDisplay(fontScale, density, headerH, px);
+    persist(fontScale, density, headerH, px);
+  }
+
+  async function toggleSync(enabled: boolean) {
+    setSync(enabled);
+    setSyncEnabled(enabled);
+    setMsg("");
+    setSyncPending(true);
+    try {
+      if (!enabled) {
+        await clearDisplayPreferences();
+        setMsg("已关闭跨设备同步，偏好仅保存在本机");
+        return;
+      }
+      const prefs = await getDisplayPreferences();
+      const finalScale = prefs?.fontScale ?? fontScale;
+      const finalDensity = prefs?.density ?? density;
+      const finalH = prefs?.headerH ?? headerH;
+      const finalFp = prefs?.footerPy ?? footerPy;
+      setFontScale(finalScale);
+      setDensity(finalDensity);
+      setHeaderH(finalH);
+      setFooterPy(finalFp);
+      writeFontScale(finalScale);
+      writeDensity(finalDensity);
+      writeHeaderH(finalH);
+      writeFooterPy(finalFp);
+      applyDisplay(finalScale, finalDensity, finalH, finalFp);
+      await saveDisplayPreferences(
+        finalScale,
+        finalDensity,
+        finalDensity === "custom" ? finalH : null,
+        finalDensity === "custom" ? finalFp : null
+      );
+      setMsg("已开启跨设备同步，登录其他设备会自动同步");
+    } finally {
+      setSyncPending(false);
+    }
+  }
+
+  const percent = Math.round(fontScale * 100);
+
+  return (
+    <div className="space-y-6">
+      {/* 字体大小 */}
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">字体大小</span>
+          <span className="text-sm tabular-nums text-muted">{percent}%</span>
+        </div>
+        <input
+          id="font-scale"
+          type="range"
+          min={FONT_SCALE_MIN}
+          max={FONT_SCALE_MAX}
+          step={FONT_SCALE_STEP}
+          value={fontScale}
+          onChange={(e) => changeFontScale(Number(e.target.value))}
+          className={rangeCls}
+        />
+        <div className="mt-1 flex justify-between text-xs text-muted">
+          <span>80%</span>
+          <span>100%</span>
+          <span>120%</span>
+        </div>
+      </div>
+
+      {/* 界面密度 */}
+      <div>
+        <span className="text-sm font-medium">界面密度</span>
+        <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {DENSITY_OPTIONS.map((o) => (
+            <button
+              key={o.value}
+              type="button"
+              onClick={() => changeDensity(o.value)}
+              aria-pressed={density === o.value}
+              className={`cursor-pointer rounded-xl border px-3 py-2 text-sm font-medium transition-colors duration-200 ${
+                density === o.value
+                  ? "border-accent bg-accent/10 text-accent"
+                  : "border-border text-muted hover:border-accent hover:text-accent"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+        <p className="mt-1 text-xs text-muted">
+          {DENSITY_OPTIONS.find((o) => o.value === density)?.desc}
+        </p>
+      </div>
+
+      {/* 自定义：导航栏高度 + 页脚间距 */}
+      {density === "custom" && (
+        <div className="space-y-4 rounded-xl border border-border p-4">
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">导航栏高度</span>
+              <span className="text-sm tabular-nums text-muted">{headerH}px</span>
+            </div>
+            <input
+              type="range"
+              min={HEADER_H_MIN}
+              max={HEADER_H_MAX}
+              step={2}
+              value={headerH}
+              onChange={(e) => changeHeaderH(Number(e.target.value))}
+              className={rangeCls}
+            />
+          </div>
+          <div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">页脚间距</span>
+              <span className="text-sm tabular-nums text-muted">{footerPy}px</span>
+            </div>
+            <input
+              type="range"
+              min={FOOTER_PY_MIN}
+              max={FOOTER_PY_MAX}
+              step={2}
+              value={footerPy}
+              onChange={(e) => changeFooterPy(Number(e.target.value))}
+              className={rangeCls}
+            />
+          </div>
+        </div>
+      )}
+
+      {/* 跨设备同步 */}
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border p-4">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">跨设备同步</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            开启后偏好保存到账号，登录其他设备自动同步（默认仅保存在本机）
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={sync}
+          disabled={syncPending}
+          onChange={(e) => toggleSync(e.target.checked)}
+          className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+          role="switch"
+        />
+      </label>
+
+      {msg && <p className={successCls}>{msg}</p>}
+    </div>
+  );
+}

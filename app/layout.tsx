@@ -6,6 +6,7 @@ import { Header } from "@/components/layout/Header";
 import { Providers } from "@/components/Providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
 import { SITE } from "@/lib/constants";
+import { DISPLAY_PREHYDRATE_SCRIPT } from "@/lib/display";
 
 // 展示字体：仅拉丁字符（标题里的英文/数字），中文回落系统字体栈
 const spaceGrotesk = localFont({
@@ -60,6 +61,8 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-dvh flex-col">
+        {/* 预水合：在 React 挂载前应用显示偏好（字体缩放/密度），避免 FOUC */}
+        <script dangerouslySetInnerHTML={{ __html: DISPLAY_PREHYDRATE_SCRIPT }} />
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-[100] focus:rounded-xl focus:bg-accent focus:px-5 focus:py-3 focus:text-sm focus:font-semibold focus:text-accent-foreground"

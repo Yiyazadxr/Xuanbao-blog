@@ -85,7 +85,7 @@ export function UserMenu() {
             onClick={() => setOpen(false)}
             className="block px-4 py-2.5 text-sm text-muted transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground"
           >
-            个人资料
+            设置
           </Link>
           {canAccessAdmin(user.role) && (
             <Link

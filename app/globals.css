@@ -56,15 +56,32 @@
 
 /* 流体排版（学自 shelby.ashfall.studio）：
    桌面端根字号随视口等比缩放（1440px 时恰为 16px），全站 rem 单位随之呼吸；
-   clamp 锁住上下限防极端；移动端固定 16px 保证可读性与 iOS 不缩放 */
+   clamp 锁住上下限防极端；移动端固定 16px 保证可读性与 iOS 不缩放。
+   --font-scale 由用户显示偏好设置（80%~120%），默认 1 */
 html {
-  font-size: clamp(15px, 1.1111vw, 19px);
+  font-size: calc(clamp(15px, 1.1111vw, 19px) * var(--font-scale, 1));
 }
 
 @media (max-width: 767px) {
   html {
-    font-size: 16px;
+    font-size: calc(16px * var(--font-scale, 1));
   }
+}
+
+/* 界面密度：影响导航栏高度与页脚内边距（紧凑/标准/宽松） */
+:root {
+  --header-h: 4rem; /* 标准 64px */
+  --footer-py: 2.5rem; /* 标准 40px */
+}
+
+html[data-density="compact"] {
+  --header-h: 3rem; /* 紧凑 48px */
+  --footer-py: 1.5rem; /* 紧凑 24px */
+}
+
+html[data-density="comfortable"] {
+  --header-h: 4.5rem; /* 宽松 72px */
+  --footer-py: 3rem; /* 宽松 48px */
 }
 
 body {

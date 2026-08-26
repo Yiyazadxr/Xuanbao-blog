@@ -78,7 +78,7 @@ export async function getFreshUser() {
   if (!id) return null;
   return prisma.user.findUnique({
     where: { id },
-    select: { id: true, name: true, email: true, image: true, role: true },
+    select: { id: true, name: true, email: true, image: true, role: true, createdAt: true },
   });
 }
 
