@@ -3,17 +3,18 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { restorePostRevision } from "@/app/(admin)/admin/actions";
-import { formatRelativeTime } from "@/lib/utils";
+import { formatDate, formatRelativeTime, plainExcerpt } from "@/lib/utils";
 
 type Revision = {
   id: string;
   title: string;
+  content: string;
   published: boolean;
   archived: boolean;
   createdAt: Date;
 };
 
-// 版本历史列表：展示历史版本并支持回滚
+// 版本历史列表：展示历史版本（标题 + 内容摘要 + 状态 + 时间）并支持回滚
 export function RevisionList({ revisions }: { revisions: Revision[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -39,11 +40,22 @@ export function RevisionList({ revisions }: { revisions: Revision[] }) {
       {revisions.map((r) => {
         const status = r.archived ? "已归档" : r.published ? "已发布" : "草稿";
         return (
-          <li key={r.id} className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between">
-            <div className="min-w-0">
-              <p className="truncate font-medium">{r.title}</p>
+          <li
+            key={r.id}
+            className="flex flex-col gap-3 p-4 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="truncate font-medium">{r.title}</p>
+                <span className="shrink-0 rounded-full bg-foreground/5 px-2 py-0.5 text-xs text-muted">
+                  {status}
+                </span>
+              </div>
+              <p className="mt-1 line-clamp-1 text-xs text-muted">
+                {plainExcerpt(r.content, 60)}
+              </p>
               <p className="mt-0.5 text-xs text-muted">
-                {status} · {formatRelativeTime(r.createdAt)}
+                {formatDate(r.createdAt)} · {formatRelativeTime(r.createdAt)}
               </p>
             </div>
             <button

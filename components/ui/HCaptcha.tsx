@@ -63,5 +63,5 @@ export function HCaptcha({
     };
   }, [siteKey, onVerify]);
 
-  return <div ref={containerRef} className="mt-2" />;
+  return <div ref={containerRef} className="mt-2 flex justify-center" />;
 }

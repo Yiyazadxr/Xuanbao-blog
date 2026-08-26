@@ -9,8 +9,9 @@ const QQ_PARTS = [CONTACT.qq.slice(0, 3), CONTACT.qq.slice(3, 6), CONTACT.qq.sli
 export function QQCard() {
   function openQQ() {
     const qq = QQ_PARTS.join("");
+    // 加好友：tencent://AddContact 协议（非临时会话）
     window.open(
-      `https://wpa.qq.com/msgrd?v=3&uin=${qq}&site=qq&menu=yes`,
+      `tencent://AddContact/?fromId=45&fromSubId=1&subcmd=all&uin=${qq}`,
       "_blank",
       "noopener"
     );
@@ -29,7 +30,7 @@ export function QQCard() {
         <span className="block font-bold transition-colors duration-200 group-hover:text-accent">
           QQ
         </span>
-        <span className="mt-1 block text-sm text-muted">点此用 QQ 联系我</span>
+        <span className="mt-1 block text-sm text-muted">加我为 QQ 好友</span>
       </span>
     </button>
   );

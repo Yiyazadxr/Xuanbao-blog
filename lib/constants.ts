@@ -69,8 +69,22 @@ export const TOOLS = [
   },
 ] as const;
 
-// 技能标签（about 页使用）
-export const SKILLS = ["HTML / CSS", "JavaScript", "TypeScript", "React", "Next.js", "Node.js"] as const;
+// 技能标签（about 页使用，按 基础 → 前端 → 桌面 → 移动 → 后端/运维 排序）
+export const SKILLS = [
+  "HTML / CSS",
+  "JavaScript",
+  "TypeScript",
+  "React",
+  "Next.js",
+  "Tailwind CSS",
+  "shadcn/ui",
+  "Electron",
+  "Kotlin",
+  "Flutter",
+  "Node.js",
+  "Python",
+  "Docker",
+] as const;
 
 // 时间线（about 页使用，从新到旧）
 export const TIMELINE = [

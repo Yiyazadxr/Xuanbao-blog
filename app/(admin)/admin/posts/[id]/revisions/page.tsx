@@ -24,7 +24,7 @@ export default async function PostRevisionsPage({
     where: { postId: id },
     orderBy: { createdAt: "desc" },
     take: 50,
-    select: { id: true, title: true, published: true, archived: true, createdAt: true },
+    select: { id: true, title: true, content: true, published: true, archived: true, createdAt: true },
   });
 
   return (

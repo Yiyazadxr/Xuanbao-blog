@@ -29,7 +29,7 @@ export default function AboutPage() {
       </div>
 
       {/* 技能 */}
-      <h2 className="mt-16 text-2xl font-bold tracking-tight">技能栈</h2>
+      <h2 className="mt-16 text-2xl font-bold tracking-tight">持续学习</h2>
       <div className="mt-5 flex flex-wrap gap-2">
         {SKILLS.map((skill) => (
           <span

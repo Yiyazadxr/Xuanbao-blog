@@ -93,7 +93,7 @@ function ConsentDialog({
     >
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
-      <div className="relative flex max-h-[85vh] w-full max-w-2xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
+      <div className="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-display text-lg font-bold tracking-tight">阅读并同意</h2>
           <button
@@ -106,14 +106,20 @@ function ConsentDialog({
           </button>
         </div>
 
-        <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5">
-          <section>
-            <p className="mb-3 border-b border-border pb-2 text-base font-bold">用户协议</p>
-            <LegalMarkdown content={TERMS_OF_SERVICE} />
+        <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-hidden px-5 py-5 sm:flex-row">
+          {/* 左：隐私政策（独立滚动） */}
+          <section className="flex min-h-0 flex-1 flex-col">
+            <p className="mb-2 shrink-0 border-b border-border pb-2 text-base font-bold">隐私政策</p>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <LegalMarkdown content={PRIVACY_POLICY} />
+            </div>
           </section>
-          <section>
-            <p className="mb-3 border-b border-border pb-2 text-base font-bold">隐私政策</p>
-            <LegalMarkdown content={PRIVACY_POLICY} />
+          {/* 右：用户协议（独立滚动） */}
+          <section className="flex min-h-0 flex-1 flex-col">
+            <p className="mb-2 shrink-0 border-b border-border pb-2 text-base font-bold">用户协议</p>
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <LegalMarkdown content={TERMS_OF_SERVICE} />
+            </div>
           </section>
         </div>
 
@@ -146,7 +152,7 @@ function ConsentDialog({
 
 function LegalMarkdown({ content }: { content: string }) {
   return (
-    <div className="prose prose-stone dark:prose-invert max-w-none prose-sm prose-headings:font-bold prose-headings:tracking-tight">
+    <div className="prose prose-stone dark:prose-invert max-w-none prose-sm text-[13px] prose-headings:font-bold prose-headings:tracking-tight">
       <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
     </div>
   );

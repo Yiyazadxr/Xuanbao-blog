@@ -4,6 +4,7 @@ import { Icon } from "@iconify/react";
 import { motion } from "framer-motion";
 import dynamic from "next/dynamic";
 import Link from "next/link";
+import { useSession } from "next-auth/react";
 import { useRef, useSyncExternalStore } from "react";
 import { SITE } from "@/lib/constants";
 import { EASE_OUT } from "@/lib/motion";
@@ -34,6 +35,9 @@ export function Hero() {
   const reduceMotion = usePrefersReducedMotion();
   const isDesktop = useIsDesktop();
   const glowRef = useRef<HTMLDivElement>(null);
+  const { data: session, status } = useSession();
+  // 登录后显示用户昵称，未登录显示「朋友」
+  const displayName = session?.user?.name ?? "朋友";
 
   // 鼠标跟随光晕：直接写 transform，不触发 React 重渲染；首次移动前保持透明
   function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
@@ -87,14 +91,14 @@ export function Hero() {
           Blog · Life · Code
         </motion.p>
 
-        {/* 超大字标题：第一行逐字揭开，渐变行整行揭开 */}
+        {/* 超大字标题：第一行逐字揭开，渐变行整行揭开（按登录态显示昵称） */}
         <h1 className="font-display text-[clamp(3rem,9vw,7.5rem)] leading-[1.05] font-bold tracking-tight">
-          <MaskedText text="你好，我是" delay={0.15} />
+          <MaskedText text="你好，" delay={0.15} />
           <MaskedLine
             delay={0.55}
             className="bg-gradient-to-r from-[var(--accent)] via-[#818cf8] to-[#22d3ee] bg-clip-text pb-2 text-transparent"
           >
-            暄宝xr
+            {displayName}
           </MaskedLine>
         </h1>
 
@@ -133,6 +137,14 @@ export function Hero() {
           >
             关于我
           </Link>
+          {status === "unauthenticated" && (
+            <Link
+              href="/login"
+              className="inline-flex h-12 cursor-pointer items-center rounded-full border border-border px-6 text-sm font-semibold text-muted transition-colors duration-200 hover:border-accent hover:text-accent focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+            >
+              登录
+            </Link>
+          )}
         </motion.div>
       </div>
     </section>

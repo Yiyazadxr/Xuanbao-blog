@@ -65,7 +65,7 @@ export function Header() {
             priority
           />
           <span className="font-display text-base font-bold tracking-tight">
-            {SITE.shortName}
+            {SITE.name}
           </span>
         </Link>
 
