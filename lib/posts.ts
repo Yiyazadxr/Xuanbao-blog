@@ -15,6 +15,7 @@ export type PostListItem = {
   readingTime: number;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
+  series: { id: string; name: string; slug: string } | null;
   tags: { tag: { id: string; name: string; slug: string } }[];
 };
 
@@ -27,6 +28,7 @@ type ListPostRow = {
   content: string;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
+  series: { id: string; name: string; slug: string } | null;
   tags: { tag: { id: string; name: string; slug: string } }[];
 };
 
@@ -41,12 +43,14 @@ function toListItem(row: ListPostRow): PostListItem {
     readingTime: readingTime(row.content),
     createdAt: row.createdAt,
     category: row.category,
+    series: row.series,
     tags: row.tags,
   };
 }
 
 const listInclude = {
   category: true,
+  series: true,
   tags: { include: { tag: true } },
 } as const;
 
@@ -54,14 +58,17 @@ const listInclude = {
 export async function getPosts({
   categorySlug,
   tagSlug,
+  seriesSlug,
 }: {
   categorySlug?: string;
   tagSlug?: string;
+  seriesSlug?: string;
 } = {}) {
   const where = {
     ...PUBLISHED_FILTER,
     ...(categorySlug ? { category: { slug: categorySlug } } : {}),
     ...(tagSlug ? { tags: { some: { tag: { slug: tagSlug } } } } : {}),
+    ...(seriesSlug ? { series: { slug: seriesSlug } } : {}),
   };
 
   const rows = await prisma.post.findMany({
@@ -103,9 +110,26 @@ export async function getPostBySlug(slug: string) {
     include: {
       author: { select: { name: true, image: true } },
       category: true,
+      series: true,
       tags: { include: { tag: true } },
     },
   });
+}
+
+// 同一系列内的上一篇 / 下一篇（按发布时间升序，即系列连载顺序）
+export async function getSeriesAdjacent(seriesId: string, postId: string) {
+  const select = { id: true, title: true, slug: true, createdAt: true } as const;
+  const posts = await prisma.post.findMany({
+    where: { ...PUBLISHED_FILTER, seriesId },
+    orderBy: { createdAt: "asc" },
+    select,
+  });
+  const index = posts.findIndex((p) => p.id === postId);
+  if (index === -1) return { prev: null, next: null };
+  return {
+    prev: index > 0 ? { title: posts[index - 1].title, slug: posts[index - 1].slug } : null,
+    next: index < posts.length - 1 ? { title: posts[index + 1].title, slug: posts[index + 1].slug } : null,
+  };
 }
 
 // 上一篇 / 下一篇（按发布时间排序）

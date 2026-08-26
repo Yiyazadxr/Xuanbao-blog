@@ -37,6 +37,16 @@ model Category {
   posts       Post[]
 }
 
+// 文章系列/专题（一篇多集内容归入同一系列，如「Next.js 教程」）
+model Series {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  slug        String  @unique
+  description String?
+  createdAt   DateTime @default(now())
+  posts       Post[]
+}
+
 // 标签（与文章多对多）
 model Tag {
   id    String    @id @default(cuid())
@@ -67,6 +77,8 @@ model Post {
   author     User      @relation(fields: [authorId], references: [id])
   categoryId String?
   category   Category? @relation(fields: [categoryId], references: [id])
+  seriesId   String?
+  series     Series?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   tags       PostTag[]
   comments   Comment[]
   likes      Like[]
@@ -179,6 +191,7 @@ model PostRevision {
   excerpt    String?
   coverImage String?
   categoryId String?
+  seriesId   String?
   tags       String // JSON 数组
   published  Boolean
   pinned     Boolean

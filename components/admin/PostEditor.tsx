@@ -22,6 +22,7 @@ const MDEditor = dynamic(() => import("@uiw/react-md-editor"), {
 });
 
 type Category = { id: string; name: string };
+type SeriesOption = { id: string; name: string };
 
 type EditorPost = {
   id: string;
@@ -31,6 +32,7 @@ type EditorPost = {
   excerpt: string | null;
   coverImage: string | null;
   categoryId: string | null;
+  seriesId: string | null;
   published: boolean;
   pinned: boolean;
   featured: boolean;
@@ -41,7 +43,15 @@ type EditorPost = {
 const DRAFT_KEY = "post-draft-v1";
 
 // 文章编辑器：新建（post 为空）与编辑共用
-export function PostEditor({ categories, post }: { categories: Category[]; post?: EditorPost }) {
+export function PostEditor({
+  categories,
+  series,
+  post,
+}: {
+  categories: Category[];
+  series: SeriesOption[];
+  post?: EditorPost;
+}) {
   const router = useRouter();
   const { resolvedTheme } = useTheme();
   const [pending, startTransition] = useTransition();
@@ -52,6 +62,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
   const [coverImage, setCoverImage] = useState(post?.coverImage ?? "");
   const [categoryId, setCategoryId] = useState(post?.categoryId ?? "");
+  const [seriesId, setSeriesId] = useState(post?.seriesId ?? "");
   const [tags, setTags] = useState(post?.tags.map((t) => t.tag.name).join(", ") ?? "");
   const [pinned, setPinned] = useState(post?.pinned ?? false);
   const [featured, setFeatured] = useState(post?.featured ?? false);
@@ -76,6 +87,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
       if (d.excerpt) setExcerpt(d.excerpt);
       if (d.coverImage) setCoverImage(d.coverImage);
       if (d.categoryId) setCategoryId(d.categoryId);
+      if (d.seriesId) setSeriesId(d.seriesId);
       if (typeof d.tags === "string") setTags(d.tags);
       if (typeof d.pinned === "boolean") setPinned(d.pinned);
       if (typeof d.featured === "boolean") setFeatured(d.featured);
@@ -95,7 +107,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
       try {
         localStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ title, slug, excerpt, coverImage, categoryId, tags, pinned, featured, content })
+          JSON.stringify({ title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content })
         );
         setAutosaved(true);
       } catch {
@@ -105,7 +117,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [title, slug, excerpt, coverImage, categoryId, tags, pinned, featured, content, post]);
+  }, [title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content, post]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
@@ -142,6 +154,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
       excerpt,
       coverImage,
       categoryId,
+      seriesId,
       tags,
       published,
       featured,
@@ -267,17 +280,36 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
           </select>
         </div>
         <div>
-          <label htmlFor="post-tags" className={labelCls}>
-            标签（逗号分隔）
+          <label htmlFor="post-series" className={labelCls}>
+            系列 / 专题（选填）
           </label>
-          <input
-            id="post-tags"
-            value={tags}
-            onChange={(e) => setTags(e.target.value)}
-            placeholder="Next.js, 前端"
-            className={inputCls}
-          />
+          <select
+            id="post-series"
+            value={seriesId}
+            onChange={(e) => setSeriesId(e.target.value)}
+            className={`${inputCls} cursor-pointer`}
+          >
+            <option value="">（无系列）</option>
+            {series.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+              </option>
+            ))}
+          </select>
         </div>
+      </div>
+
+      <div>
+        <label htmlFor="post-tags" className={labelCls}>
+          标签（逗号分隔）
+        </label>
+        <input
+          id="post-tags"
+          value={tags}
+          onChange={(e) => setTags(e.target.value)}
+          placeholder="Next.js, 前端"
+          className={inputCls}
+        />
       </div>
 
       <div data-color-mode={resolvedTheme === "dark" ? "dark" : "light"}>

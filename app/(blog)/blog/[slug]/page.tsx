@@ -12,7 +12,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { SITE } from "@/lib/constants";
 import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
-import { getAdjacentPosts, getPostBySlug, incrementViewCount } from "@/lib/posts";
+import { getAdjacentPosts, getPostBySlug, getSeriesAdjacent, incrementViewCount } from "@/lib/posts";
 import { formatDate, readingTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -73,9 +73,10 @@ export default async function BlogPostPage({
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
   const user = await getCurrentUser();
-  const [adjacent, like] = await Promise.all([
+  const [adjacent, like, seriesAdjacent] = await Promise.all([
     getAdjacentPosts(post.createdAt),
     getLikeInfo(post.id, user?.id),
+    post.seriesId ? getSeriesAdjacent(post.seriesId, post.id) : Promise.resolve(null),
   ]);
 
   return (
@@ -138,6 +139,45 @@ export default async function BlogPostPage({
                 isLoggedIn={Boolean(user)}
               />
             </div>
+
+            {/* 系列导航：同一系列内的上下篇 */}
+            {post.series && (
+              <div className="mt-12 rounded-2xl border border-border bg-surface p-5">
+                <Link
+                  href={`/blog/series/${post.series.slug}`}
+                  className="text-sm font-semibold text-accent transition-colors duration-200 hover:opacity-80"
+                >
+                  📚 {post.series.name}
+                </Link>
+                {post.series.description && (
+                  <p className="mt-1 text-xs text-muted">{post.series.description}</p>
+                )}
+                {seriesAdjacent && (seriesAdjacent.prev || seriesAdjacent.next) && (
+                  <div className="mt-4 flex items-center justify-between gap-3 text-sm">
+                    {seriesAdjacent.prev ? (
+                      <Link
+                        href={`/blog/${seriesAdjacent.prev.slug}`}
+                        className="min-w-0 truncate text-muted transition-colors duration-200 hover:text-accent"
+                      >
+                        ← {seriesAdjacent.prev.title}
+                      </Link>
+                    ) : (
+                      <span className="text-muted/50">已是系列第一篇</span>
+                    )}
+                    {seriesAdjacent.next ? (
+                      <Link
+                        href={`/blog/${seriesAdjacent.next.slug}`}
+                        className="min-w-0 truncate text-right text-muted transition-colors duration-200 hover:text-accent"
+                      >
+                        {seriesAdjacent.next.title} →
+                      </Link>
+                    ) : (
+                      <span className="text-muted/50">已是系列最后一篇</span>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
 
             <PostNav prev={adjacent.prev} next={adjacent.next} />
 

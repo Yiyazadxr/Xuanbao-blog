@@ -27,6 +27,7 @@ function revisionData(
     excerpt: string | null;
     coverImage: string | null;
     categoryId: string | null;
+    seriesId: string | null;
     published: boolean;
     pinned: boolean;
     featured: boolean;
@@ -43,6 +44,7 @@ function revisionData(
     excerpt: post.excerpt,
     coverImage: post.coverImage,
     categoryId: post.categoryId,
+    seriesId: post.seriesId,
     tags: JSON.stringify(post.tags.map((t) => t.tag.name)),
     published: post.published,
     pinned: post.pinned,
@@ -94,6 +96,12 @@ export async function savePost(
     if (!category) return { ok: false, error: "分类不存在" };
   }
 
+  // 校验系列存在（可选）
+  if (p.seriesId) {
+    const series = await prisma.series.findUnique({ where: { id: p.seriesId } });
+    if (!series) return { ok: false, error: "系列不存在" };
+  }
+
   const existing = p.id
     ? await prisma.post.findUnique({
         where: { id: p.id },
@@ -124,6 +132,7 @@ export async function savePost(
     excerpt: p.excerpt || null,
     coverImage: p.coverImage || null,
     categoryId: p.categoryId || null,
+    seriesId: p.seriesId || null,
     published: p.published,
     publishedAt,
     archived: p.archived,
@@ -506,6 +515,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
           excerpt: revision.excerpt,
           coverImage: revision.coverImage,
           categoryId: revision.categoryId,
+          seriesId: revision.seriesId,
           published: revision.published,
           pinned: revision.pinned,
           featured: revision.featured,

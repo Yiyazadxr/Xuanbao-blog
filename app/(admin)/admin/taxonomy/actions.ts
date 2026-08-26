@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
-import { categorySchema, parseId, parseInput, tagSchema } from "@/lib/validation";
+import { categorySchema, parseId, parseInput, seriesSchema, tagSchema } from "@/lib/validation";
 
 export type TaxonomyActionState = { ok: boolean; error?: string; message?: string };
 
@@ -139,4 +139,74 @@ export async function deleteTag(id: string): Promise<TaxonomyActionState> {
   revalidatePath("/admin/taxonomy");
   revalidatePath("/blog");
   return { ok: true, message: "已删除标签" };
+}
+
+// ===== 系列/专题 =====
+
+export async function createSeries(
+  name: string,
+  description?: string
+): Promise<TaxonomyActionState> {
+  const admin = await guard();
+  if (!admin) return { ok: false, error: "无权限" };
+
+  const parsed = parseInput(seriesSchema, { name, description });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { name: n, description: desc } = parsed.data;
+
+  const slug = slugify(n);
+  const dup = await prisma.series.findFirst({ where: { OR: [{ name: n }, { slug }] } });
+  if (dup) return { ok: false, error: "该系列已存在（名称或 URL 标识重复）" };
+
+  await prisma.series.create({ data: { name: n, slug, description: desc || null } });
+  revalidatePath("/admin/taxonomy");
+  return { ok: true, message: "已创建系列" };
+}
+
+export async function updateSeries(
+  id: string,
+  name: string,
+  description?: string
+): Promise<TaxonomyActionState> {
+  const admin = await guard();
+  if (!admin) return { ok: false, error: "无权限" };
+
+  const sid = parseId(id);
+  if (!sid.data) return { ok: false, error: sid.error ?? "参数不合法" };
+  const parsed = parseInput(seriesSchema, { name, description });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { name: n, description: desc } = parsed.data;
+
+  const existing = await prisma.series.findUnique({ where: { id: sid.data } });
+  if (!existing) return { ok: false, error: "系列不存在" };
+
+  const slug = slugify(n);
+  const dup = await prisma.series.findFirst({
+    where: { OR: [{ name: n }, { slug }], id: { not: sid.data } },
+  });
+  if (dup) return { ok: false, error: "该名称或 URL 标识已被其他系列占用" };
+
+  await prisma.series.update({
+    where: { id: sid.data },
+    data: { name: n, slug, description: desc || null },
+  });
+  revalidatePath("/admin/taxonomy");
+  revalidatePath("/blog");
+  return { ok: true, message: "已保存系列" };
+}
+
+export async function deleteSeries(id: string): Promise<TaxonomyActionState> {
+  const admin = await guard();
+  if (!admin) return { ok: false, error: "无权限" };
+
+  const sid = parseId(id);
+  if (!sid.data) return { ok: false, error: sid.error ?? "参数不合法" };
+  const existing = await prisma.series.findUnique({ where: { id: sid.data } });
+  if (!existing) return { ok: false, error: "系列不存在" };
+
+  // 系列与文章为可选关联，删除后相关文章自动变为「无系列」（SetNull）
+  await prisma.series.delete({ where: { id: sid.data } });
+  revalidatePath("/admin/taxonomy");
+  revalidatePath("/blog");
+  return { ok: true, message: "已删除系列" };
 }

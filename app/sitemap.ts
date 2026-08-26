@@ -5,14 +5,15 @@ import { prisma } from "@/lib/prisma";
 // 每次请求实时生成，保证新发布的文章立即出现在站点地图里
 export const dynamic = "force-dynamic";
 
-// 站点地图：静态页 + 全部已发布文章 + 分类/标签
+// 站点地图：静态页 + 全部已发布文章 + 分类/系列/标签
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [posts, categories, tags] = await Promise.all([
+  const [posts, categories, series, tags] = await Promise.all([
     prisma.post.findMany({
       where: { published: true, archived: false },
       select: { slug: true, updatedAt: true },
     }),
     prisma.category.findMany({ select: { slug: true } }),
+    prisma.series.findMany({ select: { slug: true } }),
     prisma.tag.findMany({ select: { slug: true } }),
   ]);
 
@@ -35,6 +36,11 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
     ...categories.map((c) => ({
       url: `${SITE.url}/blog/category/${c.slug}`,
+      changeFrequency: "weekly" as const,
+      priority: 0.5,
+    })),
+    ...series.map((s) => ({
+      url: `${SITE.url}/blog/series/${s.slug}`,
       changeFrequency: "weekly" as const,
       priority: 0.5,
     })),

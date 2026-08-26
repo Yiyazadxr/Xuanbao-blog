@@ -42,6 +42,7 @@ export const postSchema = z.object({
   excerpt: z.string().trim().max(500, "摘要最长 500 字").optional().default(""),
   coverImage: z.string().trim().max(500).nullable().optional().default(null),
   categoryId: z.string().trim().max(100).nullable().optional().default(null),
+  seriesId: z.string().trim().max(100).nullable().optional().default(null),
   tags: z.string().max(1000).optional().default(""),
   published: z.boolean(),
   featured: z.boolean(),
@@ -84,6 +85,12 @@ export const categorySchema = z.object({
 // 标签
 export const tagSchema = z.object({
   name: z.string().trim().min(1, "名称不能为空").max(50, "名称最长 50 字"),
+});
+
+// 系列/专题
+export const seriesSchema = z.object({
+  name: z.string().trim().min(1, "名称不能为空").max(50, "名称最长 50 字"),
+  description: z.string().trim().max(200, "描述最长 200 字").optional().default(""),
 });
 
 // 文章批量操作

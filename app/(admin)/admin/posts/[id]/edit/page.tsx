@@ -13,12 +13,13 @@ export default async function EditPostPage({
   params: Promise<{ id: string }>;
 }) {
   const { id } = await params;
-  const [post, categories] = await Promise.all([
+  const [post, categories, series] = await Promise.all([
     prisma.post.findUnique({
       where: { id },
       include: { tags: { include: { tag: true } } },
     }),
     prisma.category.findMany({ orderBy: { name: "asc" } }),
+    prisma.series.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),
   ]);
   if (!post) notFound();
 
@@ -34,7 +35,7 @@ export default async function EditPostPage({
         </Link>
       </div>
       <div className="mt-8">
-        <PostEditor categories={categories} post={post} />
+        <PostEditor categories={categories} series={series} post={post} />
       </div>
     </>
   );
