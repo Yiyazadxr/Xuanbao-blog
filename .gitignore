@@ -47,5 +47,12 @@ next-env.d.ts
 *.db
 *.db-journal
 
+# 本地开发时上传的图片（生产走对象存储）
+/public/uploads/
+
 # legacy code archive (kept locally, not tracked)
 _legacy/
+
+# AI.md
+AGENTS.md
+CLAUDE.md

@@ -1,10 +1,11 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { savePost } from "@/app/(admin)/admin/actions";
+import { savePost, uploadImage } from "@/app/(admin)/admin/actions";
 import { errorCls, inputCls, labelCls, primaryBtnCls } from "@/components/ui/form-styles";
 import { slugify } from "@/lib/utils";
 import "@uiw/react-md-editor/markdown-editor.css";
@@ -28,6 +29,7 @@ type EditorPost = {
   slug: string;
   content: string;
   excerpt: string | null;
+  coverImage: string | null;
   categoryId: string | null;
   published: boolean;
   pinned: boolean;
@@ -48,6 +50,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
   const [slug, setSlug] = useState(post?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
+  const [coverImage, setCoverImage] = useState(post?.coverImage ?? "");
   const [categoryId, setCategoryId] = useState(post?.categoryId ?? "");
   const [tags, setTags] = useState(post?.tags.map((t) => t.tag.name).join(", ") ?? "");
   const [pinned, setPinned] = useState(post?.pinned ?? false);
@@ -55,6 +58,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
   const [content, setContent] = useState(post?.content ?? "");
   const [error, setError] = useState("");
   const [autosaved, setAutosaved] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   // 新建文章时恢复上次的草稿（仅在客户端挂载时执行一次；从 localStorage 同步外部状态）
   /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
@@ -70,6 +74,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
         setSlugTouched(true);
       }
       if (d.excerpt) setExcerpt(d.excerpt);
+      if (d.coverImage) setCoverImage(d.coverImage);
       if (d.categoryId) setCategoryId(d.categoryId);
       if (typeof d.tags === "string") setTags(d.tags);
       if (typeof d.pinned === "boolean") setPinned(d.pinned);
@@ -90,7 +95,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
       try {
         localStorage.setItem(
           DRAFT_KEY,
-          JSON.stringify({ title, slug, excerpt, categoryId, tags, pinned, featured, content })
+          JSON.stringify({ title, slug, excerpt, coverImage, categoryId, tags, pinned, featured, content })
         );
         setAutosaved(true);
       } catch {
@@ -100,12 +105,31 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [title, slug, excerpt, categoryId, tags, pinned, featured, content, post]);
+  }, [title, slug, excerpt, coverImage, categoryId, tags, pinned, featured, content, post]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
     // slug 未被手动改过时跟随标题自动生成
     if (!slugTouched) setSlug(slugify(value));
+  }
+
+  async function handleCoverFile(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setError("");
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await uploadImage(fd);
+      if (res.ok && res.url) setCoverImage(res.url);
+      else setError(res.error ?? "上传失败");
+    } catch {
+      setError("上传失败");
+    } finally {
+      setUploading(false);
+    }
   }
 
   function submit(published: boolean) {
@@ -116,6 +140,7 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
       slug,
       content,
       excerpt,
+      coverImage,
       categoryId,
       tags,
       published,
@@ -187,6 +212,39 @@ export function PostEditor({ categories, post }: { categories: Category[]; post?
           placeholder="不填则自动截取正文开头"
           className={`${inputCls} h-auto py-3`}
         />
+      </div>
+
+      <div>
+        <span className={labelCls}>封面图（选填，列表与详情页展示）</span>
+        <div className="flex items-start gap-4">
+          {coverImage && (
+            <div className="relative h-28 w-44 shrink-0 overflow-hidden rounded-xl border border-border">
+              <Image src={coverImage} alt="封面预览" fill className="object-cover" sizes="176px" />
+            </div>
+          )}
+          <div className="flex flex-col gap-2">
+            <label className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-border px-4 text-sm font-medium text-muted transition-colors duration-200 hover:border-accent hover:text-accent">
+              {uploading ? "上传中…" : coverImage ? "更换封面" : "上传封面"}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/gif"
+                onChange={handleCoverFile}
+                disabled={uploading}
+                className="hidden"
+              />
+            </label>
+            {coverImage && (
+              <button
+                type="button"
+                onClick={() => setCoverImage("")}
+                className="cursor-pointer text-left text-sm text-red-500 hover:underline"
+              >
+                移除封面
+              </button>
+            )}
+            <p className="text-xs text-muted">支持 JPG / PNG / WebP / GIF，最大 5MB</p>
+          </div>
+        </div>
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">

@@ -70,6 +70,7 @@ model Post {
   tags       PostTag[]
   comments   Comment[]
   likes      Like[]
+  revisions  PostRevision[]
 
   @@index([published, createdAt])
 }
@@ -164,4 +165,27 @@ model Notification {
   createdAt DateTime @default(now())
 
   @@index([userId, read, createdAt])
+}
+
+// 文章版本快照：每次保存前记录旧状态，支持历史查看与回滚
+// tags 存标签名 JSON 数组字符串（如 ["Next.js","前端"]）
+model PostRevision {
+  id         String   @id @default(cuid())
+  postId     String
+  post       Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  title      String
+  slug       String
+  content    String
+  excerpt    String?
+  coverImage String?
+  categoryId String?
+  tags       String // JSON 数组
+  published  Boolean
+  pinned     Boolean
+  featured   Boolean
+  archived   Boolean
+  authorId   String?
+  createdAt  DateTime @default(now())
+
+  @@index([postId, createdAt])
 }

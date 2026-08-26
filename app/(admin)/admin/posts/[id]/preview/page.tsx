@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { PostContent } from "@/components/blog/PostContent";
@@ -50,6 +51,11 @@ export default async function PreviewPostPage({
           <h1 className="font-display mt-4 text-3xl font-bold leading-tight tracking-tight sm:text-4xl">
             {post.title}
           </h1>
+          {post.coverImage && (
+            <div className="relative mt-4 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border">
+              <Image src={post.coverImage} alt={post.title} fill sizes="(max-width: 896px) 100vw, 896px" className="object-cover" />
+            </div>
+          )}
           <p className="mt-4 text-sm text-muted">
             {post.publishedAt ? formatDate(post.publishedAt) : formatDate(post.updatedAt)} · 约{" "}
             {readingTime(post.content)} 分钟

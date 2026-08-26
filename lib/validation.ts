@@ -40,6 +40,7 @@ export const postSchema = z.object({
     .max(1_000_000, "正文过长")
     .refine((v) => v.trim().length > 0, "正文不能为空"),
   excerpt: z.string().trim().max(500, "摘要最长 500 字").optional().default(""),
+  coverImage: z.string().trim().max(500).nullable().optional().default(null),
   categoryId: z.string().trim().max(100).nullable().optional().default(null),
   tags: z.string().max(1000).optional().default(""),
   published: z.boolean(),

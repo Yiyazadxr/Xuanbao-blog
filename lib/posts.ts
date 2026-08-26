@@ -11,6 +11,7 @@ export type PostListItem = {
   slug: string;
   title: string;
   excerpt: string;
+  coverImage: string | null;
   readingTime: number;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
@@ -22,6 +23,7 @@ type ListPostRow = {
   slug: string;
   title: string;
   excerpt: string | null;
+  coverImage: string | null;
   content: string;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
@@ -35,6 +37,7 @@ function toListItem(row: ListPostRow): PostListItem {
     slug: row.slug,
     title: row.title,
     excerpt: row.excerpt ?? plainExcerpt(row.content),
+    coverImage: row.coverImage,
     readingTime: readingTime(row.content),
     createdAt: row.createdAt,
     category: row.category,

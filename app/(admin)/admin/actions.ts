@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { SITE } from "@/lib/constants";
+import { deleteImage, saveImage } from "@/lib/image-storage";
 import { createInviteCode } from "@/lib/invites";
 import { sendMail } from "@/lib/mail";
 import { createNotification } from "@/lib/notifications";
@@ -12,6 +13,59 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
+
+// 每篇文章保留的版本数上限
+const MAX_REVISIONS = 50;
+
+// 构造版本快照数据（保存/回滚前记录旧状态）
+function revisionData(
+  post: {
+    id: string;
+    title: string;
+    slug: string;
+    content: string;
+    excerpt: string | null;
+    coverImage: string | null;
+    categoryId: string | null;
+    published: boolean;
+    pinned: boolean;
+    featured: boolean;
+    archived: boolean;
+    tags: { tag: { name: string } }[];
+  },
+  authorId: string
+) {
+  return {
+    postId: post.id,
+    title: post.title,
+    slug: post.slug,
+    content: post.content,
+    excerpt: post.excerpt,
+    coverImage: post.coverImage,
+    categoryId: post.categoryId,
+    tags: JSON.stringify(post.tags.map((t) => t.tag.name)),
+    published: post.published,
+    pinned: post.pinned,
+    featured: post.featured,
+    archived: post.archived,
+    authorId,
+  };
+}
+
+// 清理超出上限的旧版本（保留最近 MAX_REVISIONS 个）
+async function pruneRevisions(postId: string) {
+  const oldest = await prisma.postRevision.findMany({
+    where: { postId },
+    orderBy: { createdAt: "desc" },
+    skip: MAX_REVISIONS,
+    select: { id: true },
+  });
+  if (oldest.length > 0) {
+    await prisma.postRevision.deleteMany({
+      where: { id: { in: oldest.map((r) => r.id) } },
+    });
+  }
+}
 
 export type AdminActionState = { ok: boolean; error?: string; message?: string };
 
@@ -40,7 +94,12 @@ export async function savePost(
     if (!category) return { ok: false, error: "分类不存在" };
   }
 
-  const existing = p.id ? await prisma.post.findUnique({ where: { id: p.id } }) : null;
+  const existing = p.id
+    ? await prisma.post.findUnique({
+        where: { id: p.id },
+        include: { tags: { include: { tag: true } } },
+      })
+    : null;
   if (p.id && !existing) return { ok: false, error: "文章不存在" };
 
   // 解析标签：逗号/顿号分隔，去重
@@ -63,6 +122,7 @@ export async function savePost(
     slug,
     content: p.content,
     excerpt: p.excerpt || null,
+    coverImage: p.coverImage || null,
     categoryId: p.categoryId || null,
     published: p.published,
     publishedAt,
@@ -86,6 +146,10 @@ export async function savePost(
 
       let id = p.id;
       if (id) {
+        // 编辑前先快照旧状态为版本
+        if (existing) {
+          await tx.postRevision.create({ data: revisionData(existing, admin.id) });
+        }
         await tx.post.update({ where: { id }, data });
         await tx.postTag.deleteMany({ where: { postId: id } });
       } else {
@@ -99,6 +163,10 @@ export async function savePost(
       }
       return id;
     });
+
+    // 注意：不在此删除被替换的旧封面——历史版本可能仍引用它，
+    // 删除会导致回滚到旧版本时封面失效；封面统一在删除文章时清理
+    await pruneRevisions(postId);
 
     revalidatePath("/");
     revalidatePath("/blog");
@@ -116,9 +184,17 @@ export async function deletePost(id: string): Promise<AdminActionState> {
   if (!admin) return { ok: false, error: "无权限" };
   const pid = parseId(id);
   if (!pid.data) return { ok: false, error: pid.error ?? "参数不合法" };
-  const post = await prisma.post.findUnique({ where: { id: pid.data } });
+  const post = await prisma.post.findUnique({
+    where: { id: pid.data },
+    include: { revisions: { select: { coverImage: true } } },
+  });
   if (!post) return { ok: false, error: "文章不存在" };
+  // 删除文章连同其所有封面（当前封面 + 各历史版本引用过的封面）
+  const covers = [post.coverImage, ...post.revisions.map((r) => r.coverImage)].filter(
+    (c): c is string => Boolean(c)
+  );
   await prisma.post.delete({ where: { id: pid.data } });
+  for (const cover of covers) void deleteImage(cover);
   revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath("/admin/posts");
@@ -186,6 +262,14 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   const request = await prisma.accountRequest.findUnique({ where: { id: rid.data } });
   if (!request) return { ok: false, error: "申请不存在" };
   if (request.status !== "PENDING") return { ok: false, error: "该申请已处理" };
+
+  // 防止重复生成邀请码（避免重复发送邮件）
+  const existingInvite = await prisma.inviteCode.findFirst({
+    where: { email: request.email, usedById: null },
+  });
+  if (existingInvite) {
+    return { ok: false, error: "该申请已有未使用的邀请码，请勿重复生成" };
+  }
 
   const invite = await createInviteCode(request.email);
 
@@ -322,7 +406,17 @@ export async function batchPosts(
   const { ids: idList, operation: op, categoryId: cid } = parsed.data;
 
   if (op === "delete") {
+    const posts = await prisma.post.findMany({
+      where: { id: { in: idList } },
+      select: { coverImage: true, revisions: { select: { coverImage: true } } },
+    });
     await prisma.post.deleteMany({ where: { id: { in: idList } } });
+    for (const p of posts) {
+      const covers = [p.coverImage, ...p.revisions.map((r) => r.coverImage)].filter(
+        (c): c is string => Boolean(c)
+      );
+      for (const cover of covers) void deleteImage(cover);
+    }
   } else if (op === "publish") {
     // 首次发布补齐发布时间
     await prisma.post.updateMany({
@@ -345,4 +439,100 @@ export async function batchPosts(
   revalidatePath("/blog");
   revalidatePath("/admin/posts");
   return { ok: true, message: "已批量处理" };
+}
+
+// 上传封面图（返回可访问 URL）
+export async function uploadImage(
+  formData: FormData
+): Promise<{ ok: boolean; url?: string; error?: string }> {
+  const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
+  if (!admin) return { ok: false, error: "无权限" };
+
+  const file = formData.get("file");
+  if (!file || typeof file === "string") {
+    return { ok: false, error: "未选择文件" };
+  }
+
+  try {
+    const buf = Buffer.from(await file.arrayBuffer());
+    const url = await saveImage({ type: file.type, data: buf });
+    return { ok: true, url };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "上传失败" };
+  }
+}
+
+// 回滚文章到某个历史版本
+export async function restorePostRevision(revisionId: string): Promise<AdminActionState> {
+  const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
+  if (!admin) return { ok: false, error: "无权限" };
+  const rid = parseId(revisionId);
+  if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
+
+  const revision = await prisma.postRevision.findUnique({ where: { id: rid.data } });
+  if (!revision) return { ok: false, error: "版本不存在" };
+
+  const post = await prisma.post.findUnique({
+    where: { id: revision.postId },
+    include: { tags: { include: { tag: true } } },
+  });
+  if (!post) return { ok: false, error: "文章不存在" };
+
+  // slug 唯一性检查（历史 slug 可能已被其他文章占用）
+  const conflict = await prisma.post.findFirst({
+    where: { slug: revision.slug, id: { not: post.id } },
+  });
+  if (conflict) return { ok: false, error: `slug「${revision.slug}」已被其他文章占用，无法回滚` };
+
+  let tagNames: string[] = [];
+  try {
+    const parsed = JSON.parse(revision.tags);
+    if (Array.isArray(parsed)) tagNames = parsed.filter((t) => typeof t === "string");
+  } catch {
+    tagNames = [];
+  }
+
+  try {
+    await prisma.$transaction(async (tx) => {
+      // 先快照当前状态，使回滚可再次撤销
+      await tx.postRevision.create({ data: revisionData(post, admin.id) });
+
+      await tx.post.update({
+        where: { id: post.id },
+        data: {
+          title: revision.title,
+          slug: revision.slug,
+          content: revision.content,
+          excerpt: revision.excerpt,
+          coverImage: revision.coverImage,
+          categoryId: revision.categoryId,
+          published: revision.published,
+          pinned: revision.pinned,
+          featured: revision.featured,
+          archived: revision.archived,
+        },
+      });
+
+      const tags = await Promise.all(
+        tagNames.map((name) =>
+          tx.tag.upsert({ where: { name }, update: {}, create: { name, slug: slugify(name) } })
+        )
+      );
+      await tx.postTag.deleteMany({ where: { postId: post.id } });
+      if (tags.length) {
+        await tx.postTag.createMany({
+          data: tags.map((t) => ({ postId: post.id, tagId: t.id })),
+        });
+      }
+    });
+
+    await pruneRevisions(post.id);
+    revalidatePath("/");
+    revalidatePath("/blog");
+    revalidatePath("/admin/posts");
+    return { ok: true, message: "已回滚到该版本" };
+  } catch (e) {
+    console.error("回滚失败：", e);
+    return { ok: false, error: "回滚失败，请稍后重试" };
+  }
 }

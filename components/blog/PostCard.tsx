@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import type { PostListItem } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
@@ -6,6 +7,18 @@ import { formatDate } from "@/lib/utils";
 export function PostCard({ post }: { post: PostListItem }) {
   return (
     <article className="group relative flex flex-col rounded-2xl border border-border bg-surface p-6 transition-all duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-foreground/5">
+      {post.coverImage && (
+        <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden rounded-t-2xl">
+          <Image
+            src={post.coverImage}
+            alt={post.title}
+            fill
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+            className="object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
+      )}
+
       <div className="flex items-center gap-3 text-xs text-muted">
         {post.category && (
           <Link

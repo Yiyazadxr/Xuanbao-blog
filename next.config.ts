@@ -17,7 +17,7 @@ const cspHeader = {
     "default-src 'self'",
     "script-src 'self' 'unsafe-inline'",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://avatars.githubusercontent.com https://*.githubusercontent.com",
+    "img-src 'self' data: https://avatars.githubusercontent.com https://*.githubusercontent.com https://*.public.blob.vercel-storage.com",
     "font-src 'self' data:",
     "connect-src 'self' https://api.iconify.design",
     "object-src 'none'",
@@ -28,11 +28,18 @@ const cspHeader = {
 };
 
 const nextConfig: NextConfig = {
+  experimental: {
+    serverActions: {
+      // 封面图上传（默认 1MB，放开到 6MB 覆盖 5MB 图片 + multipart 开销）
+      bodySizeLimit: "6mb",
+    },
+  },
   images: {
     formats: ["image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       { protocol: "https", hostname: "**.githubusercontent.com" },
+      { protocol: "https", hostname: "*.public.blob.vercel-storage.com" },
     ],
   },
   async headers() {

@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LikeButton } from "@/components/blog/LikeButton";
@@ -28,6 +29,11 @@ export async function generateMetadata({
 
   const description = post.excerpt ?? post.title;
   const url = `${SITE.url}/blog/${post.slug}`;
+  const coverUrl = post.coverImage
+    ? post.coverImage.startsWith("http")
+      ? post.coverImage
+      : `${SITE.url}${post.coverImage}`
+    : undefined;
 
   return {
     title: post.title,
@@ -37,6 +43,7 @@ export async function generateMetadata({
       url,
       title: post.title,
       description,
+      images: coverUrl ? [{ url: coverUrl }] : undefined,
       publishedTime: post.createdAt.toISOString(),
       modifiedTime: post.updatedAt.toISOString(),
       tags: post.tags.map((t) => t.tag.name),
@@ -45,6 +52,7 @@ export async function generateMetadata({
       card: "summary_large_image",
       title: post.title,
       description,
+      images: coverUrl ? [coverUrl] : undefined,
     },
   };
 }
@@ -82,6 +90,18 @@ export default async function BlogPostPage({
           <h1 className="font-display mt-3 text-4xl font-bold leading-tight tracking-tight text-foreground sm:text-5xl">
             {post.title}
           </h1>
+          {post.coverImage && (
+            <div className="relative mt-6 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border">
+              <Image
+                src={post.coverImage}
+                alt={post.title}
+                fill
+                priority
+                sizes="(max-width: 896px) 100vw, 896px"
+                className="object-cover"
+              />
+            </div>
+          )}
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
             <span>{post.author.name}</span>
             <time dateTime={post.createdAt.toISOString()}>{formatDate(post.createdAt)}</time>
