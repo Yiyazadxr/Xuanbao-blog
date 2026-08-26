@@ -1,11 +1,11 @@
-// 邮件通知封装：未配置 SMTP 时降级为控制台打印（本地开发友好）
+// 邮件发送封装：仅用于注册流程（向申请者发送邀请码），未配置 SMTP 时降级为控制台打印
 import nodemailer from "nodemailer";
 
-export async function sendMailToAdmin(subject: string, text: string) {
-  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, ADMIN_EMAIL } = process.env;
+export async function sendMail(to: string, subject: string, text: string) {
+  const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
   if (!SMTP_USER || !SMTP_PASS) {
-    console.log(`\n[邮件降级-控制台] 主题：${subject}\n${text}\n`);
+    console.log(`\n[邮件降级-控制台] 收件人：${to}\n主题：${subject}\n${text}\n`);
     return;
   }
 
@@ -18,7 +18,7 @@ export async function sendMailToAdmin(subject: string, text: string) {
 
   await transporter.sendMail({
     from: `"博客通知" <${SMTP_USER}>`,
-    to: ADMIN_EMAIL || SMTP_USER,
+    to,
     subject,
     text,
   });

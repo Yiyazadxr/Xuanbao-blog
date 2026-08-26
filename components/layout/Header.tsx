@@ -6,6 +6,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { NAV_LINKS, SITE } from "@/lib/constants";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { useFocusTrap } from "@/lib/use-focus-trap";
@@ -94,6 +95,7 @@ export function Header() {
 
         <div className="flex items-center gap-1">
           <ThemeToggle />
+          <NotificationBell />
           <UserMenu />
           {/* 移动端汉堡按钮 */}
           <button

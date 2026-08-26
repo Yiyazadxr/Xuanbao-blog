@@ -3,6 +3,7 @@
 // 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
+import { notifyAdmins } from "@/lib/notifications";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { commentSchema, likeSchema, parseInput } from "@/lib/validation";
@@ -41,6 +42,15 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
 
   await prisma.comment.create({
     data: { content, postId, authorId: user.id, parentId: parentId ?? null },
+  });
+
+  // 站内通知管理员有新的待审核评论/回复
+  await notifyAdmins({
+    type: parentId ? "reply" : "comment",
+    title: parentId
+      ? `「${user.name}」回复了评论，待审核`
+      : `「${user.name}」评论了《${post.title}》`,
+    link: "/admin/comments",
   });
 
   revalidatePath(`/blog/${slug}`);

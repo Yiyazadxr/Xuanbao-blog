@@ -6,6 +6,20 @@ export function formatDate(date: Date | string): string {
   return `${d.getFullYear()} 年 ${d.getMonth() + 1} 月 ${d.getDate()} 日`;
 }
 
+// 相对时间：刚刚 / N 分钟前 / N 小时前 / N 天前（超过 30 天回落绝对日期）
+export function formatRelativeTime(date: Date | string): string {
+  const diff = Date.now() - new Date(date).getTime();
+  const sec = Math.floor(diff / 1000);
+  if (sec < 60) return "刚刚";
+  const min = Math.floor(sec / 60);
+  if (min < 60) return `${min} 分钟前`;
+  const hour = Math.floor(min / 60);
+  if (hour < 24) return `${hour} 小时前`;
+  const day = Math.floor(hour / 24);
+  if (day < 30) return `${day} 天前`;
+  return formatDate(date);
+}
+
 // 阅读时长估算：中文约 400 字/分钟，英文约 200 词/分钟
 export function readingTime(content: string): number {
   const cjkCount = (content.match(/[一-鿿]/g) ?? []).length;

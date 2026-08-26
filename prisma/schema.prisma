@@ -21,10 +21,11 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  posts      Post[]
-  comments   Comment[]
-  likes      Like[]
-  inviteCode InviteCode? // 该用户注册时使用的邀请码
+  posts        Post[]
+  comments     Comment[]
+  likes        Like[]
+  inviteCode   InviteCode?
+  notifications Notification[]
 }
 
 // 文章分类（一篇文章属于一个分类）
@@ -148,4 +149,19 @@ model RateLimit {
   count     Int      @default(0)
   resetAt   DateTime
   updatedAt DateTime @updatedAt
+}
+
+// 站内通知：type 取值 comment | reply | account_request | comment_approved 等
+// 接收者 userId 为该通知的所属用户（管理员收到审核类通知，普通用户收到审核结果通知）
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  type      String
+  title     String
+  link      String?
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([userId, read, createdAt])
 }

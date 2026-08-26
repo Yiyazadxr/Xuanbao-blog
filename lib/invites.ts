@@ -1,14 +1,14 @@
 // 邀请码与账号申请：数据层函数（供 Server Actions 调用）
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
+import { notifyAdmins } from "@/lib/notifications";
 import { prisma } from "@/lib/prisma";
-import { sendMailToAdmin } from "@/lib/mail";
 
-// 访客提交账号申请 → 入库 + 通知博主邮箱
+// 访客提交账号申请 → 入库 + 站内通知管理员
 export async function submitAccountRequest(email: string, message?: string) {
   const normalized = email.trim().toLowerCase();
 
-  // 全局节流：10 分钟内申请总数超过 5 条则拒绝（防刷申请 + 邮件轰炸）
+  // 全局节流：10 分钟内申请总数超过 5 条则拒绝（防刷申请）
   const recentCount = await prisma.accountRequest.count({
     where: { createdAt: { gt: new Date(Date.now() - 10 * 60 * 1000) } },
   });
@@ -32,15 +32,12 @@ export async function submitAccountRequest(email: string, message?: string) {
     data: { email: normalized, message: message?.trim() || null },
   });
 
-  // 邮件失败不影响申请成功（申请已入库，后台可见）
-  try {
-    await sendMailToAdmin(
-      "【博客】新的账号申请",
-      `申请邮箱：${normalized}\n申请说明：${message?.trim() || "（无）"}\n\n请登录后台 /admin/invites 审核并分配邀请码。`
-    );
-  } catch (e) {
-    console.error("申请通知邮件发送失败：", e);
-  }
+  // 站内通知管理员有新的账号申请
+  await notifyAdmins({
+    type: "account_request",
+    title: `新账号申请：${normalized}`,
+    link: "/admin/invites",
+  });
 
   return { ok: true };
 }

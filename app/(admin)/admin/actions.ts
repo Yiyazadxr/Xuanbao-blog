@@ -4,8 +4,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
-import { PERMISSIONS } from "@/lib/permissions";
+import { SITE } from "@/lib/constants";
 import { createInviteCode } from "@/lib/invites";
+import { sendMail } from "@/lib/mail";
+import { createNotification } from "@/lib/notifications";
+import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
 import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
@@ -182,9 +185,23 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
   const request = await prisma.accountRequest.findUnique({ where: { id: rid.data } });
   if (!request) return { ok: false, error: "申请不存在" };
+  if (request.status !== "PENDING") return { ok: false, error: "该申请已处理" };
+
   const invite = await createInviteCode(request.email);
+
+  // 邮件仅用于注册流程：向申请者发送邀请码（失败不影响审核结果）
+  try {
+    await sendMail(
+      request.email,
+      "【Xuanbao.dev】你的账号申请已通过",
+      `感谢你的申请！你的注册邀请码为：${invite.code}（7 天内有效）\n\n请前往 ${SITE.url}/register 使用该邀请码完成注册。`
+    );
+  } catch (e) {
+    console.error("邀请码邮件发送失败：", e);
+  }
+
   revalidatePath("/admin/invites");
-  return { ok: true, message: `邀请码 ${invite.code} 已生成（绑定 ${request.email}）` };
+  return { ok: true, message: `邀请码 ${invite.code} 已生成并邮件通知（绑定 ${request.email}）` };
 }
 
 // 拒绝申请
@@ -234,10 +251,34 @@ export async function approveComment(id: string): Promise<AdminActionState> {
   if (!cid.data) return { ok: false, error: cid.error ?? "参数不合法" };
   const comment = await prisma.comment.findUnique({
     where: { id: cid.data },
-    include: { post: { select: { slug: true } } },
+    include: {
+      post: { select: { slug: true } },
+      author: { select: { name: true } },
+      parent: { select: { authorId: true } },
+    },
   });
   if (!comment) return { ok: false, error: "评论不存在" };
   await prisma.comment.update({ where: { id: cid.data }, data: { isApproved: true } });
+  // 站内通知评论/回复作者（自己审核自己的内容时不重复通知）
+  if (comment.authorId !== admin.id) {
+    await createNotification(comment.authorId, {
+      type: "comment_approved",
+      title: "你的评论已通过审核",
+      link: `/blog/${comment.post.slug}`,
+    });
+  }
+  // 若为回复，通知被回复的用户（排除本人与审核者）
+  if (
+    comment.parent &&
+    comment.parent.authorId !== comment.authorId &&
+    comment.parent.authorId !== admin.id
+  ) {
+    await createNotification(comment.parent.authorId, {
+      type: "comment_replied",
+      title: `「${comment.author.name}」回复了你的评论`,
+      link: `/blog/${comment.post.slug}`,
+    });
+  }
   revalidatePath(`/blog/${comment.post.slug}`);
   revalidatePath("/admin/comments");
   return { ok: true, message: "已通过" };
