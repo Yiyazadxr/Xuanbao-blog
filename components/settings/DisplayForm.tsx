@@ -21,11 +21,16 @@ import {
   readFooterPy,
   readFontScale,
   readHeaderH,
+  readSpacingScale,
   setSyncEnabled,
+  SPACING_SCALE_MAX,
+  SPACING_SCALE_MIN,
+  SPACING_SCALE_STEP,
   writeDensity,
   writeFontScale,
   writeFooterPy,
   writeHeaderH,
+  writeSpacingScale,
   type Density,
 } from "@/lib/display";
 import { successCls } from "@/components/ui/form-styles";
@@ -33,9 +38,10 @@ import { successCls } from "@/components/ui/form-styles";
 const rangeCls =
   "mt-2 h-1.5 w-full cursor-pointer appearance-none rounded-full bg-foreground/10 accent-[var(--accent)]";
 
-// 显示设置：字体缩放 + 界面密度（含自定义导航栏/页脚）+ 跨设备同步
+// 显示设置：字体缩放 + 页面间距 + 界面密度（含自定义导航栏/页脚）+ 跨设备同步
 export function DisplayForm() {
   const [fontScale, setFontScale] = useState(readFontScale);
+  const [spacingScale, setSpacingScale] = useState(readSpacingScale);
   const [density, setDensity] = useState<Density>(readDensity);
   const [headerH, setHeaderH] = useState(readHeaderH);
   const [footerPy, setFooterPy] = useState(readFooterPy);
@@ -43,37 +49,50 @@ export function DisplayForm() {
   const [syncPending, setSyncPending] = useState(false);
   const [msg, setMsg] = useState("");
 
-  function persist(scale: number, d: Density, hh: number, fp: number) {
+  function persist(scale: number, sp: number, d: Density, hh: number, fp: number) {
     if (!sync) return;
-    void saveDisplayPreferences(scale, d, d === "custom" ? hh : null, d === "custom" ? fp : null);
+    void saveDisplayPreferences(
+      scale,
+      sp,
+      d,
+      d === "custom" ? hh : null,
+      d === "custom" ? fp : null
+    );
   }
 
   function changeFontScale(v: number) {
     setFontScale(v);
     writeFontScale(v);
-    applyDisplay(v, density, headerH, footerPy);
-    persist(v, density, headerH, footerPy);
+    applyDisplay(v, density, headerH, footerPy, spacingScale);
+    persist(v, spacingScale, density, headerH, footerPy);
+  }
+
+  function changeSpacingScale(v: number) {
+    setSpacingScale(v);
+    writeSpacingScale(v);
+    applyDisplay(fontScale, density, headerH, footerPy, v);
+    persist(fontScale, v, density, headerH, footerPy);
   }
 
   function changeDensity(d: Density) {
     setDensity(d);
     writeDensity(d);
-    applyDisplay(fontScale, d, headerH, footerPy);
-    persist(fontScale, d, headerH, footerPy);
+    applyDisplay(fontScale, d, headerH, footerPy, spacingScale);
+    persist(fontScale, spacingScale, d, headerH, footerPy);
   }
 
   function changeHeaderH(px: number) {
     setHeaderH(px);
     writeHeaderH(px);
-    applyDisplay(fontScale, density, px, footerPy);
-    persist(fontScale, density, px, footerPy);
+    applyDisplay(fontScale, density, px, footerPy, spacingScale);
+    persist(fontScale, spacingScale, density, px, footerPy);
   }
 
   function changeFooterPy(px: number) {
     setFooterPy(px);
     writeFooterPy(px);
-    applyDisplay(fontScale, density, headerH, px);
-    persist(fontScale, density, headerH, px);
+    applyDisplay(fontScale, density, headerH, px, spacingScale);
+    persist(fontScale, spacingScale, density, headerH, px);
   }
 
   async function toggleSync(enabled: boolean) {
@@ -89,20 +108,24 @@ export function DisplayForm() {
       }
       const prefs = await getDisplayPreferences();
       const finalScale = prefs?.fontScale ?? fontScale;
+      const finalSpacing = prefs?.spacingScale ?? spacingScale;
       const finalDensity = prefs?.density ?? density;
       const finalH = prefs?.headerH ?? headerH;
       const finalFp = prefs?.footerPy ?? footerPy;
       setFontScale(finalScale);
+      setSpacingScale(finalSpacing);
       setDensity(finalDensity);
       setHeaderH(finalH);
       setFooterPy(finalFp);
       writeFontScale(finalScale);
+      writeSpacingScale(finalSpacing);
       writeDensity(finalDensity);
       writeHeaderH(finalH);
       writeFooterPy(finalFp);
-      applyDisplay(finalScale, finalDensity, finalH, finalFp);
+      applyDisplay(finalScale, finalDensity, finalH, finalFp, finalSpacing);
       await saveDisplayPreferences(
         finalScale,
+        finalSpacing,
         finalDensity,
         finalDensity === "custom" ? finalH : null,
         finalDensity === "custom" ? finalFp : null
@@ -114,6 +137,7 @@ export function DisplayForm() {
   }
 
   const percent = Math.round(fontScale * 100);
+  const spPercent = Math.round(spacingScale * 100);
 
   return (
     <div className="space-y-6">
@@ -131,6 +155,29 @@ export function DisplayForm() {
           step={FONT_SCALE_STEP}
           value={fontScale}
           onChange={(e) => changeFontScale(Number(e.target.value))}
+          className={rangeCls}
+        />
+        <div className="mt-1 flex justify-between text-xs text-muted">
+          <span>80%</span>
+          <span>100%</span>
+          <span>120%</span>
+        </div>
+      </div>
+
+      {/* 页面间距 */}
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">页面间距</span>
+          <span className="text-sm tabular-nums text-muted">{spPercent}%</span>
+        </div>
+        <input
+          id="spacing-scale"
+          type="range"
+          min={SPACING_SCALE_MIN}
+          max={SPACING_SCALE_MAX}
+          step={SPACING_SCALE_STEP}
+          value={spacingScale}
+          onChange={(e) => changeSpacingScale(Number(e.target.value))}
           className={rangeCls}
         />
         <div className="mt-1 flex justify-between text-xs text-muted">

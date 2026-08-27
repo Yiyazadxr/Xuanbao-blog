@@ -14,7 +14,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const permissions = await getRolePermissions(user.role as Role);
 
   return (
-    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pb-24 pt-28 sm:px-6 md:flex-row">
+    <div className="mx-auto flex w-full max-w-6xl flex-col gap-8 px-4 pt-[var(--content-pt)] pb-[var(--content-pb)] sm:px-6 md:flex-row">
       <AdminSidebar role={user.role} permissions={permissions} />
       <div className="min-w-0 flex-1">{children}</div>
     </div>

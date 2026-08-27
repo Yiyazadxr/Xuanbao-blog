@@ -27,12 +27,13 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  // 显示偏好：字体缩放（0.8~1.2）+ 界面密度（compact/normal/comfortable/custom）
+  // 显示偏好：字体缩放（0.8~1.2）+ 页面间距（0.8~1.2）+ 界面密度（compact/normal/comfortable/custom）
   // 默认存 localStorage，开启跨设备同步后持久化到账号
-  fontScale Float?
-  density   String?
-  headerH   Int? // 自定义密度：导航栏高度 px
-  footerPy  Int? // 自定义密度：页脚间距 px
+  fontScale    Float?
+  spacingScale Float? // 页面间距倍率
+  density      String?
+  headerH      Int? // 自定义密度：导航栏高度 px
+  footerPy     Int? // 自定义密度：页脚间距 px
 
   posts        Post[]
   comments     Comment[]

@@ -68,20 +68,25 @@ html {
   }
 }
 
-/* 界面密度：影响导航栏高度与页脚内边距（紧凑/标准/宽松） */
+/* 界面密度：影响导航栏高度与页脚内边距（紧凑/标准/宽松）
+   注意：此处一律用 px 而非 rem，避免被 --font-scale 连带缩放 */
 :root {
-  --header-h: 4rem; /* 标准 64px */
-  --footer-py: 2.5rem; /* 标准 40px */
+  --header-h: 64px; /* 标准 */
+  --footer-py: 40px; /* 标准 */
+  --spacing-scale: 1; /* 页面间距倍率，由显示设置滑块控制 */
+  /* 内容区上下呼吸空间：顶部 = 导航栏高度 + 间距；底部 = 间距 */
+  --content-pt: calc(var(--header-h) + 48px * var(--spacing-scale, 1));
+  --content-pb: calc(48px * var(--spacing-scale, 1));
 }
 
 html[data-density="compact"] {
-  --header-h: 3rem; /* 紧凑 48px */
-  --footer-py: 1.5rem; /* 紧凑 24px */
+  --header-h: 48px; /* 紧凑 */
+  --footer-py: 24px; /* 紧凑 */
 }
 
 html[data-density="comfortable"] {
-  --header-h: 4.5rem; /* 宽松 72px */
-  --footer-py: 3rem; /* 宽松 48px */
+  --header-h: 72px; /* 宽松 */
+  --footer-py: 48px; /* 宽松 */
 }
 
 body {

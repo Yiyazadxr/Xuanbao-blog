@@ -10,6 +10,7 @@ import {
   writeFontScale,
   writeFooterPy,
   writeHeaderH,
+  writeSpacingScale,
 } from "@/lib/display";
 
 // 登录后若开启跨设备同步，从账号拉取显示偏好并应用（否则仅用本地 localStorage）
@@ -22,10 +23,17 @@ export function DisplaySync() {
     getDisplayPreferences().then((prefs) => {
       if (cancelled || !prefs) return;
       writeFontScale(prefs.fontScale);
+      writeSpacingScale(prefs.spacingScale);
       writeDensity(prefs.density);
       if (prefs.headerH != null) writeHeaderH(prefs.headerH);
       if (prefs.footerPy != null) writeFooterPy(prefs.footerPy);
-      applyDisplay(prefs.fontScale, prefs.density, prefs.headerH ?? undefined, prefs.footerPy ?? undefined);
+      applyDisplay(
+        prefs.fontScale,
+        prefs.density,
+        prefs.headerH ?? undefined,
+        prefs.footerPy ?? undefined,
+        prefs.spacingScale
+      );
     });
     return () => {
       cancelled = true;
