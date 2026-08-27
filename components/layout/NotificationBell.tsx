@@ -140,25 +140,15 @@ export function NotificationBell() {
         >
           <div className="flex items-center justify-between border-b border-border px-4 py-3">
             <span className="text-sm font-semibold">通知</span>
-            <div className="flex items-center gap-3">
-              {unread.total > 0 && (
-                <button
-                  type="button"
-                  onClick={handleMarkAll}
-                  className="cursor-pointer text-xs text-accent hover:underline"
-                >
-                  全部已读
-                </button>
-              )}
-              <Link
-                href="/notifications"
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-0.5 text-xs text-muted transition-colors duration-150 hover:text-accent"
+            {unread.total > 0 && (
+              <button
+                type="button"
+                onClick={handleMarkAll}
+                className="cursor-pointer text-xs text-accent hover:underline"
               >
-                通知中心
-                <Icon icon="ph:arrow-right-bold" width={12} height={12} aria-hidden />
-              </Link>
-            </div>
+                全部已读
+              </button>
+            )}
           </div>
 
           <div className="max-h-[24rem] overflow-y-auto divide-y divide-border">
