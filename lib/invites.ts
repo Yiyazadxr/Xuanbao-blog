@@ -2,6 +2,7 @@
 import bcrypt from "bcryptjs";
 import { randomBytes } from "crypto";
 import { notifyAdmins } from "@/lib/notifications";
+import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { prisma } from "@/lib/prisma";
 
 // 访客提交账号申请 → 入库 + 站内通知管理员
@@ -34,6 +35,7 @@ export async function submitAccountRequest(email: string, message?: string) {
 
   // 站内通知管理员有新的账号申请
   await notifyAdmins({
+    category: NOTIFICATION_CATEGORIES.SYSTEM,
     type: "account_request",
     title: `新账号申请：${normalized}`,
     link: "/admin/invites",

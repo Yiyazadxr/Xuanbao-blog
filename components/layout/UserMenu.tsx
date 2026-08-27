@@ -80,6 +80,14 @@ export function UserMenu() {
             <span className="mt-0.5 block truncate text-xs text-muted">{user.email}</span>
           </p>
           <Link
+            href="/notifications"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="block px-4 py-2.5 text-sm text-muted transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground"
+          >
+            通知
+          </Link>
+          <Link
             href="/settings"
             role="menuitem"
             onClick={() => setOpen(false)}

@@ -9,6 +9,7 @@ import { deleteImage, saveImage } from "@/lib/image-storage";
 import { createInviteCode } from "@/lib/invites";
 import { sendMail } from "@/lib/mail";
 import { createNotification } from "@/lib/notifications";
+import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { slugify } from "@/lib/utils";
@@ -345,18 +346,32 @@ export async function approveComment(id: string): Promise<AdminActionState> {
   const comment = await prisma.comment.findUnique({
     where: { id: cid.data },
     include: {
-      post: { select: { slug: true } },
+      post: { select: { slug: true, title: true, authorId: true } },
       author: { select: { name: true } },
       parent: { select: { authorId: true } },
     },
   });
   if (!comment) return { ok: false, error: "评论不存在" };
   await prisma.comment.update({ where: { id: cid.data }, data: { isApproved: true } });
-  // 站内通知评论/回复作者（自己审核自己的内容时不重复通知）
+  // 站内通知评论作者（自己审核自己的内容时不重复通知）
   if (comment.authorId !== admin.id) {
     await createNotification(comment.authorId, {
+      category: NOTIFICATION_CATEGORIES.SYSTEM,
       type: "comment_approved",
       title: "你的评论已通过审核",
+      link: `/blog/${comment.post.slug}`,
+    });
+  }
+  // 通知文章作者有人评论了你的文章（排除本人与审核者，避免重复）
+  if (
+    comment.post.authorId !== comment.authorId &&
+    comment.post.authorId !== admin.id
+  ) {
+    await createNotification(comment.post.authorId, {
+      category: NOTIFICATION_CATEGORIES.COMMENT,
+      type: "comment",
+      actorName: comment.author.name,
+      title: `评论了你的文章《${comment.post.title}》`,
       link: `/blog/${comment.post.slug}`,
     });
   }
@@ -367,8 +382,10 @@ export async function approveComment(id: string): Promise<AdminActionState> {
     comment.parent.authorId !== admin.id
   ) {
     await createNotification(comment.parent.authorId, {
-      type: "comment_replied",
-      title: `「${comment.author.name}」回复了你的评论`,
+      category: NOTIFICATION_CATEGORIES.COMMENT,
+      type: "reply",
+      actorName: comment.author.name,
+      title: "回复了你的评论",
       link: `/blog/${comment.post.slug}`,
     });
   }

@@ -1,36 +1,37 @@
 "use server";
 
-// 站内通知 Server Actions（供前端通知铃铛调用）
+// 站内通知 Server Actions（供前端通知铃铛与通知中心调用）
 import { getFreshUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import {
+  getUserNotifications,
+  getUnreadSummary,
+} from "@/lib/notifications";
+import {
+  type NotificationCategory,
+  type NotificationItem,
+  type NotificationUnreadSummary,
+} from "@/lib/notification-types";
 
-const PAGE_SIZE = 20;
+export type NotificationsResult = {
+  items: NotificationItem[];
+  nextCursor: string | null;
+  unread: NotificationUnreadSummary;
+};
 
-// 获取当前用户的通知列表与未读数（返回可序列化结构）
-export async function getMyNotifications() {
+// 获取当前用户的通知列表（可按分类过滤，游标分页），同时返回未读汇总
+export async function getNotifications(
+  category: NotificationCategory | "all" = "all",
+  cursor?: string
+): Promise<NotificationsResult> {
   const user = await getFreshUser();
-  if (!user) return { notifications: [], unreadCount: 0 };
+  if (!user) return { items: [], nextCursor: null, unread: { total: 0, byCategory: { system: 0, like: 0, comment: 0 } } };
 
-  const [notifications, unreadCount] = await Promise.all([
-    prisma.notification.findMany({
-      where: { userId: user.id },
-      orderBy: { createdAt: "desc" },
-      take: PAGE_SIZE,
-    }),
-    prisma.notification.count({ where: { userId: user.id, read: false } }),
+  const [{ items, nextCursor }, unread] = await Promise.all([
+    getUserNotifications(user.id, category, cursor, 20),
+    getUnreadSummary(user.id),
   ]);
-
-  return {
-    unreadCount,
-    notifications: notifications.map((n) => ({
-      id: n.id,
-      type: n.type,
-      title: n.title,
-      link: n.link,
-      read: n.read,
-      createdAt: n.createdAt.toISOString(),
-    })),
-  };
+  return { items, nextCursor, unread };
 }
 
 // 单条标记已读（仅限本人）
@@ -51,6 +52,23 @@ export async function markAllNotificationsRead() {
     where: { userId: user.id, read: false },
     data: { read: true },
   });
+}
+
+// 某分类全部标记已读
+export async function markCategoryRead(category: NotificationCategory) {
+  const user = await getFreshUser();
+  if (!user) return;
+  await prisma.notification.updateMany({
+    where: { userId: user.id, category, read: false },
+    data: { read: true },
+  });
+}
+
+// 清空已读通知
+export async function clearReadNotifications() {
+  const user = await getFreshUser();
+  if (!user) return;
+  await prisma.notification.deleteMany({ where: { userId: user.id, read: true } });
 }
 
 // 删除单条通知（仅限本人）

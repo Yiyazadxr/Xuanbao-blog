@@ -3,7 +3,8 @@
 // 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
-import { notifyAdmins } from "@/lib/notifications";
+import { createNotification, notifyAdmins } from "@/lib/notifications";
+import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { commentSchema, likeSchema, parseInput } from "@/lib/validation";
@@ -44,12 +45,12 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
     data: { content, postId, authorId: user.id, parentId: parentId ?? null },
   });
 
-  // 站内通知管理员有新的待审核评论/回复
+  // 站内通知管理员有新的待审核评论/回复（category=comment，读作“有人评论了”）
   await notifyAdmins({
-    type: parentId ? "reply" : "comment",
-    title: parentId
-      ? `「${user.name}」回复了评论，待审核`
-      : `「${user.name}」评论了《${post.title}》`,
+    category: NOTIFICATION_CATEGORIES.COMMENT,
+    type: parentId ? "reply_pending" : "comment_pending",
+    actorName: user.name,
+    title: parentId ? "回复了评论，待审核" : `评论了你的文章《${post.title}》，待审核`,
     link: "/admin/comments",
   });
 
@@ -72,7 +73,7 @@ export async function toggleLike(
   // 校验文章存在（防伪造 postId 触发外键错误 / 给不存在的文章点赞）
   const post = await prisma.post.findFirst({
     where: { id: pid, published: true, archived: false },
-    select: { id: true },
+    select: { id: true, title: true, slug: true, authorId: true },
   });
   if (!post) return { ok: false, error: "文章不存在" };
 
@@ -82,6 +83,16 @@ export async function toggleLike(
     await prisma.like.delete({ where: key });
   } else {
     await prisma.like.create({ data: { userId: user.id, postId: pid } });
+    // 站内通知文章作者有人点赞（自己赞自己不通知）
+    if (post.authorId !== user.id) {
+      await createNotification(post.authorId, {
+        category: NOTIFICATION_CATEGORIES.LIKE,
+        type: "like",
+        actorName: user.name,
+        title: `赞了你的文章《${post.title}》`,
+        link: `/blog/${post.slug}`,
+      });
+    }
   }
   const count = await prisma.like.count({ where: { postId: pid } });
 

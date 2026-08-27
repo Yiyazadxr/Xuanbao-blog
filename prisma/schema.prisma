@@ -171,18 +171,22 @@ model RateLimit {
   updatedAt DateTime @updatedAt
 }
 
-// 站内通知：type 取值 comment | reply | account_request | comment_approved 等
+// 站内通知：category 为分类（system 系统 / like 赞 / comment 评论与回复），type 为细分事件
 // 接收者 userId 为该通知的所属用户（管理员收到审核类通知，普通用户收到审核结果通知）
+// actorName 为触发者昵称快照（点赞/评论者），系统类通知为空
 model Notification {
   id        String   @id @default(cuid())
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category  String   @default("system")
   type      String
+  actorName String?
   title     String
   link      String?
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  @@index([userId, category, read, createdAt])
   @@index([userId, read, createdAt])
 }
 
