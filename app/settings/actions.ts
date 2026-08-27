@@ -7,6 +7,7 @@ import { getFreshUser } from "@/lib/auth";
 import { verifyHCaptcha } from "@/lib/hcaptcha";
 import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
+import { changePasswordSchema, parseInput, updateNameSchema } from "@/lib/validation";
 
 export type SettingsState = { ok: boolean; error?: string; message?: string };
 
@@ -24,12 +25,13 @@ export async function updateProfile(
   const check = await rateLimit.isBlocked("settings-name", user.id, 10);
   if (check.blocked) return { ok: false, error: "操作过于频繁，请稍后再试" };
 
-  const name = String(formData.get("name") ?? "").trim();
-  if (!name) return { ok: false, error: "昵称不能为空" };
-  if (name.length > 50) return { ok: false, error: "昵称最多 50 字" };
+  const parsed = parseInput(updateNameSchema, {
+    name: String(formData.get("name") ?? ""),
+  });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
   await rateLimit.hit("settings-name", user.id, 60 * 60 * 1000);
-  await prisma.user.update({ where: { id: user.id }, data: { name } });
+  await prisma.user.update({ where: { id: user.id }, data: { name: parsed.data.name } });
   revalidatePath("/settings");
   return { ok: true, message: "昵称已保存" };
 }
@@ -48,21 +50,24 @@ export async function changePassword(
   const check = await rateLimit.isBlocked("settings-password", user.id, 10);
   if (check.blocked) return { ok: false, error: "操作过于频繁，请稍后再试" };
 
-  const current = String(formData.get("currentPassword") ?? "");
-  const next = String(formData.get("newPassword") ?? "");
-  const confirm = String(formData.get("confirmPassword") ?? "");
+  const parsed = parseInput(changePasswordSchema, {
+    currentPassword: String(formData.get("currentPassword") ?? ""),
+    newPassword: String(formData.get("newPassword") ?? ""),
+    confirmPassword: String(formData.get("confirmPassword") ?? ""),
+  });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const { currentPassword, newPassword, confirmPassword } = parsed.data;
 
-  if (!current) return { ok: false, error: "请输入当前密码" };
-  if (next.length < 8) return { ok: false, error: "新密码至少 8 位" };
-  if (next.length > 72) return { ok: false, error: "新密码最长 72 位" };
-  if (next !== confirm) return { ok: false, error: "两次输入的新密码不一致" };
+  if (newPassword !== confirmPassword) {
+    return { ok: false, error: "两次输入的新密码不一致" };
+  }
 
   const full = await prisma.user.findUnique({
     where: { id: user.id },
     select: { password: true },
   });
   if (!full) return { ok: false, error: "用户不存在" };
-  const valid = await bcrypt.compare(current, full.password);
+  const valid = await bcrypt.compare(currentPassword, full.password);
   if (!valid) {
     // 计入失败尝试，防暴力破解当前密码
     await rateLimit.hit("settings-password", user.id, 60 * 60 * 1000);
@@ -72,7 +77,7 @@ export async function changePassword(
   await rateLimit.hit("settings-password", user.id, 60 * 60 * 1000);
   await prisma.user.update({
     where: { id: user.id },
-    data: { password: await bcrypt.hash(next, 10) },
+    data: { password: await bcrypt.hash(newPassword, 10) },
   });
   return { ok: true, message: "密码已修改" };
 }

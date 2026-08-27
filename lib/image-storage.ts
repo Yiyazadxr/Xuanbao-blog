@@ -64,7 +64,8 @@ export async function deleteImage(url: string | null | undefined): Promise<void>
       return;
     }
     if (url.startsWith("/uploads/")) {
-      const filename = url.replace("/uploads/", "");
+      // 用 basename 防路径穿越（文件名虽由自身生成，仍按最稳妥方式处理）
+      const filename = path.basename(url.replace("/uploads/", ""));
       await unlink(path.join(process.cwd(), "public", "uploads", filename));
     }
   } catch (e) {

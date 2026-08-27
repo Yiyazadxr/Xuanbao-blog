@@ -1,5 +1,6 @@
 // 邀请码与账号申请：数据层函数（供 Server Actions 调用）
 import bcrypt from "bcryptjs";
+import { encryptSecret } from "@/lib/crypto";
 import { notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { prisma } from "@/lib/prisma";
@@ -114,7 +115,8 @@ export async function submitInviteRequest({
       });
 
       await tx.accountRequest.create({
-        data: { email: normalized, status: "PENDING", password },
+        // 明文密码加密暂存（AES-256-GCM，AUTH_SECRET 派生密钥），审核通过时解密后发邮件
+        data: { email: normalized, status: "PENDING", password: encryptSecret(password) },
       });
     });
   } catch (e) {

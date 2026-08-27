@@ -10,17 +10,13 @@ const CODE_LETTERS = "ABCDEFGHJKMNPQRSTUVWXYZ";
 
 function securePick(chars: string, length: number): string {
   const max = Math.floor(256 / chars.length) * chars.length; // 拒绝采样避免取模偏差
-  const bytes = randomBytes(length * 2);
   let out = "";
-  let i = 0;
-  while (out.length < length && i < bytes.length) {
-    const b = bytes[i];
-    if (b < max) out += chars[b % chars.length];
-    i++;
-  }
-  // 极端情况下字节不足则补齐（概率可忽略）
   while (out.length < length) {
-    out += chars[randomBytes(1)[0] % chars.length];
+    const bytes = randomBytes(length * 2);
+    for (let i = 0; i < bytes.length && out.length < length; i++) {
+      const b = bytes[i];
+      if (b < max) out += chars[b % chars.length];
+    }
   }
   return out;
 }

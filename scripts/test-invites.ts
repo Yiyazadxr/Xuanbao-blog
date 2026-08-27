@@ -1,6 +1,7 @@
 // 注册流程自测脚本（运行后自动清理测试数据）
 // 运行：npx tsx scripts/test-invites.ts
 import "dotenv/config";
+import { decryptSecret } from "../lib/crypto";
 import {
   createInviteCode,
   submitAccountRequest,
@@ -70,9 +71,10 @@ async function main() {
   });
   assert("次数用尽被拒", reuse.ok === false);
 
-  // 8. 申请记录带明文密码（审核通过邮件要用）
+  // 8. 申请记录暂存的是密文（非明文），且可解密还原（审核通过邮件要用）
   const req = await prisma.accountRequest.findFirst({ where: { email: TEST_EMAIL2, status: "PENDING" } });
-  assert("申请记录暂存明文密码", req?.password === "password123");
+  assert("申请记录不存明文密码", req?.password !== "password123" && Boolean(req?.password));
+  assert("密文可解密还原", req?.password ? decryptSecret(req.password) === "password123" : false);
 
   await cleanup();
   console.log("\n自测完成");

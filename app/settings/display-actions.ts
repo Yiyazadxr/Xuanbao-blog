@@ -9,6 +9,7 @@ import {
   FOOTER_PY_MIN,
   HEADER_H_MAX,
   HEADER_H_MIN,
+  isDensity,
   type Density,
 } from "@/lib/display";
 import { prisma } from "@/lib/prisma";
@@ -55,7 +56,10 @@ export async function saveDisplayPreferences(
   ) {
     return { ok: false, error: "字体缩放参数不合法" };
   }
-  const d = toDensity(density);
+  if (!isDensity(density)) {
+    return { ok: false, error: "界面密度参数不合法" };
+  }
+  const d = density;
   const hh =
     headerH != null ? Math.min(HEADER_H_MAX, Math.max(HEADER_H_MIN, Math.round(headerH))) : null;
   const fp =

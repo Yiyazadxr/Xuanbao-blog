@@ -16,10 +16,13 @@ export const loginSchema = z.object({
   password: z.string().min(1, "请输入密码").max(200, "密码过长"),
 });
 
+// 昵称（注册与修改昵称共用同一约束，保证前后一致）
+export const displayNameSchema = z.string().trim().min(1, "请输入昵称").max(30, "昵称最长 30 字");
+
 // 注册（邀请码制）
 export const registerSchema = z.object({
   code: z.string().trim().min(1, "请输入邀请码").max(100),
-  name: z.string().trim().min(1, "请输入昵称").max(30, "昵称最长 30 字"),
+  name: displayNameSchema,
   email: emailSchema,
   password: z.string().min(8, "密码至少 8 位").max(72, "密码最长 72 位"),
 });
@@ -28,6 +31,16 @@ export const registerSchema = z.object({
 export const applySchema = z.object({
   email: emailSchema,
   message: z.string().trim().max(500, "申请说明最长 500 字").optional(),
+});
+
+// 修改昵称
+export const updateNameSchema = z.object({ name: displayNameSchema });
+
+// 修改密码
+export const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1, "请输入当前密码").max(72),
+  newPassword: z.string().min(8, "新密码至少 8 位").max(72, "新密码最长 72 位"),
+  confirmPassword: z.string().min(1, "请再次输入新密码"),
 });
 
 // 文章保存/发布

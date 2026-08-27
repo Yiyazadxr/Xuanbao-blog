@@ -53,10 +53,13 @@ export function NotificationCenter({
   const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
+  // 记录已加载过的分类（含空结果），避免每次切换 Tab 都重复请求
+  const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(() => new Set(["all"]));
 
   function selectTab(t: Tab) {
     setTab(t);
-    if (t !== "all" && items[t].length === 0 && nextCursor[t] === null && !loading) {
+    if (t !== "all" && !loadedTabs.has(t) && !loading) {
+      setLoadedTabs((prev) => new Set(prev).add(t));
       setLoading(true);
       getNotifications(t)
         .then((res) => {

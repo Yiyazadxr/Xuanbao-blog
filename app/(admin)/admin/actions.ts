@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
 import { requirePermission } from "@/lib/auth";
+import { decryptSecret } from "@/lib/crypto";
 import { deleteImage, saveImage } from "@/lib/image-storage";
 import { createInviteCode } from "@/lib/invites";
 import { buildApprovalEmail, sendMail } from "@/lib/mail";
@@ -279,9 +280,18 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   const isInvitePath = Boolean(request.password);
   const existing = await prisma.user.findUnique({ where: { email } });
 
-  // 确定密码与回收期：邀请码路径用自设密码、14 天；普通申请随机密码、7 天
+  // 确定密码与回收期：邀请码路径用自设密码（解密暂存的密文）、14 天；普通申请随机密码、7 天
   const graceDays = isInvitePath ? 14 : 7;
-  const password = isInvitePath ? (request.password as string) : generateRandomPassword();
+  let password: string;
+  if (isInvitePath) {
+    try {
+      password = decryptSecret(request.password as string);
+    } catch {
+      return { ok: false, error: "申请数据损坏（密码无法解密），请删除后重新审核" };
+    }
+  } else {
+    password = generateRandomPassword();
+  }
   const hashed = await bcrypt.hash(password, 10);
 
   await prisma.$transaction(async (tx) => {
@@ -318,8 +328,9 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
 
   // 邮件：发账号 + 密码（未配置 SMTP 时降级为控制台打印）
   const { subject, text } = buildApprovalEmail({ email, password, graceDays });
+  let mailSent = false;
   try {
-    await sendMail(email, subject, text);
+    mailSent = await sendMail(email, subject, text);
   } catch (e) {
     console.error("审核通过邮件发送失败：", e);
   }
@@ -327,7 +338,9 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   revalidatePath("/admin/invites");
   return {
     ok: true,
-    message: `已通过并发送账号密码邮件至 ${email}（${graceDays} 天内登录）`,
+    message: mailSent
+      ? `已通过并发送账号密码邮件至 ${email}（${graceDays} 天内登录）`
+      : `已通过（${graceDays} 天内登录）。邮件未发送成功，请手动告知用户账号密码`,
   };
 }
 

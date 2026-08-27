@@ -9,6 +9,11 @@ export const FONT_SCALE_DEFAULT = 1;
 export type Density = "compact" | "normal" | "comfortable" | "custom";
 export const DENSITY_DEFAULT: Density = "normal";
 
+// 是否为合法密度值（白名单校验，避免静默归一导致「保存成功实则未生效」）
+export function isDensity(value: unknown): value is Density {
+  return value === "compact" || value === "normal" || value === "comfortable" || value === "custom";
+}
+
 export const DENSITY_OPTIONS: { value: Density; label: string; desc: string }[] = [
   { value: "compact", label: "紧凑", desc: "更矮的导航栏与更紧凑的页脚" },
   { value: "normal", label: "标准", desc: "默认密度" },

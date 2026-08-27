@@ -1,13 +1,14 @@
 // 邮件发送封装：仅用于注册流程（审核通过通知），未配置 SMTP 时降级为控制台打印
+// 返回是否真正通过 SMTP 发送成功（未配置/失败返回 false），供调用方决定是否额外提示管理员
 import nodemailer from "nodemailer";
 import { SITE } from "@/lib/constants";
 
-export async function sendMail(to: string, subject: string, text: string) {
+export async function sendMail(to: string, subject: string, text: string): Promise<boolean> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
   if (!SMTP_USER || !SMTP_PASS) {
     console.log(`\n[邮件降级-控制台] 收件人：${to}\n主题：${subject}\n${text}\n`);
-    return;
+    return false;
   }
 
   const transporter = nodemailer.createTransport({
@@ -23,6 +24,7 @@ export async function sendMail(to: string, subject: string, text: string) {
     subject,
     text,
   });
+  return true;
 }
 
 // 审核通过邮件（含账号 + 密码）：普通申请发随机密码，邀请码申请发自设密码
