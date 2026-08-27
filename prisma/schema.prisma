@@ -18,6 +18,12 @@ model User {
   password  String // bcrypt 哈希
   image     String?
   role      String   @default("MEMBER")
+  // 账号激活时间（审核通过时间）；null 表示待审核（邀请码路径提交时建号待激活）
+  activatedAt DateTime?
+  // 被回收/禁用（7 天未登录）
+  disabled  Boolean  @default(false)
+  // 首次登录时间（用于 7 天回收判定）
+  lastLoginAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -31,7 +37,8 @@ model User {
   posts        Post[]
   comments     Comment[]
   likes        Like[]
-  inviteCode   InviteCode?
+  inviteCodeId String?
+  inviteCode   InviteCode?   @relation(fields: [inviteCodeId], references: [id], onDelete: SetNull)
   notifications Notification[]
 }
 
@@ -136,21 +143,24 @@ model Like {
 }
 
 // 账号申请：status 取值 PENDING | APPROVED | REJECTED
+// password 仅邀请码路径（自设密码）在审核通过前暂存明文，用于审核通过邮件再发一遍，通过后清空
 model AccountRequest {
   id        String   @id @default(cuid())
   email     String
   message   String?
+  password  String?
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
 }
 
-// 邀请码：可绑定指定邮箱，使用后关联注册用户
+// 邀请码：游客可凭码申请账号（仍走审核），格式 XR-XX-xxxxxxxxxxxx
+// maxUses 为使用次数上限，usedCount 为已用次数；usedBy 记录通过该码注册的用户
 model InviteCode {
   id        String    @id @default(cuid())
   code      String    @unique
-  email     String? // 绑定邮箱（可选），绑定后仅该邮箱可用
-  usedById  String?   @unique
-  usedBy    User?     @relation(fields: [usedById], references: [id])
+  maxUses   Int       @default(1)
+  usedCount Int       @default(0)
+  usedBy    User[]
   createdAt DateTime  @default(now())
   expiresAt DateTime?
 }

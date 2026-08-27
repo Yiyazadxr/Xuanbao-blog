@@ -26,8 +26,30 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
 
+        // 被回收/禁用的账号拒绝登录
+        if (user.disabled) return null;
+
+        // 待审核（邀请码路径提交后、审核通过前）不可登录
+        if (!user.activatedAt) return null;
+
+        // 回收判定：激活后超期未首次登录 → 禁用并拒绝
+        // 邀请码路径 14 天，普通申请 7 天
+        const graceDays = user.inviteCodeId ? 14 : 7;
+        if (
+          !user.lastLoginAt &&
+          Date.now() - user.activatedAt.getTime() > graceDays * 24 * 60 * 60 * 1000
+        ) {
+          await prisma.user.update({ where: { id: user.id }, data: { disabled: true } });
+          return null;
+        }
+
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return null;
+
+        // 首次登录写 lastLoginAt（用于后续回收判定）
+        if (!user.lastLoginAt) {
+          await prisma.user.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
+        }
 
         return {
           id: user.id,

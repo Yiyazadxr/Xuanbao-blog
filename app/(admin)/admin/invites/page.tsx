@@ -104,6 +104,7 @@ export default async function AdminInvitesPage({
           <ul className="divide-y divide-border">
             {invites.map((invite) => {
               const expired = invite.expiresAt && invite.expiresAt < new Date();
+              const exhausted = invite.usedCount >= invite.maxUses;
               return (
                 <li
                   key={invite.id}
@@ -114,9 +115,9 @@ export default async function AdminInvitesPage({
                       <code className="rounded-lg bg-foreground/5 px-2.5 py-1 font-mono text-sm font-semibold">
                         {invite.code}
                       </code>
-                      {invite.usedBy ? (
+                      {exhausted ? (
                         <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
-                          已被 {invite.usedBy.name} 使用
+                          已用尽
                         </span>
                       ) : expired ? (
                         <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-500">
@@ -124,17 +125,18 @@ export default async function AdminInvitesPage({
                         </span>
                       ) : (
                         <span className="rounded-full bg-accent/10 px-2 py-0.5 text-xs font-medium text-accent">
-                          未使用
+                          可用 {invite.usedCount}/{invite.maxUses}
                         </span>
                       )}
                     </div>
                     <p className="mt-1 text-xs text-muted">
-                      {invite.email ? `绑定 ${invite.email}` : "通用（不绑定邮箱）"} · 创建于{" "}
-                      {formatDate(invite.createdAt)}
+                      创建于 {formatDate(invite.createdAt)}
                       {invite.expiresAt && ` · ${formatDate(invite.expiresAt)} 过期`}
+                      {invite.usedBy.length > 0 &&
+                        ` · 使用者：${invite.usedBy.map((u) => u.name).join("、")}`}
                     </p>
                   </div>
-                  {!invite.usedBy && <DeleteInviteButton id={invite.id} />}
+                  {invite.usedCount === 0 && <DeleteInviteButton id={invite.id} />}
                 </li>
               );
             })}

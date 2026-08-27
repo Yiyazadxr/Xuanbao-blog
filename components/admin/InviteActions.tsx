@@ -10,7 +10,7 @@ import {
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { successCls } from "@/components/ui/form-styles";
 
-// 申请审批 + 邀请码操作按钮（客户端交互）
+// 申请审批按钮（客户端交互）
 export function RequestActions({ requestId }: { requestId: string }) {
   const [message, setMessage] = useState("");
 
@@ -22,7 +22,7 @@ export function RequestActions({ requestId }: { requestId: string }) {
           action={() => approveRequest(requestId)}
           onDone={(r) => setMessage(r.message ?? r.error ?? "")}
         >
-          生成邀请码
+          通过并发送账号
         </AdminActionButton>
         <AdminActionButton variant="danger" action={() => rejectRequest(requestId)}>
           拒绝
@@ -33,20 +33,48 @@ export function RequestActions({ requestId }: { requestId: string }) {
   );
 }
 
-// 生成通用邀请码按钮（独立胶囊样式，保留自定义外观）
+// 生成通用邀请码（可设有效期与使用次数）
 export function CreateInviteButton() {
   const [message, setMessage] = useState("");
+  const [days, setDays] = useState(7);
+  const [uses, setUses] = useState(1);
 
   return (
     <div className="flex flex-col items-end gap-2">
-      <AdminActionButton
-        variant="muted"
-        action={() => createFreeInvite()}
-        onDone={(r) => setMessage(r.message ?? r.error ?? "")}
-        className="inline-flex h-10 cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90 disabled:opacity-60"
-      >
-        生成通用邀请码
-      </AdminActionButton>
+      <div className="flex items-center gap-2">
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          有效
+          <input
+            type="number"
+            min={1}
+            max={365}
+            value={days}
+            onChange={(e) => setDays(Number(e.target.value))}
+            className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-sm"
+          />
+          天
+        </label>
+        <label className="flex items-center gap-1.5 text-xs text-muted">
+          可用
+          <input
+            type="number"
+            min={1}
+            max={1000}
+            value={uses}
+            onChange={(e) => setUses(Number(e.target.value))}
+            className="w-14 rounded-lg border border-border bg-background px-2 py-1 text-sm"
+          />
+          次
+        </label>
+        <AdminActionButton
+          variant="muted"
+          action={() => createFreeInvite({ expiresInDays: days, maxUses: uses })}
+          onDone={(r) => setMessage(r.message ?? r.error ?? "")}
+          className="inline-flex h-10 cursor-pointer items-center rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90 disabled:opacity-60"
+        >
+          生成邀请码
+        </AdminActionButton>
+      </div>
       {message && <p className={successCls}>{message}</p>}
     </div>
   );

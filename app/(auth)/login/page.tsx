@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useEffect } from "react";
 import { loginAction, type ActionState } from "@/app/(auth)/actions";
 import { errorCls, inputCls, labelCls, primaryBtnCls } from "@/components/ui/form-styles";
 
@@ -10,6 +10,14 @@ const initialState: ActionState = { ok: false };
 // 登录页：邮箱 + 密码
 export default function LoginPage() {
   const [state, formAction, pending] = useActionState(loginAction, initialState);
+
+  // 登录成功后整页刷新跳转首页：SessionProvider 在根布局中不会随客户端路由重新挂载，
+  // 必须整页加载才能重新拉取会话，否则界面仍停留在未登录态。
+  useEffect(() => {
+    if (state.ok) {
+      window.location.href = "/";
+    }
+  }, [state.ok]);
 
   return (
     <>

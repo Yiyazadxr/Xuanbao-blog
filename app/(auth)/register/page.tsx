@@ -16,7 +16,7 @@ import {
 const initialState: ActionState = { ok: false };
 const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 
-// 注册页（邀请码制）：两步 —— ①提交邮箱申请 ②凭邀请码注册
+// 注册页（邀请制）：两步 —— ①提交邮箱申请 ②凭邀请码申请（自设密码，审核通过后登录）
 export default function RegisterPage() {
   const [tab, setTab] = useState<"apply" | "register">("apply");
   const [applyState, applyFormAction, applyPending] = useActionState(applyAction, initialState);
@@ -42,7 +42,7 @@ export default function RegisterPage() {
     <>
       <h1 className="font-display text-3xl font-bold tracking-tight">加入这里</h1>
       <p className="mt-2 text-sm text-muted">
-        本站注册采用邀请制：先提交申请，博主审核后会向你提供邀请码。已有账号？{" "}
+        本站注册采用邀请制：提交申请后，博主审核通过会向你发送账号密码。已有邀请码可凭码快速申请。已有账号？{" "}
         <Link href="/login" className="text-accent hover:underline">
           直接登录
         </Link>
@@ -123,10 +123,7 @@ export default function RegisterPage() {
           )}
           {regState.ok && regState.message && (
             <p role="status" className={successCls}>
-              {regState.message}{" "}
-              <Link href="/login" className="font-medium underline">
-                去登录
-              </Link>
+              {regState.message}
             </p>
           )}
           <input type="hidden" name="captcha" value={captchaToken} />
@@ -139,7 +136,7 @@ export default function RegisterPage() {
               name="code"
               type="text"
               required
-              placeholder="XR-XXXXXXXX"
+              placeholder="XR-XX-XXXXXXXXXXXX"
               className={`${inputCls} font-mono uppercase`}
             />
           </div>

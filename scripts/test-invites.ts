@@ -1,15 +1,20 @@
-// Phase 3 邀请码逻辑自测脚本（运行后自动清理测试数据）
+// 注册流程自测脚本（运行后自动清理测试数据）
 // 运行：npx tsx scripts/test-invites.ts
 import "dotenv/config";
-import { createInviteCode, registerWithInvite, submitAccountRequest } from "../lib/invites";
+import {
+  createInviteCode,
+  submitAccountRequest,
+  submitInviteRequest,
+} from "../lib/invites";
 import { prisma } from "../lib/prisma";
 
 const TEST_EMAIL = "invite-test@example.com";
+const TEST_EMAIL2 = "invite-test2@example.com";
 
 async function cleanup() {
-  await prisma.user.deleteMany({ where: { email: TEST_EMAIL } });
-  await prisma.accountRequest.deleteMany({ where: { email: TEST_EMAIL } });
-  await prisma.inviteCode.deleteMany({ where: { email: TEST_EMAIL } });
+  await prisma.user.deleteMany({ where: { email: { in: [TEST_EMAIL, TEST_EMAIL2] } } });
+  await prisma.accountRequest.deleteMany({ where: { email: { in: [TEST_EMAIL, TEST_EMAIL2] } } });
+  await prisma.inviteCode.deleteMany({ where: { code: { startsWith: "XR-" } } });
 }
 
 function assert(name: string, cond: boolean) {
@@ -20,59 +25,54 @@ function assert(name: string, cond: boolean) {
 async function main() {
   await cleanup();
 
-  // 1. 提交申请
+  // 1. 提交普通申请
   const apply = await submitAccountRequest(TEST_EMAIL, "自测申请");
-  assert("提交申请成功", apply.ok === true);
+  assert("普通申请提交成功", apply.ok === true);
 
   // 2. 重复申请被拒
   const applyDup = await submitAccountRequest(TEST_EMAIL);
   assert("重复申请被拒", applyDup.ok === false);
 
-  // 3. 生成绑定邮箱的邀请码
-  const invite = await createInviteCode(TEST_EMAIL);
-  assert("邀请码生成（XR- 前缀）", invite.code.startsWith("XR-"));
+  // 3. 生成邀请码（新格式 XR-XX-12位）
+  const invite = await createInviteCode(7, 1);
+  assert("邀请码格式 XR-XX-12位", /^XR-[A-Z]{2}-[A-Za-z0-9]{12}$/.test(invite.code));
 
-  // 4. 用错误邮箱注册被拒（邀请码绑定了 TEST_EMAIL）
-  const wrongEmail = await registerWithInvite({
-    code: invite.code,
-    email: "other@example.com",
-    password: "password123",
-    name: "路人",
-  });
-  assert("绑定邮箱不符被拒", wrongEmail.ok === false);
-
-  // 5. 无效邀请码被拒
-  const badCode = await registerWithInvite({
+  // 4. 无效邀请码被拒
+  const badCode = await submitInviteRequest({
     code: "XR-INVALID0",
-    email: TEST_EMAIL,
+    email: TEST_EMAIL2,
     password: "password123",
     name: "测试用户",
   });
   assert("无效邀请码被拒", badCode.ok === false);
 
-  // 6. 正确注册
-  const ok = await registerWithInvite({
+  // 5. 凭邀请码申请（建号待激活）
+  const ok = await submitInviteRequest({
     code: invite.code,
-    email: TEST_EMAIL,
+    email: TEST_EMAIL2,
     password: "password123",
     name: "测试用户",
   });
-  assert("邀请码注册成功", ok.ok === true);
+  assert("邀请码申请成功", ok.ok === true);
 
-  // 7. 已用邀请码不能再次使用
-  const reuse = await registerWithInvite({
+  // 6. 建号后 activatedAt 为 null（待审核）、inviteCodeId 已关联、次数已消耗
+  const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL2 } });
+  assert("邀请码路径建号待激活", user?.activatedAt === null && user?.inviteCodeId === invite.id);
+  const inviteAfter = await prisma.inviteCode.findUnique({ where: { id: invite.id } });
+  assert("邀请码已消耗 1 次", inviteAfter?.usedCount === 1);
+
+  // 7. 邀请码次数用尽被拒
+  const reuse = await submitInviteRequest({
     code: invite.code,
     email: "another@example.com",
     password: "password123",
     name: "又一位",
   });
-  assert("已用邀请码被拒", reuse.ok === false);
+  assert("次数用尽被拒", reuse.ok === false);
 
-  // 8. 注册后申请状态变为 APPROVED、用户角色为 MEMBER
-  const req = await prisma.accountRequest.findFirst({ where: { email: TEST_EMAIL } });
-  const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL } });
-  assert("申请状态已变更为 APPROVED", req?.status === "APPROVED");
-  assert("新用户角色为 MEMBER 且密码已哈希", user?.role === "MEMBER" && user.password !== "password123");
+  // 8. 申请记录带明文密码（审核通过邮件要用）
+  const req = await prisma.accountRequest.findFirst({ where: { email: TEST_EMAIL2, status: "PENDING" } });
+  assert("申请记录暂存明文密码", req?.password === "password123");
 
   await cleanup();
   console.log("\n自测完成");

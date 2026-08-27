@@ -18,12 +18,14 @@ async function main() {
 
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    update: {},
+    // 已存在则确保处于已激活状态（历史数据/迁移后可能 activatedAt 为 null）
+    update: { activatedAt: new Date(), disabled: false },
     create: {
       name: "暄宝xr",
       email: adminEmail,
       password: await bcrypt.hash(adminPassword, 10),
       role: "SUPER_ADMIN",
+      activatedAt: new Date(),
     },
   });
   console.log(`✔ 管理员账号：${adminEmail}（密码见 .env 的 ADMIN_PASSWORD）`);

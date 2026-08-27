@@ -7,7 +7,7 @@ import { AuthError } from "next-auth";
 import { headers } from "next/headers";
 import { signIn } from "@/lib/auth";
 import { verifyHCaptcha } from "@/lib/hcaptcha";
-import { registerWithInvite, submitAccountRequest } from "@/lib/invites";
+import { submitAccountRequest, submitInviteRequest } from "@/lib/invites";
 import { rateLimit } from "@/lib/rate-limit";
 import { applySchema, loginSchema, parseInput, registerSchema } from "@/lib/validation";
 
@@ -46,11 +46,12 @@ export async function loginAction(
   }
 
   try {
-    await signIn("credentials", { email, password: parsed.data.password, redirectTo: "/" });
+    // redirect: false —— 成功后不抛 NEXT_REDIRECT，由客户端做整页跳转，
+    // 使 SessionProvider 重新挂载、重新拉取会话，避免“必须 F5 才显示登录态”。
+    await signIn("credentials", { email, password: parsed.data.password, redirect: false });
     await rateLimit.reset("login", emailKey);
-    return { ok: true };
+    return { ok: true, message: "登录成功" };
   } catch (error) {
-    // signIn 成功时会抛 NEXT_REDIRECT，必须原样抛出让框架处理跳转
     if (error instanceof AuthError) {
       await rateLimit.hit("login", emailKey, 15 * 60 * 1000);
       await rateLimit.hit("login-ip", ip, 15 * 60 * 1000);
@@ -90,7 +91,7 @@ export async function applyAction(
     : { ok: false, error: result.error };
 }
 
-// 凭邀请码注册（按 IP 限流，防脚本批量注册）
+// 凭邀请码申请账号（按 IP 限流，防脚本批量注册）：自设密码 + 建号待审核
 export async function registerAction(
   _prev: ActionState,
   formData: FormData
@@ -115,9 +116,9 @@ export async function registerAction(
   }
   await rateLimit.hit("register", ip, 60 * 60 * 1000);
 
-  const result = await registerWithInvite(parsed.data);
+  const result = await submitInviteRequest(parsed.data);
   if (result.ok) await rateLimit.reset("register", ip);
   return result.ok
-    ? { ok: true, message: "注册成功！现在可以登录了" }
+    ? { ok: true, message: "申请已提交，博主审核通过后即可登录" }
     : { ok: false, error: result.error };
 }

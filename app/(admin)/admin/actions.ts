@@ -3,15 +3,16 @@
 // 后台管理 Server Actions：每个操作都按具体权限校验（双重保险）
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import bcrypt from "bcryptjs";
 import { requirePermission } from "@/lib/auth";
-import { SITE } from "@/lib/constants";
 import { deleteImage, saveImage } from "@/lib/image-storage";
 import { createInviteCode } from "@/lib/invites";
-import { sendMail } from "@/lib/mail";
+import { buildApprovalEmail, sendMail } from "@/lib/mail";
 import { createNotification } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { generateRandomPassword } from "@/lib/random";
 import { slugify } from "@/lib/utils";
 import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
 
@@ -263,7 +264,7 @@ export async function toggleArchive(id: string): Promise<AdminActionState> {
   return { ok: true, message: post.archived ? "已取消归档" : "已归档" };
 }
 
-// 为申请生成绑定邮箱的邀请码
+// 通过账号申请：直接建号（普通申请发随机密码邮件）/ 激活（邀请码申请发自设密码邮件）
 export async function approveRequest(requestId: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -273,29 +274,61 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   if (!request) return { ok: false, error: "申请不存在" };
   if (request.status !== "PENDING") return { ok: false, error: "该申请已处理" };
 
-  // 防止重复生成邀请码（避免重复发送邮件）
-  const existingInvite = await prisma.inviteCode.findFirst({
-    where: { email: request.email, usedById: null },
+  const email = request.email;
+  // 邀请码路径（自设密码，提交时已建号待激活）
+  const isInvitePath = Boolean(request.password);
+  const existing = await prisma.user.findUnique({ where: { email } });
+
+  // 确定密码与回收期：邀请码路径用自设密码、14 天；普通申请随机密码、7 天
+  const graceDays = isInvitePath ? 14 : 7;
+  const password = isInvitePath ? (request.password as string) : generateRandomPassword();
+  const hashed = await bcrypt.hash(password, 10);
+
+  await prisma.$transaction(async (tx) => {
+    if (existing) {
+      // 已存在（被回收/待审核）则复用：重置密码 + 重新激活
+      // 普通申请路径需清空旧的邀请码关联，确保回收期按 7 天判定
+      await tx.user.update({
+        where: { id: existing.id },
+        data: {
+          password: hashed,
+          activatedAt: new Date(),
+          disabled: false,
+          lastLoginAt: null,
+          inviteCodeId: isInvitePath ? existing.inviteCodeId : null,
+        },
+      });
+    } else {
+      await tx.user.create({
+        data: {
+          email,
+          name: email.split("@")[0] ?? email,
+          password: hashed,
+          role: "MEMBER",
+          activatedAt: new Date(),
+        },
+      });
+    }
+    // 申请标记通过，清空暂存的明文密码
+    await tx.accountRequest.update({
+      where: { id: rid.data },
+      data: { status: "APPROVED", password: null },
+    });
   });
-  if (existingInvite) {
-    return { ok: false, error: "该申请已有未使用的邀请码，请勿重复生成" };
-  }
 
-  const invite = await createInviteCode(request.email);
-
-  // 邮件仅用于注册流程：向申请者发送邀请码（失败不影响审核结果）
+  // 邮件：发账号 + 密码（未配置 SMTP 时降级为控制台打印）
+  const { subject, text } = buildApprovalEmail({ email, password, graceDays });
   try {
-    await sendMail(
-      request.email,
-      "【Xuanbao.dev】你的账号申请已通过",
-      `感谢你的申请！你的注册邀请码为：${invite.code}（7 天内有效）\n\n请前往 ${SITE.url}/register 使用该邀请码完成注册。`
-    );
+    await sendMail(email, subject, text);
   } catch (e) {
-    console.error("邀请码邮件发送失败：", e);
+    console.error("审核通过邮件发送失败：", e);
   }
 
   revalidatePath("/admin/invites");
-  return { ok: true, message: `邀请码 ${invite.code} 已生成并邮件通知（绑定 ${request.email}）` };
+  return {
+    ok: true,
+    message: `已通过并发送账号密码邮件至 ${email}（${graceDays} 天内登录）`,
+  };
 }
 
 // 拒绝申请
@@ -306,21 +339,37 @@ export async function rejectRequest(requestId: string): Promise<AdminActionState
   if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
   const request = await prisma.accountRequest.findUnique({ where: { id: rid.data } });
   if (!request) return { ok: false, error: "申请不存在" };
-  await prisma.accountRequest.update({
-    where: { id: rid.data },
-    data: { status: "REJECTED" },
+
+  await prisma.$transaction(async (tx) => {
+    await tx.accountRequest.update({
+      where: { id: rid.data },
+      data: { status: "REJECTED", password: null },
+    });
+    // 邀请码路径提交时已建待审核账号，拒绝时删除该未激活账号，避免占用邮箱
+    await tx.user.deleteMany({
+      where: { email: request.email, activatedAt: null },
+    });
   });
+
   revalidatePath("/admin/invites");
   return { ok: true, message: "已拒绝" };
 }
 
-// 生成不绑定邮箱的通用邀请码
-export async function createFreeInvite(): Promise<AdminActionState> {
+// 生成通用邀请码（不绑定邮箱，支持有效期与使用次数）
+export async function createFreeInvite(payload: {
+  expiresInDays?: number;
+  maxUses?: number;
+}): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
   if (!admin) return { ok: false, error: "无权限" };
-  const invite = await createInviteCode();
+  const days = Math.min(365, Math.max(1, Number(payload?.expiresInDays) || 7));
+  const uses = Math.min(1000, Math.max(1, Number(payload?.maxUses) || 1));
+  const invite = await createInviteCode(days, uses);
   revalidatePath("/admin/invites");
-  return { ok: true, message: `通用邀请码 ${invite.code} 已生成（7 天有效）` };
+  return {
+    ok: true,
+    message: `邀请码 ${invite.code} 已生成（${days} 天有效 · 可用 ${uses} 次）`,
+  };
 }
 
 // 删除未使用的邀请码
@@ -331,7 +380,7 @@ export async function deleteInvite(id: string): Promise<AdminActionState> {
   if (!iid.data) return { ok: false, error: iid.error ?? "参数不合法" };
   const invite = await prisma.inviteCode.findUnique({ where: { id: iid.data } });
   if (!invite) return { ok: false, error: "邀请码不存在" };
-  if (invite.usedById) return { ok: false, error: "已使用的邀请码不能删除" };
+  if (invite.usedCount > 0) return { ok: false, error: "已被使用的邀请码不能删除" };
   await prisma.inviteCode.delete({ where: { id: iid.data } });
   revalidatePath("/admin/invites");
   return { ok: true, message: "已删除" };

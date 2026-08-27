@@ -61,6 +61,7 @@ export default async function AdminUsersPage({
             <tr>
               <th className="px-5 py-3 font-medium">用户</th>
               <th className="px-5 py-3 font-medium">角色</th>
+              <th className="px-5 py-3 font-medium">状态</th>
               <th className="px-5 py-3 font-medium">文章</th>
               <th className="px-5 py-3 font-medium">评论</th>
               <th className="px-5 py-3 font-medium">注册时间</th>
@@ -70,7 +71,7 @@ export default async function AdminUsersPage({
           <tbody className="divide-y divide-border">
             {users.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-5 py-10 text-center text-muted">
+                <td colSpan={7} className="px-5 py-10 text-center text-muted">
                   没有匹配的用户
                 </td>
               </tr>
@@ -91,6 +92,21 @@ export default async function AdminUsersPage({
                       >
                         {ROLE_LABELS[role] ?? u.role}
                       </span>
+                    </td>
+                    <td className="px-5 py-3">
+                      {u.disabled ? (
+                        <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-500">
+                          已停用
+                        </span>
+                      ) : !u.activatedAt ? (
+                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                          待审核
+                        </span>
+                      ) : (
+                        <span className="rounded-full bg-emerald-500/10 px-2 py-0.5 text-xs font-medium text-emerald-600 dark:text-emerald-400">
+                          正常
+                        </span>
+                      )}
                     </td>
                     <td className="px-5 py-3 tabular-nums">{u._count.posts}</td>
                     <td className="px-5 py-3 tabular-nums">{u._count.comments}</td>
