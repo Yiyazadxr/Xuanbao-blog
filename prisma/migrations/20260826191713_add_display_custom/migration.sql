@@ -1,3 +1,0 @@
--- AlterTable
-ALTER TABLE "User" ADD COLUMN "footerPy" INTEGER;
-ALTER TABLE "User" ADD COLUMN "headerH" INTEGER;

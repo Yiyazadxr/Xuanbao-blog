@@ -1,5 +1,5 @@
 // 暄宝xr 的博客 — 数据模型
-// SQLite 不支持枚举，角色/状态字段用 String 存储约定值
+// 生产环境使用 PostgreSQL（Neon），本地开发也建议连同一数据库
 
 generator client {
   provider = "prisma-client"
@@ -7,7 +7,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
 }
 
 // 用户：role 取值 SUPER_ADMIN | ADMIN | MEMBER（游客无账号记录）
