@@ -80,6 +80,24 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
+        // image/name 等展示字段实时从 DB 读，避免 JWT 快照过期
+        // （改头像/昵称后无需重新登录即可立即生效，与「不要信任 JWT 可变字段」规范一致）
+        if (token.id) {
+          const uid = token.id as string;
+          return prisma.user
+            .findUnique({
+              where: { id: uid },
+              select: { name: true, image: true },
+            })
+            .then((u) => {
+              if (u) {
+                session.user.name = u.name ?? session.user.name;
+                session.user.image = u.image ?? session.user.image;
+              }
+              return session;
+            })
+            .catch(() => session);
+        }
       }
       return session;
     },
