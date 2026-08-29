@@ -38,7 +38,12 @@ const USED_ICONS = [
   "pencil-line-bold",
 ] as const;
 
-const set = phIcons as unknown as { prefix: string; icons: Record<string, unknown> };
+const set = phIcons as unknown as {
+  prefix: string;
+  icons: Record<string, unknown>;
+  width?: number;
+  height?: number;
+};
 
 const icons: Record<string, unknown> = {};
 const missing: string[] = [];
@@ -54,6 +59,11 @@ if (missing.length > 0) {
 
 const outPath = path.join(process.cwd(), "lib", "generated", "ph-icons.json");
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
-fs.writeFileSync(outPath, JSON.stringify({ prefix: set.prefix, icons }));
+// 保留集合级 width/height(Phosphor 为 256×256)，供 addCollection 正确推导 viewBox，
+// 否则逐图标 addIcon 丢失尺寸信息会被默认 16 viewBox 裁剪导致图标不可见
+fs.writeFileSync(
+  outPath,
+  JSON.stringify({ prefix: set.prefix, width: set.width, height: set.height, icons })
+);
 
 console.log(`✅ 已提取 ${Object.keys(icons).length} 个图标 -> ${outPath.replace(process.cwd(), ".")}`);

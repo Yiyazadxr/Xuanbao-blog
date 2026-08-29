@@ -1,4 +1,3 @@
-import Image from "next/image";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SKILLS, TIMELINE } from "@/lib/constants";
@@ -11,14 +10,13 @@ export default function AboutPage() {
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-28 sm:px-6">
       {/* 简介 */}
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-        <Image
-          src="/images/main_logo.webp"
-          alt="暄宝xr 的头像"
-          width={88}
-          height={88}
-          className="rounded-2xl"
-          priority
-        />
+        <span
+          lang="zh"
+          className="flex size-[88px] shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-6xl font-bold leading-none text-accent"
+          style={{ fontFamily: '"幼圆", "YouYuan", "Yuanti SC", "PingFang SC", sans-serif' }}
+        >
+          暄
+        </span>
         <div>
           <h1 className="font-display text-4xl font-bold tracking-tight">你好，我是暄宝xr</h1>
           <p className="mt-2 leading-relaxed text-muted">
