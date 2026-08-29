@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";

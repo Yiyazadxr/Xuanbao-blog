@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { DURATION, EASE_OUT } from "@/lib/motion";

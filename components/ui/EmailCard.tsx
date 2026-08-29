@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import { CONTACT } from "@/lib/constants";
 
 // 邮箱反爬：仅在客户端拼接，避免明文出现在 SSR HTML 里被爬虫抓取

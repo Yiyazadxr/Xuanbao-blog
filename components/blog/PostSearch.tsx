@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import Fuse from "fuse.js";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";

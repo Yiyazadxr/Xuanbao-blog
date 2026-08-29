@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import { useTheme } from "next-themes";
 import { useSyncExternalStore } from "react";
 

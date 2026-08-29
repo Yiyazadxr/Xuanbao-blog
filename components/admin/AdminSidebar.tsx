@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { PERMISSIONS, type Permission } from "@/lib/permissions";

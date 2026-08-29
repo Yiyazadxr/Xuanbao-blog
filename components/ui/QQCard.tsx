@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import { CONTACT } from "@/lib/constants";
 
 // QQ 联系卡片：QQ 号拆分为片段，仅在客户端拼接，避免明文出现在 SSR HTML 里被爬虫抓取

@@ -19,7 +19,7 @@ const cspHeader = {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: https://avatars.githubusercontent.com https://*.githubusercontent.com https://*.public.blob.vercel-storage.com",
     "font-src 'self' data:",
-    "connect-src 'self' https://api.iconify.design",
+    "connect-src 'self'",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",

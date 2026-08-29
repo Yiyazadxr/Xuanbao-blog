@@ -1,0 +1,59 @@
+// 提取项目实际用到的 Phosphor 图标到 lib/generated/ph-icons.json
+// 运行：npx tsx scripts/extract-icons.ts
+// 新增图标时：把图标名加进 USED_ICONS，重新运行本脚本即可
+import fs from "fs";
+import path from "path";
+import phIcons from "@iconify-json/ph/icons.json";
+
+// 实际用到的图标名（与 lib/icons.ts 对应的组件一致）
+const USED_ICONS = [
+  "magnifying-glass-bold",
+  "x-bold",
+  "bell-light",
+  "bell-bold",
+  "arrow-left-bold",
+  "arrow-right-bold",
+  "arrow-up-bold",
+  "heart-fill",
+  "heart-bold",
+  "user-circle-bold",
+  "list-bold",
+  "envelope-bold",
+  "chat-dots-bold",
+  "chat-circle-dots-bold",
+  "megaphone-bold",
+  "sun-bold",
+  "moon-bold",
+  "gauge-bold",
+  "article-bold",
+  "tag-bold",
+  "chats-bold",
+  "ticket-bold",
+  "users-bold",
+  "shield-check-bold",
+  "github-logo-bold",
+  "code-bold",
+  "palette-bold",
+  "image-bold",
+  "pencil-line-bold",
+] as const;
+
+const set = phIcons as unknown as { prefix: string; icons: Record<string, unknown> };
+
+const icons: Record<string, unknown> = {};
+const missing: string[] = [];
+for (const name of USED_ICONS) {
+  if (set.icons[name]) icons[name] = set.icons[name];
+  else missing.push(name);
+}
+
+if (missing.length > 0) {
+  console.error("以下图标在 @iconify-json/ph 中不存在：", missing.join(", "));
+  process.exit(1);
+}
+
+const outPath = path.join(process.cwd(), "lib", "generated", "ph-icons.json");
+fs.mkdirSync(path.dirname(outPath), { recursive: true });
+fs.writeFileSync(outPath, JSON.stringify({ prefix: set.prefix, icons }));
+
+console.log(`✅ 已提取 ${Object.keys(icons).length} 个图标 -> ${outPath.replace(process.cwd(), ".")}`);

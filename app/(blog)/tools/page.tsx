@@ -1,4 +1,4 @@
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import type { Metadata } from "next";
 import { TOOLS } from "@/lib/constants";
 

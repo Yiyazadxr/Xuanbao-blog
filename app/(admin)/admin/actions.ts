@@ -14,7 +14,7 @@ import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { generateRandomPassword } from "@/lib/random";
-import { slugify } from "@/lib/utils";
+import { countWords, slugify } from "@/lib/utils";
 import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
 
 // 每篇文章保留的版本数上限
@@ -141,6 +141,8 @@ export async function savePost(
     archived: p.archived,
     pinned: p.pinned,
     featured: p.featured,
+    // 纯文字字数：保存时计算，页脚只做 sum，避免实时读全文
+    wordCount: countWords(p.content ?? ""),
   };
 
   try {
@@ -599,6 +601,8 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
           pinned: revision.pinned,
           featured: revision.featured,
           archived: revision.archived,
+          // 回滚后字数随正文变化，重新计算（版本快照不存 wordCount，用 content 现算）
+          wordCount: countWords(revision.content ?? ""),
         },
       });
 

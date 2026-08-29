@@ -1,4 +1,4 @@
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import Link from "next/link";
 
 type AdjacentPost = { title: string; slug: string } | null;

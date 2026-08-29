@@ -13,6 +13,7 @@
     "db:seed": "prisma db seed"
   },
   "dependencies": {
+    "@iconify-json/ph": "^1.2.2",
     "@iconify/react": "^6.0.2",
     "@prisma/adapter-pg": "^7.10.0",
     "@prisma/client": "^7.8.0",

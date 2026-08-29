@@ -1,4 +1,4 @@
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import type { Metadata } from "next";
 import { EmailCard, MailtoButton } from "@/components/ui/EmailCard";
 import { QQCard } from "@/components/ui/QQCard";
