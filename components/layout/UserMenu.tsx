@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
+import { Icon } from "@/components/ui/Icon";
 import { signOut, useSession } from "next-auth/react";
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
@@ -64,8 +64,21 @@ export function UserMenu() {
         aria-label="用户菜单"
         className="inline-flex size-10 cursor-pointer items-center justify-center rounded-full focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
       >
-        <span className="inline-flex size-8 items-center justify-center rounded-full bg-accent text-sm font-bold text-accent-foreground">
-          {initial}
+        <span className="inline-flex size-8 items-center justify-center overflow-hidden rounded-full bg-accent text-sm font-bold text-accent-foreground">
+          {user.image ? (
+            // 有头像图片则显示图片（本地/自托管 URL，随主题色背景兜底）
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={user.image}
+              alt=""
+              width={32}
+              height={32}
+              className="size-full object-cover"
+            />
+          ) : (
+            // 未上传头像则用昵称首字
+            initial
+          )}
         </span>
       </button>
 

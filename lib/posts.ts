@@ -1,4 +1,6 @@
 // 文章数据查询层：所有文章相关的数据库读写集中在这里
+import { cache } from "react";
+import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { plainExcerpt, readingTime } from "@/lib/utils";
 
@@ -195,3 +197,32 @@ export async function getArchive() {
   }
   return [...byYear.entries()].map(([year, items]) => ({ year, posts: items }));
 }
+
+// 页脚统计：运行天数 + 总阅读量 + 公开文章数 + 已通过评论数 + 正文总字数
+// 用 React cache() 包裹，同一请求内多次调用只查一次库，避免全站每个页面重复查询拖慢性能
+export const getSiteStats = cache(async () => {
+  const [
+    postCount,
+    viewAgg,
+    commentCount,
+    wordAgg,
+  ] = await Promise.all([
+    prisma.post.count({ where: PUBLISHED_FILTER }),
+    prisma.post.aggregate({ _sum: { viewCount: true }, where: PUBLISHED_FILTER }),
+    prisma.comment.count({ where: { isApproved: true } }),
+    prisma.post.aggregate({ _sum: { wordCount: true }, where: PUBLISHED_FILTER }),
+  ]);
+
+  const days = Math.max(
+    0,
+    Math.floor((Date.now() - new Date(SITE.launchedAt).getTime()) / 86_400_000)
+  );
+
+  return {
+    days,
+    views: viewAgg._sum.viewCount ?? 0,
+    posts: postCount,
+    comments: commentCount,
+    words: wordAgg._sum.wordCount ?? 0,
+  };
+});

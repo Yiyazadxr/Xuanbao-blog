@@ -1,28 +1,41 @@
 import Link from "next/link";
 import { SITE } from "@/lib/constants";
+import { getSiteStats } from "@/lib/posts";
 
-// 全站页脚
-export function Footer() {
+// 全站页脚：两端布局，左侧欢迎语，右侧数据化叙事 + 版权导航
+export async function Footer() {
+  const stats = await getSiteStats();
+
   return (
     <footer className="border-t border-border">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-[var(--footer-py)] sm:flex-row sm:justify-between sm:px-6">
-        <p className="text-sm text-muted">
-          © {new Date().getFullYear()} {SITE.shortName}
-        </p>
-        <nav aria-label="页脚导航" className="flex flex-wrap justify-center gap-x-5 gap-y-2">
-          <Link
-            href="/privacy"
-            className="text-sm text-muted transition-colors duration-200 hover:text-foreground"
-          >
-            隐私政策
-          </Link>
-          <Link
-            href="/terms"
-            className="text-sm text-muted transition-colors duration-200 hover:text-foreground"
-          >
-            用户协议
-          </Link>
-        </nav>
+        {/* 左侧：欢迎语 */}
+        <p className="text-sm text-foreground/90">欢迎来到暄宝的 {SITE.name}</p>
+
+        {/* 右侧：数据 + 版权导航 */}
+        <div className="flex flex-col items-center gap-2 text-center sm:items-end sm:text-right">
+          <p className="text-xs tabular-nums text-muted">
+            <span>运行 {stats.days} 天</span>
+            <span className="mx-2">阅读 {stats.views.toLocaleString("zh-CN")} 次</span>
+            <span className="mx-2">文章 {stats.posts} 篇</span>
+            <span className="mx-2">文字 {stats.words.toLocaleString("zh-CN")} 字</span>
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-muted sm:justify-end">
+            <span>© {new Date().getFullYear()} {SITE.shortName}</span>
+            <Link
+              href="/privacy"
+              className="text-muted transition-colors duration-200 hover:text-foreground"
+            >
+              隐私政策
+            </Link>
+            <Link
+              href="/terms"
+              className="text-muted transition-colors duration-200 hover:text-foreground"
+            >
+              用户协议
+            </Link>
+          </div>
+        </div>
       </div>
     </footer>
   );

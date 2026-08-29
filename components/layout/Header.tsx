@@ -1,7 +1,6 @@
 "use client";
 
-import { Icon } from "@iconify/react";
-import Image from "next/image";
+import { Icon } from "@/components/ui/Icon";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -51,20 +50,19 @@ export function Header() {
         aria-label="主导航"
         className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center justify-between px-4 sm:px-6"
       >
-        {/* Logo + 站名 */}
+        {/* Logo + 站名：中文「暄」字（幼圆手写感），日夜间自适应 */}
         <Link
           href="/"
-          className="flex items-center gap-2.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
+          className="flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          <Image
-            src="/images/main_logo.webp"
-            alt=""
-            width={32}
-            height={32}
-            className="rounded-full"
-            priority
-          />
-          <span className="font-display text-base font-bold tracking-tight">
+          <span
+            lang="zh"
+            className="font-display text-2xl font-bold leading-none text-accent"
+            style={{ fontFamily: '"幼圆", "YouYuan", "Yuanti SC", "PingFang SC", sans-serif' }}
+          >
+            暄
+          </span>
+          <span className="text-base font-bold tracking-tight">
             {SITE.name}
           </span>
         </Link>

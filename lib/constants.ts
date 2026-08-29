@@ -5,6 +5,8 @@ export const SITE = {
   description: "暄宝xr的个人博客——记录技术、生活与一切让我着迷的东西。",
   // 生产环境通过 NEXT_PUBLIC_SITE_URL 注入正式域名，用于 sitemap/RSS/元数据
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
+  // 建站日：用于页脚「运行 N 天」等叙事（2026-07-17）
+  launchedAt: "2026-07-17",
 };
 
 // 联系方式（集中管理，避免散落硬编码）。
