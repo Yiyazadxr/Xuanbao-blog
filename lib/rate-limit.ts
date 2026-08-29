@@ -18,20 +18,23 @@ export const rateLimit = {
     }
     return { blocked: false, retryAfterSec: 0 };
   },
-  // 记录一次（失败时调用）；窗口过期则重置计数
+  // 记录一次（失败时调用）；合并为原子 upsert，消除 TOCTOU 竞态
   async hit(prefix: string, value: string, windowMs: number) {
     const key = keyName(prefix, value);
     const now = Date.now();
-    const row = await prisma.rateLimit.findUnique({ where: { key } });
-    if (!row || row.resetAt.getTime() <= now) {
-      await prisma.rateLimit.upsert({
-        where: { key },
-        update: { count: 1, resetAt: new Date(now + windowMs) },
-        create: { key, count: 1, resetAt: new Date(now + windowMs) },
-      });
-    } else {
-      await prisma.rateLimit.update({ where: { key }, data: { count: { increment: 1 } } });
-    }
+    await prisma.$executeRaw`
+      INSERT INTO "RateLimit" ("key", "count", "resetAt")
+      VALUES (${key}, 1, ${new Date(now + windowMs)}::timestamp)
+      ON CONFLICT ("key") DO UPDATE
+      SET "count" = CASE
+        WHEN "RateLimit"."resetAt" <= ${new Date(now)}::timestamp THEN 1
+        ELSE "RateLimit"."count" + 1
+      END,
+      "resetAt" = CASE
+        WHEN "RateLimit"."resetAt" <= ${new Date(now)}::timestamp THEN ${new Date(now + windowMs)}::timestamp
+        ELSE "RateLimit"."resetAt"
+      END
+    `;
   },
   // 清除（成功时调用）
   async reset(prefix: string, value: string) {

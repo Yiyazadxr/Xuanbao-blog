@@ -14,13 +14,14 @@ export async function getRolePermissions(role: Role): Promise<Permission[]> {
   if (!row) return [...DEFAULT_ROLE_PERMISSIONS[role]];
   try {
     const parsed = JSON.parse(row.permissions);
-    // 仅保留合法权限值并去重，过滤被篡改/损坏的非法项，杜绝静默授予未知权限
     if (!Array.isArray(parsed)) return [...DEFAULT_ROLE_PERMISSIONS[role]];
-    return [
+    const valid = [
       ...new Set(
         parsed.filter((p): p is Permission => (ALL_PERMISSIONS as string[]).includes(p))
       ),
     ];
+    // 过滤后为空集 → 回落到默认值，避免全部非法值导致零权限
+    return valid.length > 0 ? valid : [...DEFAULT_ROLE_PERMISSIONS[role]];
   } catch (e) {
     console.error(`角色 ${role} 的权限配置解析失败，回落到默认值：`, e);
     return [...DEFAULT_ROLE_PERMISSIONS[role]];

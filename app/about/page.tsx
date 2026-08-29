@@ -1,22 +1,28 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { SKILLS, TIMELINE } from "@/lib/constants";
+import { prisma } from "@/lib/prisma";
+import { Avatar } from "@/components/ui/Avatar";
 
 export const metadata: Metadata = { title: "关于作者" };
 
 // 关于作者：简介 + 技能 + 时间线（内容在 lib/constants.ts 中配置）
-export default function AboutPage() {
+export default async function AboutPage() {
+  const blogger = await prisma.user.findFirst({
+    where: { role: "SUPER_ADMIN" },
+    select: { name: true, image: true, id: true },
+  });
+
   return (
     <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-28 sm:px-6">
       {/* 简介 */}
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
-        <span
-          lang="zh"
-          className="flex size-[88px] shrink-0 items-center justify-center rounded-2xl bg-accent/10 text-6xl font-bold leading-none text-accent"
-          style={{ fontFamily: '"幼圆", "YouYuan", "Yuanti SC", "PingFang SC", sans-serif' }}
-        >
-          暄
-        </span>
+        <Avatar
+          image={blogger?.image}
+          name={blogger?.name}
+          seed={blogger?.id}
+          className="size-[88px] text-6xl"
+        />
         <div>
           <h1 className="font-display text-4xl font-bold tracking-tight">你好，我是暄宝xr</h1>
           <p className="mt-2 leading-relaxed text-muted">
