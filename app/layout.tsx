@@ -5,6 +5,7 @@ import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Footer } from "@/components/layout/Footer";
 import { Header } from "@/components/layout/Header";
+import { InkBackground } from "@/components/layout/InkBackground";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { Providers } from "@/components/Providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
@@ -73,6 +74,7 @@ export default function RootLayout({
           跳到内容
         </a>
         <Providers>
+          <InkBackground />
           <SmoothScroll />
           <Header />
           <main id="main-content" className="flex-1">{children}</main>

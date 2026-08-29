@@ -6,7 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 
 export const metadata: Metadata = { title: "关于作者" };
 
-// 关于作者：简介 + 技能 + 时间线（内容在 lib/constants.ts 中配置）
+// 关于作者：简介 + 技能 + 时间线
 export default async function AboutPage() {
   const blogger = await prisma.user.findFirst({
     where: { role: "SUPER_ADMIN" },
@@ -14,7 +14,8 @@ export default async function AboutPage() {
   });
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-28 sm:px-6">
+    // 不透明底，遮挡水墨背景
+    <div className="mx-auto mt-28 w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
       {/* 简介 */}
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
         <Avatar

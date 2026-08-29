@@ -2,17 +2,18 @@ import Link from "next/link";
 import { SITE } from "@/lib/constants";
 import { getSiteStats } from "@/lib/posts";
 
-// 全站页脚：两端布局，左侧欢迎语，右侧数据化叙事 + 版权导航
+// 全站页脚：两端布局，左侧欢迎语，右侧数据化叙事 + 导航
 export async function Footer() {
   const stats = await getSiteStats();
 
+  // 不透明底，遮挡水墨背景
   return (
-    <footer className="border-t border-border">
+    <footer className="border-t border-border bg-background">
       <div className="mx-auto flex max-w-6xl flex-col items-center gap-4 px-4 py-[var(--footer-py)] sm:flex-row sm:justify-between sm:px-6">
         {/* 左侧：欢迎语 */}
         <p className="text-sm text-foreground/90">欢迎来到暄宝的 {SITE.name}</p>
 
-        {/* 右侧：数据 + 版权导航 */}
+        {/* 右侧：数据 + 导航 */}
         <div className="flex flex-col items-center gap-2 text-center sm:items-end sm:text-right">
           <p className="text-xs tabular-nums text-muted">
             <span>运行 {stats.days} 天</span>

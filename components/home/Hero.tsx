@@ -22,7 +22,7 @@ export function Hero() {
   function handleMouseMove(e: React.MouseEvent<HTMLElement>) {
     if (reduceMotion || !glowRef.current) return;
     const { left, top } = e.currentTarget.getBoundingClientRect();
-    glowRef.current.style.opacity = "1";
+    glowRef.current.style.opacity = "0.4";
     glowRef.current.style.transform = `translate(${e.clientX - left - 200}px, ${
       e.clientY - top - 200
     }px)`;
@@ -40,7 +40,7 @@ export function Hero() {
   return (
     <section
       onMouseMove={handleMouseMove}
-      className="relative overflow-hidden bg-background text-foreground"
+      className="relative overflow-hidden text-foreground"
     >
       {/* 淡雅背景光斑（克制，不干扰阅读） */}
       <div aria-hidden className="pointer-events-none absolute inset-0">

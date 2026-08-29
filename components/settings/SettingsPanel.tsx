@@ -7,7 +7,7 @@ import { AvatarEntryCard } from "@/components/settings/AvatarEntryCard";
 import { DisplayForm } from "@/components/settings/DisplayForm";
 import { ROLE_BADGE_CLS, ROLE_LABELS, type Role } from "@/lib/roles";
 
-// 设置页：个人资料 / 显示 两个分区（Tab 切换）
+// 设置页：个人资料和显示两个分区
 export function SettingsPanel({
   name,
   email,
@@ -31,7 +31,8 @@ export function SettingsPanel({
     }`;
 
   return (
-    <div className="mx-auto w-full max-w-xl px-4 pb-24 pt-28 sm:px-6">
+    // 不透明底，遮挡水墨背景
+    <div className="mx-auto mt-28 w-full max-w-xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
       <h1 className="font-display text-3xl font-bold tracking-tight">设置</h1>
       <p className="mt-2 text-sm text-muted">管理你的个人资料与显示偏好</p>
 

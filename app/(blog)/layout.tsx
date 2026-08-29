@@ -4,7 +4,10 @@ export default function BlogGroupLayout({ children }: { children: React.ReactNod
     <div
       className="mx-auto w-full max-w-6xl px-4 pt-[var(--content-pt)] pb-[var(--content-pb)] sm:px-6"
     >
-      {children}
+      {/* 不透明底，遮挡水墨背景 */}
+      <div className="rounded-2xl border border-border bg-background p-6 sm:p-8">
+        {children}
+      </div>
     </div>
   );
 }

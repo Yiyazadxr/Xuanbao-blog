@@ -34,14 +34,14 @@ export default async function BlogPage() {
             <Link
               key={c.id}
               href={`/blog/category/${c.slug}`}
-              className="rounded-full border border-border px-4 py-1.5 text-sm text-muted transition-colors duration-200 hover:border-accent hover:text-accent"
+              className="rounded-full border border-border bg-background px-4 py-1.5 text-sm text-muted transition-colors duration-200 hover:border-accent hover:text-accent"
             >
               {c.name} · {c.postCount}
             </Link>
           ))}
         <Link
           href="/blog/archive"
-          className="rounded-full border border-border px-4 py-1.5 text-sm text-muted transition-colors duration-200 hover:border-accent hover:text-accent"
+          className="rounded-full border border-border bg-background px-4 py-1.5 text-sm text-muted transition-colors duration-200 hover:border-accent hover:text-accent"
         >
           归档
         </Link>

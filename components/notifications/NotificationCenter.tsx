@@ -26,8 +26,8 @@ const EMPTY_SUMMARY: NotificationUnreadSummary = {
   byCategory: { system: 0, like: 0, comment: 0 },
 };
 
-// 通知中心：分类 Tab + 列表 + 游标分页 + 已读/删除/清空
-// Tab 加载放在点击事件处理器里（事件处理器允许同步 setState），避免 effect 内同步 setState
+// 通知中心
+// Tab 加载放在点击事件处理器里（允许同步 setState），避免 effect 内同步 setState
 export function NotificationCenter({
   initialItems,
   initialCursor,
@@ -166,7 +166,8 @@ export function NotificationCenter({
   const categoryUnread = (t: Tab) => (t === "all" ? unread.total : unread.byCategory[t]);
 
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-28 sm:px-6">
+    // 不透明底，遮挡水墨背景
+    <div className="mx-auto mt-28 w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">通知</h1>
