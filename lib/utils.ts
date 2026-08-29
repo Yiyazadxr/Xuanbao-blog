@@ -20,14 +20,28 @@ export function formatRelativeTime(date: Date | string): string {
   return formatDate(date);
 }
 
-// 阅读时长估算：中文约 400 字/分钟，英文约 200 词/分钟
-export function readingTime(content: string): number {
-  const cjkCount = (content.match(/[一-鿿]/g) ?? []).length;
-  const wordCount = content
-    .replace(/[一-鿿]/g, " ")
+// 统计中文字符数 + 英文/数字词数（去除 Markdown 符号/标点）。
+// countWords 与 readingTime 共用此计数，保证口径一致（复用而非重写）。
+function countCjkAndWords(content: string): { cjk: number; words: number } {
+  const cjk = (content.match(/[一-鿿]/g) ?? []).length;
+  const words = content
+    .replace(/[一-鿿]/g, " ") // 中文算 1 字，替换为空格避免被连拼
+    .replace(/[^\p{L}\p{N}\s]/gu, " ") // 剔除 Markdown 符号/标点（保留字母数字与空白）
     .split(/\s+/)
     .filter(Boolean).length;
-  return Math.max(1, Math.round(cjkCount / 400 + wordCount / 200));
+  return { cjk, words };
+}
+
+// 纯文字字数：数中文字符 + 英文单词，供文章 wordCount 与页脚「合记 N 字」使用
+export function countWords(content: string): number {
+  const { cjk, words } = countCjkAndWords(content);
+  return cjk + words;
+}
+
+// 阅读时长估算：中文约 400 字/分钟，英文约 200 词/分钟
+export function readingTime(content: string): number {
+  const { cjk, words } = countCjkAndWords(content);
+  return Math.max(1, Math.round(cjk / 400 + words / 200));
 }
 
 // 从 Markdown 正文提取纯文本摘要（无手动摘要时兜底用）

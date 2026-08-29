@@ -85,6 +85,7 @@ model Post {
   pinned      Boolean   @default(false) // 置顶（列表页排最前）
   featured    Boolean   @default(false)
   viewCount   Int       @default(0)
+  wordCount   Int?      // 纯文字字数（保存时计算，页脚只做 sum 加法，避免实时读全文）
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 

@@ -5,6 +5,7 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "../lib/generated/prisma/client";
+import { countWords } from "../lib/utils";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
@@ -52,15 +53,17 @@ async function main() {
   const existing = await prisma.post.findFirst({ where: { slug: "hello-world" } });
   if (!existing) {
     const tech = await prisma.category.findUnique({ where: { slug: "tech" } });
+    const content = "这是我的第一篇博客文章。欢迎来到暄宝xr的个人博客！\n\n在这里，我会分享关于技术、设计和生活的思考。";
     const post = await prisma.post.create({
       data: {
         title: "Hello World",
         slug: "hello-world",
-        content: "这是我的第一篇博客文章。欢迎来到暄宝xr的个人博客！\n\n在这里，我会分享关于技术、设计和生活的思考。",
+        content,
         excerpt: "欢迎来到暄宝xr的个人博客！",
         published: true,
         authorId: admin.id,
         categoryId: tech?.id ?? null,
+        wordCount: countWords(content),
       },
     });
     console.log("✅ 示例文章:", post.title);
