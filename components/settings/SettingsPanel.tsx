@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Avatar } from "@/components/ui/Avatar";
-import { AvatarForm } from "@/components/settings/AvatarForm";
+import { AvatarEntryCard } from "@/components/settings/AvatarEntryCard";
 import { DisplayForm } from "@/components/settings/DisplayForm";
 import { ROLE_BADGE_CLS, ROLE_LABELS, type Role } from "@/lib/roles";
 
@@ -78,11 +78,9 @@ export function SettingsPanel({
             </div>
           </div>
 
-          {/* 头像上传 */}
-          <AvatarForm image={image} name={name} />
-
           {/* 账号操作入口 */}
           <div className="flex flex-col gap-2">
+            <AvatarEntryCard image={image} />
             <Link
               href="/settings/name"
               className="flex items-center justify-between rounded-2xl border border-border bg-surface p-5 transition-colors duration-200 hover:border-accent"

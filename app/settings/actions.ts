@@ -56,6 +56,20 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
   return { ok: true, message: "头像已更新" };
 }
 
+// 删除头像（需登录；无头像时删除，移除 image 并清理旧图）
+export async function deleteAvatar(): Promise<SettingsState> {
+  const user = await getFreshUser();
+  if (!user) return { ok: false, error: "请先登录" };
+
+  if (!user.image) return { ok: false, error: "当前没有头像可删除" };
+
+  await prisma.user.update({ where: { id: user.id }, data: { image: null } });
+  await deleteImage(user.image);
+
+  revalidatePath("/settings");
+  return { ok: true, message: "头像已删除" };
+}
+
 // 更新昵称（hCaptcha + 按用户限流）
 export async function updateProfile(
   _prev: SettingsState,

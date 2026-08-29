@@ -16,7 +16,7 @@ function Profile({
         image={owner?.image}
         name={name}
         seed={owner?.name ?? name}
-        className="size-16 text-4xl lg:size-20 lg:text-5xl"
+        className="size-24 text-6xl lg:size-28 lg:text-7xl"
       />
       <div>
         <p className="font-bold lg:text-lg">{name}</p>

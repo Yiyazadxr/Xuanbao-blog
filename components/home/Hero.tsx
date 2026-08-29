@@ -61,7 +61,7 @@ export function Hero() {
           variants={fadeUp}
           className="font-display mb-5 text-sm font-medium uppercase tracking-[0.3em] text-muted"
         >
-          Blog · Life · Code
+          Xuanbao · XR · Blog
         </motion.p>
 
         {/* 大标题：逐字揭开 + 昵称整行揭开（accent 色点题，无渐变） */}
