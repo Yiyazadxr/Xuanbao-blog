@@ -14,11 +14,11 @@
   --muted: #78716c;
   --surface: #ffffff; /* 卡片/面板底色（Phase 2 文章卡片使用） */
   --border: #e7e5e4;
-  --accent: #7c3aed;
+  --accent: #0f766e;
   --accent-foreground: #ffffff;
-  /* Hero 光斑：亮色模式用更柔和的光斑 */
-  --glow-1: rgba(124, 58, 237, 0.15);
-  --glow-2: rgba(34, 211, 238, 0.12);
+  /* 背景光斑：亮色模式用更柔和的光斑 */
+  --glow-1: rgba(15, 118, 110, 0.12);
+  --glow-2: rgba(34, 211, 238, 0.1);
   /* 全站统一缓动（与 lib/motion.ts 的 EASE_DRAMATIC 一致） */
   --ease-custom: cubic-bezier(0.79, 0, 0.06, 1);
 }
@@ -29,11 +29,11 @@
   --muted: #a1a1aa;
   --surface: #141416;
   --border: rgba(255, 255, 255, 0.08);
-  --accent: #a78bfa;
-  --accent-foreground: #17103a;
-  /* Hero 光斑：暗色模式用更亮的光斑，避免过于暗淡 */
-  --glow-1: rgba(167, 139, 250, 0.28);
-  --glow-2: rgba(34, 211, 238, 0.18);
+  --accent: #2dd4bf;
+  --accent-foreground: #042f2e;
+  /* 背景光斑：暗色模式用更亮的光斑，避免过于暗淡 */
+  --glow-1: rgba(45, 212, 191, 0.16);
+  --glow-2: rgba(34, 211, 238, 0.12);
 }
 
 @theme inline {

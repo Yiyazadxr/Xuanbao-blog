@@ -57,18 +57,6 @@ export const TOOLS = [
     url: "https://icon-sets.iconify.design/",
     description: "20 万+ 免费图标，本站图标都来自这里",
   },
-  {
-    name: "TinyPNG",
-    icon: "ph:image-bold",
-    url: "https://tinypng.com/",
-    description: "在线图片压缩，博客配图必备",
-  },
-  {
-    name: "Excalidraw",
-    icon: "ph:pencil-line-bold",
-    url: "https://excalidraw.com/",
-    description: "手绘风格白板，画示意图很好看",
-  },
 ] as const;
 
 // 技能标签（about 页使用，按 基础 → 前端 → 桌面 → 移动 → 后端/运维 排序）

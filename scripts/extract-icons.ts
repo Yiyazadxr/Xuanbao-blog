@@ -32,6 +32,7 @@ const USED_ICONS = [
   "users-bold",
   "shield-check-bold",
   "github-logo-bold",
+  "rss-simple-bold",
   "code-bold",
   "palette-bold",
   "image-bold",
