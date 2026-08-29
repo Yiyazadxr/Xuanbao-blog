@@ -21,6 +21,10 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };
 
+  if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
+    return { ok: false, error: "人机验证未通过，请重新验证" };
+  }
+
   const check = await rateLimit.isBlocked("settings-avatar", user.id, 10);
   if (check.blocked) return { ok: false, error: "操作过于频繁，请稍后再试" };
 
@@ -57,7 +61,13 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
 }
 
 // 删除头像（需登录；无头像时删除，移除 image 并清理旧图）
-export async function deleteAvatar(): Promise<SettingsState> {
+/* eslint-disable @typescript-eslint/no-unused-vars */
+export async function deleteAvatar(
+  // 占位参数：useActionState 契约要求 (prevState, formData)；无需使用
+  _prev: SettingsState,
+  _formData?: FormData
+): Promise<SettingsState> {
+  /* eslint-enable @typescript-eslint/no-unused-vars */
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };
 

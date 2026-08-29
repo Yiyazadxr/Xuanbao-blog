@@ -14,6 +14,7 @@ export const SITE = {
 export const CONTACT = {
   email: "412110785@qq.com",
   qq: "412110785",
+  github: "https://github.com/Yiyazadxr",
 } as const;
 
 // 顶部导航栏目

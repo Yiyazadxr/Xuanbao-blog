@@ -4,8 +4,10 @@ import Cropper, { type Area } from "react-easy-crop";
 import { useActionState, useEffect, useRef, useState } from "react";
 import { updateAvatar, type SettingsState } from "@/app/settings/actions";
 import { Avatar } from "@/components/ui/Avatar";
+import { HCaptcha } from "@/components/ui/HCaptcha";
 import { successCls } from "@/components/ui/form-styles";
 
+const HCAPTCHA_SITE_KEY = process.env.NEXT_PUBLIC_HCAPTCHA_SITE_KEY ?? "";
 const initialState: SettingsState = { ok: false };
 const SIZE = 256; // 输出头像边长（px，正方形）
 
@@ -45,25 +47,39 @@ export function AvatarEditor({ initialImage, name }: { initialImage?: string | n
   const [zoom, setZoom] = useState(1);
   const [rotation, setRotation] = useState(0);
   const [cropPixels, setCropPixels] = useState<Area | null>(null);
+  const [captchaToken, setCaptchaToken] = useState("");
+  const [cropError, setCropError] = useState("");
   const fileRef = useRef<HTMLInputElement>(null);
+  const captchaRequired = Boolean(HCAPTCHA_SITE_KEY);
+  const canSubmit = !!imageSrc && !!cropPixels && (!captchaRequired || !!captchaToken);
 
   function handleSelect(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    // 释放上一张图的 object URL，避免内存泄漏
+    if (imageSrc) URL.revokeObjectURL(imageSrc);
     const url = URL.createObjectURL(file);
     setImageSrc(url);
     setCrop({ x: 0, y: 0 });
     setZoom(1);
     setRotation(0);
+    setCaptchaToken("");
+    setCropError("");
   }
 
   async function handleSubmit() {
     if (!imageSrc || !cropPixels) return;
-    const blob = await cropImage(imageSrc, cropPixels);
-    const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
-    const fd = new FormData();
-    fd.append("avatar", file);
-    formAction(fd);
+    setCropError("");
+    try {
+      const blob = await cropImage(imageSrc, cropPixels);
+      const file = new File([blob], "avatar.jpg", { type: "image/jpeg" });
+      const fd = new FormData();
+      fd.append("avatar", file);
+      fd.append("captcha", captchaToken);
+      formAction(fd);
+    } catch {
+      setCropError("图片裁切失败，请重试");
+    }
   }
 
   // 清理 object URL
@@ -138,11 +154,17 @@ export function AvatarEditor({ initialImage, name }: { initialImage?: string | n
             </label>
           </div>
 
+          {cropError && <p className="text-sm text-red-500">{cropError}</p>}
+          {captchaRequired && (
+            <div className="flex justify-center">
+              <HCaptcha siteKey={HCAPTCHA_SITE_KEY} onVerify={setCaptchaToken} />
+            </div>
+          )}
           <div className="flex gap-3">
             <button
               type="button"
               onClick={handleSubmit}
-              disabled={pending}
+              disabled={pending || !canSubmit}
               className="inline-flex h-11 flex-1 cursor-pointer items-center justify-center rounded-full bg-foreground px-6 text-sm font-semibold text-background transition-opacity duration-200 hover:opacity-90 disabled:opacity-50"
             >
               {pending ? "上传中…" : "确认裁剪"}

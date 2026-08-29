@@ -6,8 +6,10 @@ import { SocialLinks } from "@/components/home/SocialLinks";
 // 头像 + 昵称 + 签名（桌面侧栏与移动端顶部卡共用）
 function Profile({
   owner,
+  showSocial = false,
 }: {
   owner?: { name: string; image: string | null } | null;
+  showSocial?: boolean;
 }) {
   const name = owner?.name ?? SITE.shortName;
   return (
@@ -21,6 +23,11 @@ function Profile({
       <div>
         <p className="font-bold lg:text-lg">{name}</p>
         <p className="mt-1 text-sm text-muted">遗憾你自己留着吧，我有小怡了。</p>
+        {showSocial && (
+          <div className="mt-2">
+            <SocialLinks />
+          </div>
+        )}
       </div>
     </>
   );
@@ -41,8 +48,7 @@ export function HomeSidebar({
       {/* 移动端/平板：顶部水平简介卡（头像在左，昵称签名+社交在右） */}
       <div className="lg:hidden">
         <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
-          <Profile owner={owner} />
-          <SocialLinks />
+          <Profile owner={owner} showSocial />
         </div>
       </div>
 

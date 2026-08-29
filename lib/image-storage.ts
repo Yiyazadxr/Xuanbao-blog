@@ -67,11 +67,18 @@ export async function deleteImage(url: string | null | undefined): Promise<void>
       return;
     }
     if (url.startsWith("/uploads/")) {
-      // 防路径穿越：保留子目录（如 avatars/），仅取相对路径，去掉 /uploads/ 前缀
-      const rel = path.posix.normalize(url.replace("/uploads/", ""));
-      const filename = path.basename(rel);
-      const subDir = path.dirname(rel) === "." ? "" : path.join(path.dirname(rel), "");
-      await unlink(path.join(process.cwd(), "public", "uploads", subDir, filename));
+      // 防路径穿越：仅取 /uploads/ 后的相对路径并 normalize，若仍含 .. 向上跳转则拒绝删除
+      const rel = path.posix.normalize(url.slice("/uploads/".length));
+      if (rel === "" || rel.startsWith("..") || path.posix.isAbsolute(rel)) {
+        console.error("非法图片路径，拒绝删除：", url);
+        return;
+      }
+      const target = path.join(process.cwd(), "public", "uploads", rel);
+      if (target.startsWith(path.join(process.cwd(), "public", "uploads"))) {
+        await unlink(target);
+      } else {
+        console.error("图片路径越界，拒绝删除：", url);
+      }
     }
   } catch (e) {
     console.error("删除图片失败：", e);

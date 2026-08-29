@@ -2,11 +2,19 @@
 
 import { Icon } from "@/components/ui/Icon";
 import { CONTACT } from "@/lib/constants";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 // 社交图标行（客户端）：RSS 点击跳转 + 复制链接；复制后短暂提示
 export function SocialLinks() {
   const [copied, setCopied] = useState(false);
+  const timerRef = useRef<ReturnType<typeof setTimeout>>(null);
+
+  // 组件卸载时清理 timer
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
+    };
+  }, []);
 
   async function handleRssClick() {
     const rssUrl = `${window.location.origin}/feed.xml`;
@@ -16,13 +24,14 @@ export function SocialLinks() {
       // 剪贴板不可用时静默，仍跳转
     }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => setCopied(false), 2000);
   }
 
   return (
     <div className="flex items-center gap-1">
       <a
-        href="https://github.com/Yiyazadxr"
+        href={CONTACT.github}
         target="_blank"
         rel="noreferrer"
         aria-label="GitHub"

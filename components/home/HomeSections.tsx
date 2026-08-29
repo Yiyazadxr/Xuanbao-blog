@@ -15,6 +15,7 @@ export async function HomeSections() {
     // 博主（SUPER_ADMIN）资料：左侧栏展示其头像/昵称，未配置则为默认「暄」字
     prisma.user.findFirst({
       where: { role: "SUPER_ADMIN" },
+      orderBy: { createdAt: "asc" }, // 多个超管时取最早创建者，保证稳定
       select: { name: true, image: true },
     }),
   ]);

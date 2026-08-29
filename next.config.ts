@@ -15,15 +15,17 @@ const cspHeader = {
   key: "Content-Security-Policy",
   value: [
     "default-src 'self'",
-    "script-src 'self' 'unsafe-inline'",
+    // hCaptcha widget：脚本 + iframe(挑战/资产) + 资产图片 + API 通信
+    "script-src 'self' 'unsafe-inline' https://js.hcaptcha.com",
     "style-src 'self' 'unsafe-inline'",
-    "img-src 'self' data: https://avatars.githubusercontent.com https://*.githubusercontent.com https://*.public.blob.vercel-storage.com",
+    "img-src 'self' data: blob: https://avatars.githubusercontent.com https://*.githubusercontent.com https://*.public.blob.vercel-storage.com https://*.hcaptcha.com",
     "font-src 'self' data:",
-    "connect-src 'self'",
+    "connect-src 'self' https://hcaptcha.com https://*.hcaptcha.com",
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
     "frame-ancestors 'none'",
+    "frame-src https://hcaptcha.com https://*.hcaptcha.com",
   ].join("; "),
 };
 
