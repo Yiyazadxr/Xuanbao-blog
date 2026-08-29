@@ -2,6 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
+import { Avatar } from "@/components/ui/Avatar";
+import { AvatarForm } from "@/components/settings/AvatarForm";
 import { DisplayForm } from "@/components/settings/DisplayForm";
 import { ROLE_BADGE_CLS, ROLE_LABELS, type Role } from "@/lib/roles";
 
@@ -10,15 +12,15 @@ export function SettingsPanel({
   name,
   email,
   role,
+  image,
   days,
-  initial,
   joinedDate,
 }: {
   name: string;
   email: string;
   role: Role;
+  image?: string | null;
   days: number;
-  initial: string;
   joinedDate: string;
 }) {
   const [tab, setTab] = useState<"profile" | "display">("profile");
@@ -57,9 +59,7 @@ export function SettingsPanel({
         <div className="mt-6 space-y-4">
           {/* 账号概览 */}
           <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-6">
-            <span className="inline-flex size-14 shrink-0 items-center justify-center rounded-full bg-accent text-xl font-bold text-accent-foreground">
-              {initial}
-            </span>
+            <Avatar image={image} name={name} className="size-14 text-xl" seed={name} />
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-display text-lg font-bold">{name}</span>
@@ -77,6 +77,9 @@ export function SettingsPanel({
               </p>
             </div>
           </div>
+
+          {/* 头像上传 */}
+          <AvatarForm image={image} name={name} />
 
           {/* 账号操作入口 */}
           <div className="flex flex-col gap-2">

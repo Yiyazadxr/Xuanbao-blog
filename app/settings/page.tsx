@@ -15,7 +15,6 @@ export default async function SettingsPage() {
 
   const role = user.role as Role;
   const days = Math.max(0, Math.floor((new Date().getTime() - user.createdAt.getTime()) / 86400000));
-  const initial = (user.name ?? "?").slice(0, 1).toUpperCase();
   const joinedDate = formatDate(user.createdAt);
 
   return (
@@ -23,8 +22,8 @@ export default async function SettingsPage() {
       name={user.name}
       email={user.email}
       role={role}
+      image={user.image}
       days={days}
-      initial={initial}
       joinedDate={joinedDate}
     />
   );

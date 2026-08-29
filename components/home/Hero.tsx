@@ -101,12 +101,6 @@ export function Hero() {
               className="transition-transform duration-200 group-hover:translate-x-0.5"
             />
           </Link>
-          <Link
-            href="/about"
-            className="inline-flex h-11 cursor-pointer items-center rounded-full border border-border px-6 text-sm font-semibold text-foreground transition-colors duration-200 hover:border-foreground/40 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
-          >
-            关于我
-          </Link>
         </motion.div>
       </div>
     </section>

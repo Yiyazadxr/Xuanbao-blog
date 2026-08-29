@@ -3,14 +3,20 @@ import { PostCard } from "@/components/blog/PostCard";
 import { Reveal } from "@/components/ui/Reveal";
 import { HomeSidebar } from "@/components/home/HomeSidebar";
 import { getCategoriesWithCount, getFeaturedPosts, getPosts, getTagsWithCount } from "@/lib/posts";
+import { prisma } from "@/lib/prisma";
 
 // 首页主体：双栏布局（左侧信息栏 + 右侧文章流）
 export async function HomeSections() {
-  const [featured, { posts: latest }, categories, tags] = await Promise.all([
+  const [featured, { posts: latest }, categories, tags, owner] = await Promise.all([
     getFeaturedPosts(),
     getPosts(),
     getCategoriesWithCount(),
     getTagsWithCount(),
+    // 博主（SUPER_ADMIN）资料：左侧栏展示其头像/昵称，未配置则为默认「暄」字
+    prisma.user.findFirst({
+      where: { role: "SUPER_ADMIN" },
+      select: { name: true, image: true },
+    }),
   ]);
 
   const latestPosts = latest.slice(0, 6);
@@ -18,7 +24,7 @@ export async function HomeSections() {
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-24 sm:px-6 lg:flex-row">
       {/* 左侧信息栏（sticky，桌面端显示）；移动端为顶部简介卡 */}
-      <HomeSidebar categories={categories} tags={tags} />
+      <HomeSidebar owner={owner} categories={categories} tags={tags} />
 
       {/* 右侧文章流 */}
       <div className="min-w-0 flex-1 space-y-20">

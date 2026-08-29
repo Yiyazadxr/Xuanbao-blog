@@ -29,8 +29,11 @@ function hasBlobToken(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-// 保存图片，返回可公开访问的 URL
-export async function saveImage(file: { type: string; data: Buffer }): Promise<string> {
+// 保存图片，返回可公开访问的 URL（path 为存储目录，如 covers/avatars）
+export async function saveImage(
+  file: { type: string; data: Buffer },
+  dir = "covers"
+): Promise<string> {
   if (!isAllowedImageType(file.type)) {
     throw new Error("仅支持 JPEG / PNG / WebP / GIF 图片");
   }
@@ -41,7 +44,7 @@ export async function saveImage(file: { type: string; data: Buffer }): Promise<s
   const filename = uniqueFilename(file.type);
 
   if (hasBlobToken()) {
-    const { url } = await put(`covers/${filename}`, file.data, {
+    const { url } = await put(`${dir}/${filename}`, file.data, {
       access: "public",
       contentType: file.type,
     });
@@ -49,10 +52,10 @@ export async function saveImage(file: { type: string; data: Buffer }): Promise<s
   }
 
   // 本地开发：写入 public/uploads，由 Next 静态服务
-  const dir = path.join(process.cwd(), "public", "uploads");
-  await mkdir(dir, { recursive: true });
-  await writeFile(path.join(dir, filename), file.data);
-  return `/uploads/${filename}`;
+  const baseDir = path.join(process.cwd(), "public", "uploads", dir);
+  await mkdir(baseDir, { recursive: true });
+  await writeFile(path.join(baseDir, filename), file.data);
+  return `/uploads/${dir}/${filename}`;
 }
 
 // 删除图片（Blob URL 或本地 /uploads/ 路径）；失败静默，不阻断主流程
@@ -64,9 +67,11 @@ export async function deleteImage(url: string | null | undefined): Promise<void>
       return;
     }
     if (url.startsWith("/uploads/")) {
-      // 用 basename 防路径穿越（文件名虽由自身生成，仍按最稳妥方式处理）
-      const filename = path.basename(url.replace("/uploads/", ""));
-      await unlink(path.join(process.cwd(), "public", "uploads", filename));
+      // 防路径穿越：保留子目录（如 avatars/），仅取相对路径，去掉 /uploads/ 前缀
+      const rel = path.posix.normalize(url.replace("/uploads/", ""));
+      const filename = path.basename(rel);
+      const subDir = path.dirname(rel) === "." ? "" : path.join(path.dirname(rel), "");
+      await unlink(path.join(process.cwd(), "public", "uploads", subDir, filename));
     }
   } catch (e) {
     console.error("删除图片失败：", e);

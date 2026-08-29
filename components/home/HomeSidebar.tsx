@@ -1,62 +1,38 @@
 import Link from "next/link";
-import { Icon } from "@/components/ui/Icon";
-import { CONTACT, SITE } from "@/lib/constants";
+import { Avatar } from "@/components/ui/Avatar";
+import { SITE } from "@/lib/constants";
+import { SocialLinks } from "@/components/home/SocialLinks";
 
 // 头像 + 昵称 + 签名（桌面侧栏与移动端顶部卡共用）
-function Profile() {
+function Profile({
+  owner,
+}: {
+  owner?: { name: string; image: string | null } | null;
+}) {
+  const name = owner?.name ?? SITE.shortName;
   return (
     <>
-      <span
-        lang="zh"
-        className="flex size-16 items-center justify-center rounded-2xl bg-accent/10 text-4xl font-bold leading-none text-accent lg:size-20 lg:text-5xl"
-        style={{ fontFamily: '"幼圆", "YouYuan", "Yuanti SC", "PingFang SC", sans-serif' }}
-      >
-        暄
-      </span>
+      <Avatar
+        image={owner?.image}
+        name={name}
+        seed={owner?.name ?? name}
+        className="size-16 text-4xl lg:size-20 lg:text-5xl"
+      />
       <div>
-        <p className="font-bold lg:text-lg">{SITE.shortName}</p>
-        <p className="mt-1 text-sm text-muted">记录技术、生活与一切让我着迷的东西</p>
+        <p className="font-bold lg:text-lg">{name}</p>
+        <p className="mt-1 text-sm text-muted">遗憾你自己留着吧，我有小怡了。</p>
       </div>
     </>
   );
 }
 
-// 社交图标行
-function SocialLinks() {
-  return (
-    <div className="flex items-center gap-1">
-      <a
-        href="https://github.com/Yiyazadxr"
-        target="_blank"
-        rel="noreferrer"
-        aria-label="GitHub"
-        className="inline-flex size-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-foreground/5 hover:text-foreground"
-      >
-        <Icon icon="ph:github-logo-bold" width={18} height={18} aria-hidden />
-      </a>
-      <a
-        href={`mailto:${CONTACT.email}`}
-        aria-label="Email"
-        className="inline-flex size-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-foreground/5 hover:text-foreground"
-      >
-        <Icon icon="ph:envelope-bold" width={18} height={18} aria-hidden />
-      </a>
-      <a
-        href="/feed.xml"
-        aria-label="RSS"
-        className="inline-flex size-9 items-center justify-center rounded-full text-muted transition-colors duration-200 hover:bg-foreground/5 hover:text-foreground"
-      >
-        <Icon icon="ph:rss-simple-bold" width={18} height={18} aria-hidden />
-      </a>
-    </div>
-  );
-}
-
 // 首页左侧信息栏（桌面 sticky）+ 移动端顶部简介卡
 export function HomeSidebar({
+  owner,
   categories,
   tags,
 }: {
+  owner?: { name: string; image: string | null } | null;
   categories: { id: string; name: string; slug: string; postCount: number }[];
   tags: { id: string; name: string; slug: string; postCount: number }[];
 }) {
@@ -65,7 +41,7 @@ export function HomeSidebar({
       {/* 移动端/平板：顶部水平简介卡（头像在左，昵称签名+社交在右） */}
       <div className="lg:hidden">
         <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
-          <Profile />
+          <Profile owner={owner} />
           <SocialLinks />
         </div>
       </div>
@@ -73,7 +49,7 @@ export function HomeSidebar({
       {/* 桌面端：sticky 左侧信息栏 */}
       <aside className="sticky top-[calc(var(--header-h)+1.5rem)] hidden flex-col gap-6 self-start lg:flex lg:w-72">
         <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-6 text-center">
-          <Profile />
+          <Profile owner={owner} />
           <SocialLinks />
         </div>
 
