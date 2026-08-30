@@ -3,14 +3,19 @@
 import { useState } from "react";
 import { deleteUser, updateUserRole } from "@/app/(admin)/admin/users/actions";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
+import { MuteUserButton } from "@/components/admin/MuteUserButton";
 
-// 用户列表行操作：设为管理员 / 设为成员 / 删除（仅超级管理员可见此组件）
+// 用户列表行操作：设为管理员 / 设为成员 / 禁言/解禁 / 删除（仅超级管理员可见此组件）
 export function UserRowActions({
   userId,
   currentRole,
+  isMuted,
+  muteInfo,
 }: {
   userId: string;
   currentRole: string;
+  isMuted: boolean;
+  muteInfo: { permanent: boolean; until: string | null; reason: string | null };
 }) {
   const [message, setMessage] = useState("");
 
@@ -37,6 +42,7 @@ export function UserRowActions({
           设为成员
         </AdminActionButton>
       )}
+      <MuteUserButton userId={userId} isMuted={isMuted} muteInfo={muteInfo} />
       <AdminActionButton
         variant="danger"
         confirmText="确定删除该用户吗？其评论和点赞将一并删除，不可恢复。"

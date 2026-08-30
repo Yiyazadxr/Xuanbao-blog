@@ -7,7 +7,7 @@ import { POEMS } from "@/lib/poems";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 // 首页副标题：欢迎语 + 一句古诗文（同行展示），右侧小圆圈刷新按钮换下一句
-// 悬停诗句超 500ms 显示出处（source）。参考清浊（QingZuo）的设计
+// 悬停诗句超 500ms 以浮层方式展示出处（source），参考清浊（QingZuo）的设计
 export function PoemQuote() {
   const reduceMotion = usePrefersReducedMotion();
   // 初始固定为 0，避免 SSR 与客户端 Math.random() 不一致导致水合警告；
@@ -54,7 +54,7 @@ export function PoemQuote() {
             animate={{ opacity: 1, y: 0 }}
             exit={reduceMotion ? undefined : { opacity: 0, y: -6 }}
             transition={{ duration: 0.4, ease: "easeOut" }}
-            className="inline-block min-w-0"
+            className="relative inline-block min-w-0"
           >
             <span
               className="cursor-default text-accent"
@@ -67,6 +67,8 @@ export function PoemQuote() {
               {poem.text}
               <span className="ml-0.5">」</span>
             </span>
+            {/* 出处浮层：绝对定位、不占文档流，避免显示/隐藏导致布局回流把诗句挤离鼠标 */
+            /* 从而触发 mouseleave 造成闪烁 */}
             <AnimatePresence>
               {showSource && (
                 <motion.span
@@ -74,7 +76,7 @@ export function PoemQuote() {
                   animate={{ opacity: 1, y: 0 }}
                   exit={reduceMotion ? undefined : { opacity: 0, y: 4 }}
                   transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="ml-2 inline-block text-xs text-muted/80"
+                  className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-0.5 text-xs text-muted/80 shadow-sm"
                 >
                   —— {poem.source}
                 </motion.span>

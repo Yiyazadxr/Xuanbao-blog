@@ -16,6 +16,7 @@ export const PERMISSIONS = {
   MANAGE_INVITES: "manage_invites",
   // 用户管理
   MANAGE_USERS: "manage_users",
+  MUTE_USERS: "mute_users",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -31,6 +32,7 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   review_requests: "处理账号申请",
   manage_invites: "管理邀请码",
   manage_users: "管理用户（改角色/删除）",
+  mute_users: "禁言用户（禁言/解除禁言）",
 };
 
 // 权限分组（权限管理页按此展示，后续扩容可在此加分组）
@@ -62,7 +64,7 @@ export const PERMISSION_GROUPS: {
   {
     label: "用户管理",
     description: "用户角色与账号管理",
-    permissions: [PERMISSIONS.MANAGE_USERS],
+    permissions: [PERMISSIONS.MANAGE_USERS, PERMISSIONS.MUTE_USERS],
   },
 ];
 

@@ -28,8 +28,25 @@ export default async function AdminUsersPage({
       ? { OR: [{ name: { contains: keyword } }, { email: { contains: keyword } }] }
       : undefined,
     orderBy: { createdAt: "asc" },
-    include: { _count: { select: { posts: true, comments: true } } },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+      role: true,
+      disabled: true,
+      activatedAt: true,
+      createdAt: true,
+      mutedDuring: true,
+      mutedPermanent: true,
+      mutedReason: true,
+      _count: { select: { posts: true, comments: true } },
+    },
   });
+
+  // 服务端渲染页（SSR），每次请求时取一次当前时间用于判断禁言是否到期，
+  // 非客户端重渲染，故允许 Date.now()。
+  // eslint-disable-next-line react-hooks/purity
+  const now = Date.now();
 
   return (
     <>
@@ -78,6 +95,7 @@ export default async function AdminUsersPage({
             ) : (
               users.map((u) => {
                 const role = u.role as Role;
+                const isMuted = u.mutedPermanent || (u.mutedDuring != null && u.mutedDuring.getTime() > now);
                 return (
                   <tr key={u.id}>
                     <td className="px-5 py-3">
@@ -98,6 +116,10 @@ export default async function AdminUsersPage({
                         <span className="rounded-full bg-red-500/10 px-2 py-0.5 text-xs font-medium text-red-500">
                           已停用
                         </span>
+                      ) : isMuted ? (
+                        <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                          禁言中
+                        </span>
                       ) : !u.activatedAt ? (
                         <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
                           待审核
@@ -115,7 +137,16 @@ export default async function AdminUsersPage({
                       {role === "SUPER_ADMIN" ? (
                         <span className="text-xs text-muted">—</span>
                       ) : (
-                        <UserRowActions userId={u.id} currentRole={u.role} />
+                        <UserRowActions
+                          userId={u.id}
+                          currentRole={u.role}
+                          isMuted={isMuted}
+                          muteInfo={{
+                            permanent: u.mutedPermanent,
+                            until: u.mutedDuring ? u.mutedDuring.toISOString() : null,
+                            reason: u.mutedReason,
+                          }}
+                        />
                       )}
                     </td>
                   </tr>

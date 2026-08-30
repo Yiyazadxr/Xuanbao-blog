@@ -3,6 +3,7 @@
 // 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
+import { getMuteInfo } from "@/lib/mute";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -16,6 +17,19 @@ export type CommentActionState = { ok: boolean; error?: string; message?: string
 export async function submitComment(payload: unknown): Promise<CommentActionState> {
   const user = await requirePermission(PERMISSIONS.COMMENT);
   if (!user) return { ok: false, error: "请先登录再评论" };
+
+  // 禁言拦截：被禁言用户不能发表评论/回复（超管除外）
+  if (user.role !== ROLES.SUPER_ADMIN) {
+    const mute = await getMuteInfo(user.id);
+    if (mute.muted) {
+      const untilText = mute.permanent
+        ? ""
+        : mute.until
+          ? `，解禁时间为 ${new Date(mute.until).toLocaleString("zh-CN")}`
+          : "";
+      return { ok: false, error: `你已被禁言${untilText}${mute.reason ? `，原因：${mute.reason}` : ""}` };
+    }
+  }
 
   const parsed = parseInput(commentSchema, payload);
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };

@@ -83,6 +83,13 @@ export const roleSchema = z.object({
   role: z.enum(["ADMIN", "MEMBER"]),
 });
 
+// 禁言/解除禁言：days 为禁言时长（天，1~3650）；days=0 表示永久禁言；解禁走 unmuteUser
+export const muteSchema = z.object({
+  userId: z.string().trim().min(1).max(100),
+  days: z.number().int().min(0).max(3650),
+  reason: z.string().trim().max(200).optional().default(""),
+});
+
 // 保存角色权限
 export const permissionSchema = z.object({
   role: z.enum(["ADMIN", "MEMBER"]),

@@ -22,6 +22,10 @@ model User {
   activatedAt DateTime?
   // 被回收/禁用（7 天未登录）
   disabled  Boolean  @default(false)
+  // 禁言：mutedDuring 为截止时间（定时禁言）；mutedPermanent 为永久禁言；mutedReason 为原因
+  mutedDuring    DateTime?
+  mutedPermanent Boolean  @default(false)
+  mutedReason    String?
   // 首次登录时间（用于 7 天回收判定）
   lastLoginAt DateTime?
   createdAt DateTime @default(now())

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { submitComment } from "@/app/(blog)/blog/actions";
 import { errorCls, primaryBtnCls, successCls } from "@/components/ui/form-styles";
+import type { MuteInfo } from "@/lib/mute-types";
 
 // 评论表单：顶层评论与回复共用（parentId 区分）
 export function CommentForm({
@@ -12,11 +13,13 @@ export function CommentForm({
   slug,
   parentId,
   onDone,
+  muteInfo,
 }: {
   postId: string;
   slug: string;
   parentId?: string;
   onDone?: () => void;
+  muteInfo?: MuteInfo | null;
 }) {
   const { data: session } = useSession();
   const [content, setContent] = useState("");
@@ -38,6 +41,8 @@ export function CommentForm({
     );
   }
 
+  const muted = muteInfo?.muted === true;
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setFeedback(null);
@@ -55,29 +60,38 @@ export function CommentForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
-      {feedback && (
-        <p role={feedback.ok ? "status" : "alert"} className={feedback.ok ? successCls : errorCls}>
-          {feedback.text}
+      {muted ? (
+        <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
+          你当前处于禁言状态{muteInfo.permanent ? "（永久）" : muteInfo.until ? `，解禁时间 ${new Date(muteInfo.until).toLocaleString("zh-CN")}` : ""}
+          {muteInfo.reason ? `，原因：${muteInfo.reason}` : ""}，暂不能发表评论。
         </p>
+      ) : (
+        <>
+          {feedback && (
+            <p role={feedback.ok ? "status" : "alert"} className={feedback.ok ? successCls : errorCls}>
+              {feedback.text}
+            </p>
+          )}
+          <label htmlFor={`comment-${parentId ?? "root"}`} className="sr-only">
+            {parentId ? "回复内容" : "评论内容"}
+          </label>
+          <textarea
+            id={`comment-${parentId ?? "root"}`}
+            value={content}
+            onChange={(e) => setContent(e.target.value)}
+            rows={parentId ? 2 : 3}
+            maxLength={1000}
+            required
+            placeholder={parentId ? "写下你的回复…" : "友好交流，评论需审核后展示"}
+            className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
+          />
+          <div className="flex justify-end">
+            <button type="submit" disabled={pending} className={`${primaryBtnCls} w-auto px-6`}>
+              {pending ? "提交中…" : parentId ? "回复" : "发表评论"}
+            </button>
+          </div>
+        </>
       )}
-      <label htmlFor={`comment-${parentId ?? "root"}`} className="sr-only">
-        {parentId ? "回复内容" : "评论内容"}
-      </label>
-      <textarea
-        id={`comment-${parentId ?? "root"}`}
-        value={content}
-        onChange={(e) => setContent(e.target.value)}
-        rows={parentId ? 2 : 3}
-        maxLength={1000}
-        required
-        placeholder={parentId ? "写下你的回复…" : "友好交流，评论需审核后展示"}
-        className="w-full rounded-xl border border-border bg-surface px-4 py-3 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
-      />
-      <div className="flex justify-end">
-        <button type="submit" disabled={pending} className={`${primaryBtnCls} w-auto px-6`}>
-          {pending ? "提交中…" : parentId ? "回复" : "发表评论"}
-        </button>
-      </div>
     </form>
   );
 }
