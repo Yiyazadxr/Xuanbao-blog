@@ -3,13 +3,14 @@ import Link from "next/link";
 import { SKILLS, TIMELINE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
+import { ROLES } from "@/lib/roles";
 
 export const metadata: Metadata = { title: "关于作者" };
 
 // 关于作者：简介 + 技能 + 时间线
 export default async function AboutPage() {
   const blogger = await prisma.user.findFirst({
-    where: { role: "SUPER_ADMIN" },
+    where: { role: ROLES.SUPER_ADMIN },
     select: { name: true, image: true, id: true },
   });
 

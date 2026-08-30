@@ -22,16 +22,20 @@ export const rateLimit = {
   async hit(prefix: string, value: string, windowMs: number) {
     const key = keyName(prefix, value);
     const now = Date.now();
+    const nextReset = new Date(now + windowMs);
+    const nowDate = new Date(now);
+    // 用 Prisma 序列化 Date（统一 UTC）而非 ::timestamp 强转，
+    // 避免 naive/aware 时区歧义导致偏移（Neon 跨时区部署也一致）
     await prisma.$executeRaw`
       INSERT INTO "RateLimit" ("key", "count", "resetAt")
-      VALUES (${key}, 1, ${new Date(now + windowMs)}::timestamp)
+      VALUES (${key}, 1, ${nextReset})
       ON CONFLICT ("key") DO UPDATE
       SET "count" = CASE
-        WHEN "RateLimit"."resetAt" <= ${new Date(now)}::timestamp THEN 1
+        WHEN "RateLimit"."resetAt" <= ${nowDate} THEN 1
         ELSE "RateLimit"."count" + 1
       END,
       "resetAt" = CASE
-        WHEN "RateLimit"."resetAt" <= ${new Date(now)}::timestamp THEN ${new Date(now + windowMs)}::timestamp
+        WHEN "RateLimit"."resetAt" <= ${nowDate} THEN ${nextReset}
         ELSE "RateLimit"."resetAt"
       END
     `;

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { POEMS } from "@/lib/poems";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
@@ -10,10 +10,18 @@ import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 // 悬停诗句超 500ms 显示出处（source）。参考清浊（QingZuo）的设计
 export function PoemQuote() {
   const reduceMotion = usePrefersReducedMotion();
-  const [index, setIndex] = useState(() => Math.floor(Math.random() * POEMS.length));
+  // 初始固定为 0，避免 SSR 与客户端 Math.random() 不一致导致水合警告；
+  // 挂载后再随机选中一首
+  const [index, setIndex] = useState(0);
   const [showSource, setShowSource] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const poem = POEMS[index];
+
+  // 首次挂载时选一句：需在客户端运行才能在 SSR 水合一致（等长两帧开销可忽略）。
+  // 仅挂载后一次性随机，属「同步外部系统后的收尾」场景，故允许 effect 内 setState。
+  useEffect(() => {
+    setIndex(Math.floor(Math.random() * POEMS.length)); // eslint-disable-line react-hooks/set-state-in-effect
+  }, []);
 
   const refresh = useCallback(() => {
     setIndex((prev) => {

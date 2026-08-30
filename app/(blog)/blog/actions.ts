@@ -7,6 +7,7 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { ROLES } from "@/lib/roles";
 import { commentSchema, likeSchema, parseInput } from "@/lib/validation";
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
@@ -20,14 +21,18 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
   const { postId, slug, content, parentId } = parsed.data;
 
-  // 单用户节流：30 秒内只能发一条（防刷评论淹没审核后台）
-  const lastComment = await prisma.comment.findFirst({
-    where: { authorId: user.id },
-    orderBy: { createdAt: "desc" },
-    select: { createdAt: true },
-  });
-  if (lastComment && Date.now() - lastComment.createdAt.getTime() < 30 * 1000) {
-    return { ok: false, error: "评论太频繁了，请稍等 30 秒再试" };
+  const isSuperAdmin = user.role === ROLES.SUPER_ADMIN;
+
+  // 普通用户限流：30 秒内只能发一条（防刷评论淹没审核后台）；超管不受限
+  if (!isSuperAdmin) {
+    const lastComment = await prisma.comment.findFirst({
+      where: { authorId: user.id },
+      orderBy: { createdAt: "desc" },
+      select: { createdAt: true },
+    });
+    if (lastComment && Date.now() - lastComment.createdAt.getTime() < 30 * 1000) {
+      return { ok: false, error: "评论太频繁了，请稍等 30 秒再试" };
+    }
   }
 
   const post = await prisma.post.findFirst({ where: { id: postId, published: true, archived: false } });
@@ -40,8 +45,6 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
     if (!parent) return { ok: false, error: "回复的评论不存在" };
     if (parent.parentId) return { ok: false, error: "只支持一层回复" };
   }
-
-  const isSuperAdmin = user.role === "SUPER_ADMIN";
 
   await prisma.comment.create({
     data: {
