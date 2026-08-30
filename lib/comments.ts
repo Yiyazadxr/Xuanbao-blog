@@ -7,11 +7,11 @@ export async function getApprovedComments(postId: string) {
     where: { postId, isApproved: true, parentId: null },
     orderBy: { createdAt: "desc" },
     include: {
-      author: { select: { name: true, image: true } },
+      author: { select: { id: true, name: true, image: true } },
       replies: {
         where: { isApproved: true },
         orderBy: { createdAt: "asc" },
-        include: { author: { select: { name: true, image: true } } },
+        include: { author: { select: { id: true, name: true, image: true } } },
       },
     },
   });

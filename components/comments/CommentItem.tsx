@@ -1,21 +1,39 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
+import { deleteComment } from "@/app/(admin)/admin/actions";
 import { CommentForm } from "@/components/comments/CommentForm";
 import type { CommentWithReplies } from "@/lib/comments";
 import { formatDate } from "@/lib/utils";
 
-// 单条评论（含一层回复 + 回复表单开关）
+// 单条评论
 export function CommentItem({
   comment,
   postId,
   slug,
+  canModerate,
+  currentUserId,
 }: {
   comment: CommentWithReplies;
   postId: string;
   slug: string;
+  canModerate: boolean;
+  currentUserId: string | null;
 }) {
+  const router = useRouter();
   const [replying, setReplying] = useState(false);
+  const [pending, startTransition] = useTransition();
+
+  function handleDelete(id: string) {
+    if (!confirm("确定删除这条评论吗？其下回复也会一并删除。")) return;
+    startTransition(async () => {
+      await deleteComment(id);
+      router.refresh();
+    });
+  }
+
+  const canDeleteComment = canModerate || currentUserId === comment.author.id;
 
   return (
     <li className="py-5">
@@ -23,6 +41,18 @@ export function CommentItem({
         name={comment.author.name}
         date={comment.createdAt}
         content={comment.content}
+        action={
+          canDeleteComment ? (
+            <button
+              type="button"
+              onClick={() => handleDelete(comment.id)}
+              disabled={pending}
+              className="cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-red-500 transition-colors duration-200 hover:bg-red-500/10 disabled:opacity-50"
+            >
+              删除
+            </button>
+          ) : undefined
+        }
       />
       <button
         type="button"
@@ -51,6 +81,18 @@ export function CommentItem({
                 name={reply.author.name}
                 date={reply.createdAt}
                 content={reply.content}
+                action={
+                  canModerate || currentUserId === reply.author.id ? (
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(reply.id)}
+                      disabled={pending}
+                      className="cursor-pointer rounded-lg px-2 py-1 text-xs font-medium text-red-500 transition-colors duration-200 hover:bg-red-500/10 disabled:opacity-50"
+                    >
+                      删除
+                    </button>
+                  ) : undefined
+                }
               />
             </li>
           ))}
@@ -64,10 +106,12 @@ function CommentBody({
   name,
   date,
   content,
+  action,
 }: {
   name: string;
   date: Date | string;
   content: string;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex gap-3">
@@ -78,6 +122,7 @@ function CommentBody({
         <p className="flex flex-wrap items-baseline gap-x-3">
           <span className="text-sm font-semibold">{name}</span>
           <time className="text-xs text-muted">{formatDate(date)}</time>
+          {action}
         </p>
         <p className="mt-1 whitespace-pre-wrap text-sm leading-relaxed">{content}</p>
       </div>

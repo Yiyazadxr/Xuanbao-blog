@@ -1,11 +1,17 @@
 import { CommentForm } from "@/components/comments/CommentForm";
 import { CommentItem } from "@/components/comments/CommentItem";
 import { getApprovedComments } from "@/lib/comments";
+import { getFreshUser } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions-server";
+import { type Role } from "@/lib/roles";
 
 // 评论区（服务端获取数据，表单与交互在客户端子组件）
 export async function CommentSection({ postId, slug }: { postId: string; slug: string }) {
   const comments = await getApprovedComments(postId);
   const total = comments.reduce((sum, c) => sum + 1 + c.replies.length, 0);
+  const user = await getFreshUser();
+  const canModerate = await hasPermission(user?.role as Role, PERMISSIONS.DELETE_COMMENTS);
 
   return (
     <section aria-label="评论区" className="mt-16 border-t border-border pt-10">
@@ -16,7 +22,14 @@ export async function CommentSection({ postId, slug }: { postId: string; slug: s
       {comments.length > 0 && (
         <ul className="mt-8 divide-y divide-border">
           {comments.map((comment) => (
-            <CommentItem key={comment.id} comment={comment} postId={postId} slug={slug} />
+            <CommentItem
+              key={comment.id}
+              comment={comment}
+              postId={postId}
+              slug={slug}
+              canModerate={canModerate}
+              currentUserId={user?.id ?? null}
+            />
           ))}
         </ul>
       )}

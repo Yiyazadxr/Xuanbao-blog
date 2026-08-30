@@ -2,7 +2,7 @@
 export const SITE = {
   name: "Xuanbao.dev",
   shortName: "暄宝xr",
-  description: "荣幸至极，欢迎来到暄宝xr的个人博客网站。",
+  description: "欢迎来到暄宝xr的个人博客网站。",
   // 生产环境通过 NEXT_PUBLIC_SITE_URL 注入正式域名，用于 sitemap/RSS/元数据
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   // 建站日：用于页脚「运行 N 天」等叙事（2026-07-17）
@@ -61,12 +61,14 @@ export const TOOLS = [
     icon: "ph:swatches-bold",
     url: "https://zhongguose.com/",
     description: "中国传统颜色百科，500+颜色名称/色值/拼音与AI配色工具",
+    category: "设计/创意",
   },
   {
     name: "APPLORE",
     icon: "ph:app-window-bold",
     url: "https://app.uiboy.com/",
     description: "App 图标灵感库，浏览分析各平台应用图标设计",
+    category: "设计/创意",
   },
   {
     name: "Canva",
@@ -108,12 +110,14 @@ export const TOOLS = [
     icon: "ph:wrench-bold",
     url: "https://toolrunner.dev/",
     description: "浏览器端开发者工具箱，JSON/正则/JWT/Base64等20+工具，数据不上传",
+    category: "开发/部署",
   },
   {
     name: "Ray.so",
     icon: "ph:sun-horizon-bold",
     url: "https://ray.so/",
     description: "精美代码截图生成器，一键将代码片段导出为高清图片",
+    category: "开发/部署",
   },
   {
     name: "CodePen",
@@ -148,6 +152,7 @@ export const TOOLS = [
     icon: "ph:plugs-bold",
     url: "https://uapis.cn/",
     description: "免费公共 REST API 平台，100+ 接口涵盖网络/文本/图片/翻译等",
+    category: "开发/部署",
   },
   {
     name: "BootCDN",

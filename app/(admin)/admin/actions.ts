@@ -4,7 +4,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import bcrypt from "bcryptjs";
-import { requirePermission } from "@/lib/auth";
+import { getFreshUser, requirePermission } from "@/lib/auth";
 import { decryptSecret } from "@/lib/crypto";
 import { deleteImage, saveImage } from "@/lib/image-storage";
 import { createInviteCode } from "@/lib/invites";
@@ -12,7 +12,9 @@ import { buildApprovalEmail, sendMail } from "@/lib/mail";
 import { createNotification } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
+import { hasPermission } from "@/lib/permissions-server";
 import { prisma } from "@/lib/prisma";
+import type { Role } from "@/lib/roles";
 import { generateRandomPassword } from "@/lib/random";
 import { countWords, slugify } from "@/lib/utils";
 import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
@@ -460,8 +462,9 @@ export async function approveComment(id: string): Promise<AdminActionState> {
 
 // 删除评论（连带回复一起删）
 export async function deleteComment(id: string): Promise<AdminActionState> {
-  const admin = await requirePermission(PERMISSIONS.DELETE_COMMENTS);
-  if (!admin) return { ok: false, error: "无权限" };
+  const user = await getFreshUser();
+  if (!user) return { ok: false, error: "无权限" };
+  const moderator = await hasPermission(user.role as Role, PERMISSIONS.DELETE_COMMENTS);
   const cid = parseId(id);
   if (!cid.data) return { ok: false, error: cid.error ?? "参数不合法" };
   const comment = await prisma.comment.findUnique({
@@ -469,6 +472,8 @@ export async function deleteComment(id: string): Promise<AdminActionState> {
     include: { post: { select: { slug: true } } },
   });
   if (!comment) return { ok: false, error: "评论不存在" };
+  const permitted = moderator || comment.authorId === user.id;
+  if (!permitted) return { ok: false, error: "无权限" };
   await prisma.comment.deleteMany({ where: { OR: [{ id: cid.data }, { parentId: cid.data }] } });
   revalidatePath(`/blog/${comment.post.slug}`);
   revalidatePath("/admin/comments");

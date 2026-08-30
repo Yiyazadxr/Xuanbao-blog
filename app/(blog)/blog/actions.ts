@@ -41,21 +41,34 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
     if (parent.parentId) return { ok: false, error: "只支持一层回复" };
   }
 
+  const isSuperAdmin = user.role === "SUPER_ADMIN";
+
   await prisma.comment.create({
-    data: { content, postId, authorId: user.id, parentId: parentId ?? null },
+    data: {
+      content,
+      postId,
+      authorId: user.id,
+      parentId: parentId ?? null,
+      isApproved: isSuperAdmin,
+    },
   });
 
-  // 站内通知管理员有新的待审核评论/回复（category=comment，读作“有人评论了”）
-  await notifyAdmins({
-    category: NOTIFICATION_CATEGORIES.COMMENT,
-    type: parentId ? "reply_pending" : "comment_pending",
-    actorName: user.name,
-    title: parentId ? "回复了评论，待审核" : `评论了你的文章《${post.title}》，待审核`,
-    link: "/admin/comments",
-  });
+  // 超管评论直接显示，无需审核通知
+  if (!isSuperAdmin) {
+    await notifyAdmins({
+      category: NOTIFICATION_CATEGORIES.COMMENT,
+      type: parentId ? "reply_pending" : "comment_pending",
+      actorName: user.name,
+      title: parentId ? "回复了评论，待审核" : `评论了你的文章《${post.title}》，待审核`,
+      link: "/admin/comments",
+    });
+  }
 
   revalidatePath(`/blog/${slug}`);
-  return { ok: true, message: "评论已提交，博主审核通过后会显示在这里" };
+  return {
+    ok: true,
+    message: isSuperAdmin ? "评论已发布" : "评论已提交，博主审核通过后会显示在这里",
+  };
 }
 
 // 点赞 / 取消点赞

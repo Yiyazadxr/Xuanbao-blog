@@ -19,9 +19,10 @@ export default async function AdminCommentsPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 
-  const [comments, total, pendingCount] = await Promise.all([
+  const [comments, total] = await Promise.all([
     prisma.comment.findMany({
-      orderBy: [{ isApproved: "asc" }, { createdAt: "desc" }],
+      where: { isApproved: false },
+      orderBy: { createdAt: "desc" },
       skip: (page - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: {
@@ -30,7 +31,6 @@ export default async function AdminCommentsPage({
         parent: { select: { content: true, author: { select: { name: true } } } },
       },
     }),
-    prisma.comment.count(),
     prisma.comment.count({ where: { isApproved: false } }),
   ]);
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -39,12 +39,12 @@ export default async function AdminCommentsPage({
     <>
       <h1 className="font-display text-3xl font-bold tracking-tight">评论审核</h1>
       <p className="mt-2 text-sm text-muted">
-        {pendingCount > 0 ? `${pendingCount} 条评论待审核` : "没有待审核的评论"}
+        {total > 0 ? `${total} 条评论待审核` : "没有待审核的评论"}
       </p>
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-border">
         {comments.length === 0 ? (
-          <p className="p-10 text-center text-sm text-muted">还没有任何评论</p>
+          <p className="p-10 text-center text-sm text-muted">没有待审核的评论</p>
         ) : (
           <ul className="divide-y divide-border">
             {comments.map((comment) => (
@@ -53,14 +53,8 @@ export default async function AdminCommentsPage({
                   <div className="flex flex-wrap items-center gap-2 text-sm">
                     <span className="font-semibold">{comment.author.name}</span>
                     <span className="text-xs text-muted">{comment.author.email}</span>
-                    <span
-                      className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                        comment.isApproved
-                          ? "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400"
-                          : "bg-amber-500/10 text-amber-600 dark:text-amber-400"
-                      }`}
-                    >
-                      {comment.isApproved ? "已通过" : "待审核"}
+                    <span className="rounded-full bg-amber-500/10 px-2 py-0.5 text-xs font-medium text-amber-600 dark:text-amber-400">
+                      待审核
                     </span>
                   </div>
                   {comment.parent && (

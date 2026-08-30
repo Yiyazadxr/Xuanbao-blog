@@ -5,17 +5,17 @@ import { motion } from "framer-motion";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useRef } from "react";
-import { SITE } from "@/lib/constants";
+import { PoemQuote } from "@/components/home/PoemQuote";
 import { EASE_OUT } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { MaskedLine, MaskedText } from "@/components/ui/MaskedText";
 
-// 首页顶部欢迎区：紧凑克制（大厂风），大标题 + 简介 + 按钮；逐字揭幕入场
+// 首页顶部欢迎区
 export function Hero() {
   const reduceMotion = usePrefersReducedMotion();
   const glowRef = useRef<HTMLDivElement>(null);
   const { data: session } = useSession();
-  // 登录后显示用户昵称，未登录显示「朋友」
+  // 登录后显示用户昵称，未登录显示朋友
   const displayName = session?.user?.name ?? "朋友";
 
   // 鼠标跟随光晕：直接写 transform，不触发 React 重渲染；首次移动前保持透明
@@ -42,7 +42,7 @@ export function Hero() {
       onMouseMove={handleMouseMove}
       className="relative overflow-hidden text-foreground"
     >
-      {/* 淡雅背景光斑（克制，不干扰阅读） */}
+      {/* 淡雅背景光斑 */}
       <div aria-hidden className="pointer-events-none absolute inset-0">
         <div className="animate-blob-a absolute -top-1/3 left-[8%] size-[40vmax] rounded-full bg-[radial-gradient(circle,var(--glow-1),transparent_65%)]" />
         <div className="animate-blob-b absolute right-[-12%] bottom-[-20%] size-[36vmax] rounded-full bg-[radial-gradient(circle,var(--glow-2),transparent_65%)]" />
@@ -64,7 +64,7 @@ export function Hero() {
           Xuanbao · XR · Blog
         </motion.p>
 
-        {/* 大标题：逐字揭开 + 昵称整行揭开（accent 色点题，无渐变） */}
+        {/* 大标题 */}
         <h1 className="font-display text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.05] font-bold tracking-tight">
           <MaskedText text="你好，" delay={0.1} />
           <MaskedLine delay={0.45} className="pb-1 text-accent">
@@ -72,15 +72,14 @@ export function Hero() {
           </MaskedLine>
         </h1>
 
-        <motion.p
+        <motion.div
           custom={2}
           initial="hidden"
           animate="visible"
           variants={fadeUp}
-          className="mt-6 max-w-xl text-base leading-relaxed text-muted sm:text-lg"
         >
-          {SITE.description}
-        </motion.p>
+          <PoemQuote />
+        </motion.div>
 
         <motion.div
           custom={3}
