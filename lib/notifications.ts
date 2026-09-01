@@ -106,8 +106,9 @@ async function mergeIntoAggregate(
       ...(actor ? { actorName: actor } : {}),
       title: data.title,
       ...(data.link ? { link: data.link } : {}),
-      // 顶到列表最前，让用户看到最新动态
-      createdAt: new Date(),
+      // 刷新「最近合并时间」用于顶到列表最前；createdAt 保持首次创建时刻，
+      // 供聚合窗口判断与 7 天清理使用，二者不再受 merge 干扰
+      lastMergedAt: new Date(),
     },
   });
 }
@@ -165,7 +166,7 @@ function serialize(n: {
   title: string;
   link: string | null;
   read: boolean;
-  createdAt: Date;
+  lastMergedAt: Date;
   actorNames: string | null;
   count: number;
 }): NotificationItem {
@@ -179,11 +180,11 @@ function serialize(n: {
     title: n.title,
     link: n.link,
     read: n.read,
-    createdAt: n.createdAt.toISOString(),
+    lastMergedAt: n.lastMergedAt.toISOString(),
   };
 }
 
-// 获取用户某分类的通知（按时间倒序），支持游标分页（cursor 为上次最后一条的 id）
+// 获取用户某分类的通知（按最近活动时间倒序），支持游标分页（cursor 为上次最后一条的 id）
 export async function getUserNotifications(
   userId: string,
   category: NotificationCategory | "all",
@@ -196,7 +197,7 @@ export async function getUserNotifications(
   };
   const rows = await prisma.notification.findMany({
     where,
-    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    orderBy: [{ lastMergedAt: "desc" }, { id: "desc" }],
     take: pageSize + 1,
     select: {
       id: true,
@@ -206,7 +207,7 @@ export async function getUserNotifications(
       title: true,
       link: true,
       read: true,
-      createdAt: true,
+      lastMergedAt: true,
       actorNames: true,
       count: true,
     },

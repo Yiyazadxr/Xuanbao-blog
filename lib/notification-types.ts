@@ -51,7 +51,8 @@ export type NotificationItem = {
   title: string;
   link: string | null;
   read: boolean;
-  createdAt: string;
+  // 最近一次聚合（或首次创建）的时间，用于排序与「N 分钟前」展示
+  lastMergedAt: string;
 };
 
 // 聚合文案（铃铛与通知中心共用同一来源，禁止各写一份造成割裂）

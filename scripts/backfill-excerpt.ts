@@ -9,38 +9,42 @@ import { prisma } from "../lib/prisma";
 const BATCH_SIZE = 100;
 
 async function main() {
-  let total = 0;
-  for (;;) {
-    const posts = await prisma.post.findMany({
-      where: { OR: [{ excerpt: null }, { excerpt: "" }] },
-      select: { id: true, title: true, content: true, wordCount: true },
-      take: BATCH_SIZE,
-    });
-    if (posts.length === 0) break;
+  // 一次性取出所有待回填文章，再分批更新：避免依赖「处理后不再匹配 where」，
+  // 否则空正文/纯图片文章经 plainExcerpt 仍返回空串，会永远匹配 where 导致死循环
+  const targets = await prisma.post.findMany({
+    where: { OR: [{ excerpt: null }, { excerpt: "" }] },
+    select: { id: true, title: true, content: true, wordCount: true },
+  });
 
+  if (targets.length === 0) {
+    console.log("没有需要回填的文章（所有文章都已有摘要）");
+    await prisma.$disconnect();
+    return;
+  }
+
+  let total = 0;
+  for (let i = 0; i < targets.length; i += BATCH_SIZE) {
+    const batch = targets.slice(i, i + BATCH_SIZE);
     await prisma.$transaction(
-      posts.map((p) =>
+      batch.map((p) =>
         prisma.post.update({
           where: { id: p.id },
           data: {
-            excerpt: plainExcerpt(p.content ?? ""),
+            // 空结果归为 null，与列表查询 `row.excerpt ?? ""` 展示口径一致
+            excerpt: plainExcerpt(p.content ?? "") || null,
             // 早期文章可能也没算过字数，顺带补齐
             wordCount: p.wordCount ?? countWords(p.content ?? ""),
           },
         })
       )
     );
-    for (const p of posts) {
+    for (const p of batch) {
       console.log(`  ✅ ${p.title}`);
     }
-    total += posts.length;
+    total += batch.length;
   }
 
-  if (total === 0) {
-    console.log("没有需要回填的文章（所有文章都已有摘要）");
-  } else {
-    console.log(`回填完成，共 ${total} 篇`);
-  }
+  console.log(`回填完成，共 ${total} 篇`);
   await prisma.$disconnect();
 }
 

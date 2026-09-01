@@ -52,7 +52,7 @@ export function NotificationRow({
           )}
         </span>
         <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
-          <span>{formatRelativeTime(item.createdAt)}</span>
+          <span>{formatRelativeTime(item.lastMergedAt)}</span>
           {!item.read && (
             <span className="inline-block size-1.5 rounded-full bg-accent" aria-hidden />
           )}

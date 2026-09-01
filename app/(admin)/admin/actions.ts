@@ -135,7 +135,8 @@ export async function savePost(
     slug,
     content: p.content,
     // 摘要为空时用正文纯文本兜底并落库：列表查询已不再回读 content 正文
-    excerpt: p.excerpt || plainExcerpt(p.content ?? ""),
+    // 空结果归为 null，与列表查询 `row.excerpt ?? ""` 展示口径一致（避免空串残留）
+    excerpt: p.excerpt?.trim() || plainExcerpt(p.content ?? "") || null,
     coverImage: p.coverImage || null,
     categoryId: p.categoryId || null,
     seriesId: p.seriesId || null,
@@ -605,7 +606,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
           title: revision.title,
           slug: revision.slug,
           content: revision.content,
-          excerpt: revision.excerpt ?? plainExcerpt(revision.content ?? ""),
+          excerpt: revision.excerpt?.trim() || plainExcerpt(revision.content ?? "") || null,
           coverImage: revision.coverImage,
           categoryId: revision.categoryId,
           seriesId: revision.seriesId,

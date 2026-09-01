@@ -44,10 +44,16 @@ export function countWords(content: string): number {
   return cjk + words;
 }
 
-// 阅读时长估算：中文约 400 字/分钟，英文约 200 词/分钟
+// 阅读时长估算：按纯文字字数统一折算（中文约 400 字/分钟，英文词并入字数同口径）。
+// 列表页不回读正文只能用落库的 wordCount，详情页也从同一函数折算，保证两端读数一致。
+export function readingTimeFromWordCount(wordCount: number | null | undefined): number {
+  if (!wordCount || wordCount <= 0) return 1;
+  return Math.max(1, Math.round(wordCount / 400));
+}
+
+// 阅读时长（从正文折算）：与 readingTimeFromWordCount 同源，避免口径分裂
 export function readingTime(content: string): number {
-  const { cjk, words } = countCjkAndWords(content);
-  return Math.max(1, Math.round(cjk / 400 + words / 200));
+  return readingTimeFromWordCount(countWords(content));
 }
 
 // 从 Markdown 正文提取纯文本摘要（无手动摘要时兜底用）

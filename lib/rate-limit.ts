@@ -11,9 +11,9 @@ export type RateLimitVerdict = { blocked: boolean; retryAfterSec: number };
 // 注意：以下原生 SQL 不经过 Prisma Client，@updatedAt 不会自动填充，
 // 必须显式写入 "updatedAt" 列（列定义 NOT NULL 且无数据库默认值，漏写会抛 23502）。
 export const rateLimit = {
-  // 当前是否已被限流（超过阈值）。窗口过期则视为未限流。
-  // 仅作提示性前置检查，不计数
-  // 否则两步之间存在 TOCTOU 竞态（并发请求会集体读到未超限的旧值）。
+  // 当前是否已被限流（计数超过阈值）。窗口过期则视为未限流。
+  // 仅作提示性前置检查，不计数。
+  // 判定口径与 checkAndHit 保持一致：count > limit 才算超限（前 limit 次放行）。
   async isBlocked(
     prefix: string,
     value: string,
@@ -23,7 +23,7 @@ export const rateLimit = {
     const now = Date.now();
     const row = await prisma.rateLimit.findUnique({ where: { key } });
     if (!row || row.resetAt.getTime() <= now) return { blocked: false, retryAfterSec: 0 };
-    if (row.count >= limit) {
+    if (row.count > limit) {
       return { blocked: true, retryAfterSec: Math.ceil((row.resetAt.getTime() - now) / 1000) };
     }
     return { blocked: false, retryAfterSec: 0 };

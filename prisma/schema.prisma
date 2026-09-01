@@ -202,6 +202,11 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  // 最近一次聚合（合并新事件）的时刻：用于「顶到列表最前」排序与展示。
+  // 与 createdAt 分离：createdAt 保持首次创建时刻，专用于聚合窗口判断与 7 天清理，
+  // 否则 merge 时刷新 createdAt 会让聚合窗口和清理逻辑同时失效。
+  lastMergedAt DateTime @default(now())
+
   // 点赞通知聚合：
   // aggregateKey 相同、未读且在聚合窗口（24h）内的通知合并为同一条，避免刷屏
   aggregateKey String?

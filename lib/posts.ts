@@ -2,6 +2,7 @@
 import { unstable_cache } from "next/cache";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { readingTimeFromWordCount } from "@/lib/utils";
 
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
 const PUBLISHED_FILTER = { published: true, archived: false } as const;
@@ -43,7 +44,7 @@ function toListItem(row: ListPostRow): PostListItem {
     title: row.title,
     excerpt: row.excerpt ?? "",
     coverImage: row.coverImage,
-    readingTime: Math.max(1, Math.round((row.wordCount ?? 0) / 400)),
+    readingTime: readingTimeFromWordCount(row.wordCount),
     createdAt: row.createdAt,
     category: row.category,
     series: row.series,
