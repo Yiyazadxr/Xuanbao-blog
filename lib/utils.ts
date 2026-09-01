@@ -8,8 +8,9 @@ export function formatDate(date: Date | string): string {
 
 // 相对时间：刚刚 / N 分钟前 / N 小时前 / N 天前（超过 30 天回落绝对日期）
 export function formatRelativeTime(date: Date | string): string {
+  // 未来时间（时钟漂移 / 预发布内容）钳到 0，避免负数导致显示成「刚刚」
   const diff = Date.now() - new Date(date).getTime();
-  const sec = Math.floor(diff / 1000);
+  const sec = Math.max(0, Math.floor(diff / 1000));
   if (sec < 60) return "刚刚";
   const min = Math.floor(sec / 60);
   if (min < 60) return `${min} 分钟前`;
@@ -22,10 +23,15 @@ export function formatRelativeTime(date: Date | string): string {
 
 // 统计中文字符数 + 英文/数字词数（去除 Markdown 符号/标点）。
 // countWords 与 readingTime 共用此计数，保证口径一致（复用而非重写）。
+// 用 Unicode 脚本属性替代字面量区间
+// 扩展 B~G 区汉字、日文假名、韩文谚文全部漏计（且会被整段粘成一个词）
+const CJK_RE =
+  /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
+
 function countCjkAndWords(content: string): { cjk: number; words: number } {
-  const cjk = (content.match(/[一-鿿]/g) ?? []).length;
+  const cjk = (content.match(CJK_RE) ?? []).length;
   const words = content
-    .replace(/[一-鿿]/g, " ") // 中文算 1 字，替换为空格避免被连拼
+    .replace(CJK_RE, " ") // CJK 逐字计数，替换为空格避免被连拼
     .replace(/[^\p{L}\p{N}\s]/gu, " ") // 剔除 Markdown 符号/标点（保留字母数字与空白）
     .split(/\s+/)
     .filter(Boolean).length;

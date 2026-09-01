@@ -16,7 +16,7 @@ import { hasPermission } from "@/lib/permissions-server";
 import { prisma } from "@/lib/prisma";
 import type { Role } from "@/lib/roles";
 import { generateRandomPassword } from "@/lib/random";
-import { countWords, slugify } from "@/lib/utils";
+import { countWords, plainExcerpt, slugify } from "@/lib/utils";
 import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
 
 // 每篇文章保留的版本数上限
@@ -134,7 +134,8 @@ export async function savePost(
     title: p.title,
     slug,
     content: p.content,
-    excerpt: p.excerpt || null,
+    // 摘要为空时用正文纯文本兜底并落库：列表查询已不再回读 content 正文
+    excerpt: p.excerpt || plainExcerpt(p.content ?? ""),
     coverImage: p.coverImage || null,
     categoryId: p.categoryId || null,
     seriesId: p.seriesId || null,
@@ -426,6 +427,8 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       type: "comment_approved",
       title: "你的评论已通过审核",
       link: `/blog/${comment.post.slug}`,
+      // 同一文章下多条评论通过合并为一条
+      aggregateKey: `comment_approved:${comment.postId}`,
     });
   }
   // 通知文章作者有人评论了你的文章（排除本人与审核者，避免重复）
@@ -439,6 +442,8 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       actorName: comment.author.name,
       title: `评论了你的文章《${comment.post.title}》`,
       link: `/blog/${comment.post.slug}`,
+      // 同一文章的评论合并
+      aggregateKey: `comment:${comment.postId}`,
     });
   }
   // 若为回复，通知被回复的用户（排除本人与审核者）
@@ -453,6 +458,8 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       actorName: comment.author.name,
       title: "回复了你的评论",
       link: `/blog/${comment.post.slug}`,
+      // 同一文章下的回复合并
+      aggregateKey: `reply:${comment.postId}`,
     });
   }
   revalidatePath(`/blog/${comment.post.slug}`);
@@ -598,7 +605,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
           title: revision.title,
           slug: revision.slug,
           content: revision.content,
-          excerpt: revision.excerpt,
+          excerpt: revision.excerpt ?? plainExcerpt(revision.content ?? ""),
           coverImage: revision.coverImage,
           categoryId: revision.categoryId,
           seriesId: revision.seriesId,

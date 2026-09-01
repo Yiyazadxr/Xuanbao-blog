@@ -7,7 +7,7 @@ import { POEMS } from "@/lib/poems";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
 // 首页副标题：欢迎语 + 一句古诗文（同行展示），右侧小圆圈刷新按钮换下一句
-// 悬停诗句超 500ms 以浮层方式展示出处（source），参考清浊（QingZuo）的设计
+// 悬停诗句超 500ms 以浮层方式展示出处
 export function PoemQuote() {
   const reduceMotion = usePrefersReducedMotion();
   // 初始固定为 0，避免 SSR 与客户端 Math.random() 不一致导致水合警告；
@@ -16,8 +16,10 @@ export function PoemQuote() {
   const [showSource, setShowSource] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const poem = POEMS[index];
+  // 作者 + 篇名两端着色
+  const [, sourceAuthor, sourceTitle] = /^(.*?)(《[^》]*》)$/.exec(poem.source) ?? [];
 
-  // 首次挂载时选一句：需在客户端运行才能在 SSR 水合一致（等长两帧开销可忽略）。
+  // 首次挂载时选一句：需在客户端运行才能在 SSR 水合一致。
   // 仅挂载后一次性随机，属「同步外部系统后的收尾」场景，故允许 effect 内 setState。
   useEffect(() => {
     setIndex(Math.floor(Math.random() * POEMS.length)); // eslint-disable-line react-hooks/set-state-in-effect
@@ -72,13 +74,33 @@ export function PoemQuote() {
             <AnimatePresence>
               {showSource && (
                 <motion.span
-                  initial={reduceMotion ? false : { opacity: 0, y: 4 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={reduceMotion ? undefined : { opacity: 0, y: 4 }}
-                  transition={{ duration: 0.25, ease: "easeOut" }}
-                  className="pointer-events-none absolute left-0 top-full z-10 mt-1.5 whitespace-nowrap rounded-md border border-border bg-surface px-2 py-0.5 text-xs text-muted/80 shadow-sm"
+                  initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.96 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={reduceMotion ? undefined : { opacity: 0, y: 4, scale: 0.98 }}
+                  transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+                  className="pointer-events-none absolute left-0 top-full z-20 mt-2.5 origin-top-left"
                 >
-                  —— {poem.source}
+                  <span className="relative flex items-center gap-2 whitespace-nowrap rounded-lg border border-border bg-surface/95 px-3 py-1.5 shadow-lg shadow-black/5 backdrop-blur-sm dark:shadow-black/40">
+                    {/* 指向诗句的小箭头：旋转方块只留上/左边框，与卡片同色 */}
+                    <span className="absolute -top-1 left-6 size-2 rotate-45 border-l border-t border-border bg-surface" />
+                    <span className="size-1.5 shrink-0 rounded-full bg-accent" />
+                    <span className="text-[0.7rem] tracking-[0.2em] text-muted">
+                      出处
+                    </span>
+                    <span className="h-3 w-px shrink-0 bg-border" />
+                    <span className="text-xs">
+                      {sourceAuthor ? (
+                        <>
+                          <span className="font-medium text-accent">
+                            {sourceAuthor}
+                          </span>
+                          <span className="text-foreground">{sourceTitle}</span>
+                        </>
+                      ) : (
+                        <span className="text-foreground">{poem.source}</span>
+                      )}
+                    </span>
+                  </span>
                 </motion.span>
               )}
             </AnimatePresence>

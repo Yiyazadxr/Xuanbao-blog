@@ -44,11 +44,42 @@ export type NotificationItem = {
   category: NotificationCategory;
   type: string;
   actorName: string | null;
+  // 聚合后去重过的触发者昵称（最新在前）
+  actorNames: string[];
+  // 聚合的事件总次数（同一人反复触发也累加；无昵称的系统通知用它显示「×N」）
+  count: number;
   title: string;
   link: string | null;
   read: boolean;
   createdAt: string;
 };
+
+// 聚合文案（铃铛与通知中心共用同一来源，禁止各写一份造成割裂）
+// 规则：单个触发者显示其昵称；多个触发者显示首位昵称 + 总人数
+export type NotificationText = {
+  actorText: string | null;
+  title: string;
+  // 无触发者的系统通知用「×N」表达聚合次数
+  countSuffix: string | null;
+};
+
+export function formatNotificationText(item: NotificationItem): NotificationText {
+  const names = item.actorNames;
+  let actorText: string | null = null;
+  if (names.length >= 2) {
+    actorText = `${names[0]} 等 ${names.length} 人`;
+  } else if (names.length === 1) {
+    actorText = names[0];
+  } else if (item.actorName) {
+    // 兼容聚合改造前的历史数据（只有 actorName）
+    actorText = item.actorName;
+  }
+  return {
+    actorText,
+    title: item.title,
+    countSuffix: !actorText && item.count > 1 ? `×${item.count}` : null,
+  };
+}
 
 // 各分类未读计数汇总
 export type NotificationUnreadSummary = {

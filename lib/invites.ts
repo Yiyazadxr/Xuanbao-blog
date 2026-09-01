@@ -10,12 +10,16 @@ import { generateInviteCode } from "@/lib/random";
 export async function submitAccountRequest(email: string, message?: string) {
   const normalized = email.trim().toLowerCase();
 
-  // 全局节流：10 分钟内申请总数超过 5 条则拒绝（防刷申请）
-  const recentCount = await prisma.accountRequest.count({
-    where: { createdAt: { gt: new Date(Date.now() - 10 * 60 * 1000) } },
+  // 防刷交给调用方按 IP 维度限流
+  // 这里只按「同一邮箱」做上限
+  const recentForEmail = await prisma.accountRequest.count({
+    where: {
+      email: normalized,
+      createdAt: { gt: new Date(Date.now() - 24 * 60 * 60 * 1000) },
+    },
   });
-  if (recentCount >= 5) {
-    return { ok: false, error: "申请过于频繁，请稍后再试" };
+  if (recentForEmail >= 3) {
+    return { ok: false, error: "该邮箱今日申请次数过多，请稍后再试" };
   }
 
   // 已注册且已激活（可正常登录）的邮箱不可重复申请；被禁用/待审核后允许重新申请

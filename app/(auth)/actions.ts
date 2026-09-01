@@ -36,32 +36,33 @@ export async function loginAction(
   const ip = await getClientIp();
   const emailKey = `${email}:${ip}`;
 
-  const emailCheck = await rateLimit.isBlocked("login", emailKey, 5);
+  // 先扣额度再执行登录（原子计数 + 判定）：超出阈值时连 bcrypt 都不执行，
+  // 且并发请求不会因「先判后计」竞态而集体绕过阈值
+  const emailCheck = await rateLimit.checkAndHit("login", emailKey, 5, 15 * 60 * 1000);
   if (emailCheck.blocked) {
     return { ok: false, error: `尝试次数过多，请 ${emailCheck.retryAfterSec} 秒后再试` };
   }
-  const ipCheck = await rateLimit.isBlocked("login-ip", ip, 20);
+  const ipCheck = await rateLimit.checkAndHit("login-ip", ip, 20, 15 * 60 * 1000);
   if (ipCheck.blocked) {
     return { ok: false, error: "尝试次数过多，请稍后再试" };
   }
 
   try {
     // redirect: false —— 成功后不抛 NEXT_REDIRECT，由客户端做整页跳转，
-    // 使 SessionProvider 重新挂载、重新拉取会话，避免“必须 F5 才显示登录态”。
+    // 使 SessionProvider 重新挂载、重新拉取会话
     await signIn("credentials", { email, password: parsed.data.password, redirect: false });
     await rateLimit.reset("login", emailKey);
+    await rateLimit.reset("login-ip", ip);
     return { ok: true, message: "登录成功" };
   } catch (error) {
     if (error instanceof AuthError) {
-      await rateLimit.hit("login", emailKey, 15 * 60 * 1000);
-      await rateLimit.hit("login-ip", ip, 15 * 60 * 1000);
       return { ok: false, error: "邮箱或密码不正确" };
     }
     throw error;
   }
 }
 
-// 提交账号申请（已有全局节流在 submitAccountRequest 内部；此处再按 IP 限流）
+// 提交账号申请（按 IP 限流 + submitAccountRequest 内部按邮箱限流，避免全局配额被单点占满）
 export async function applyAction(
   _prev: ActionState,
   formData: FormData
@@ -78,11 +79,10 @@ export async function applyAction(
   }
 
   const ip = await getClientIp();
-  const check = await rateLimit.isBlocked("apply", ip, 5);
+  const check = await rateLimit.checkAndHit("apply", ip, 5, 10 * 60 * 1000);
   if (check.blocked) {
-    return { ok: false, error: "申请过于频繁，请稍后再试" };
+    return { ok: false, error: `申请过于频繁，请 ${check.retryAfterSec} 秒后再试` };
   }
-  await rateLimit.hit("apply", ip, 10 * 60 * 1000);
 
   const result = await submitAccountRequest(parsed.data.email, parsed.data.message);
   if (result.ok) await rateLimit.reset("apply", ip);
@@ -110,11 +110,10 @@ export async function registerAction(
   }
 
   const ip = await getClientIp();
-  const check = await rateLimit.isBlocked("register", ip, 10);
+  const check = await rateLimit.checkAndHit("register", ip, 10, 60 * 60 * 1000);
   if (check.blocked) {
-    return { ok: false, error: "注册太频繁，请稍后再试" };
+    return { ok: false, error: `注册太频繁，请 ${check.retryAfterSec} 秒后再试` };
   }
-  await rateLimit.hit("register", ip, 60 * 60 * 1000);
 
   const result = await submitInviteRequest(parsed.data);
   if (result.ok) await rateLimit.reset("register", ip);

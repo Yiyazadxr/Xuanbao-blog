@@ -25,7 +25,7 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
     return { ok: false, error: "人机验证未通过，请重新验证" };
   }
 
-  const check = await rateLimit.isBlocked("settings-avatar", user.id, 10);
+  const check = await rateLimit.checkAndHit("settings-avatar", user.id, 10, 60 * 60 * 1000);
   if (check.blocked) return { ok: false, error: "操作过于频繁，请稍后再试" };
 
   const file = formData.get("avatar");
@@ -50,7 +50,6 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
 
   // 更新数据库并删除旧头像（上传成功后才删，失败不误删）
   const old = user.image;
-  await rateLimit.hit("settings-avatar", user.id, 60 * 60 * 1000);
   await prisma.user.update({ where: { id: user.id }, data: { image: url } });
   if (old && old !== url) {
     await deleteImage(old);
@@ -91,7 +90,7 @@ export async function updateProfile(
   if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
     return { ok: false, error: "人机验证未通过，请重新验证" };
   }
-  const check = await rateLimit.isBlocked("settings-name", user.id, 10);
+  const check = await rateLimit.checkAndHit("settings-name", user.id, 10, 60 * 60 * 1000);
   if (check.blocked) return { ok: false, error: "操作过于频繁，请稍后再试" };
 
   const parsed = parseInput(updateNameSchema, {
@@ -99,7 +98,6 @@ export async function updateProfile(
   });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
-  await rateLimit.hit("settings-name", user.id, 60 * 60 * 1000);
   await prisma.user.update({ where: { id: user.id }, data: { name: parsed.data.name } });
   revalidatePath("/settings");
   return { ok: true, message: "昵称已保存" };
@@ -116,8 +114,9 @@ export async function changePassword(
   if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
     return { ok: false, error: "人机验证未通过，请重新验证" };
   }
-  const check = await rateLimit.isBlocked("settings-password", user.id, 10);
-  if (check.blocked) return { ok: false, error: "操作过于频繁，请稍后再试" };
+  // 前置检查（不计数）：已被限流时直接返回，避免无谓的 bcrypt 计算
+  const pre = await rateLimit.isBlocked("settings-password", user.id, 10);
+  if (pre.blocked) return { ok: false, error: `操作过于频繁，请 ${pre.retryAfterSec} 秒后再试` };
 
   const parsed = parseInput(changePasswordSchema, {
     currentPassword: String(formData.get("currentPassword") ?? ""),
@@ -138,12 +137,16 @@ export async function changePassword(
   if (!full) return { ok: false, error: "用户不存在" };
   const valid = await bcrypt.compare(currentPassword, full.password);
   if (!valid) {
-    // 计入失败尝试，防暴力破解当前密码
-    await rateLimit.hit("settings-password", user.id, 60 * 60 * 1000);
-    return { ok: false, error: "当前密码不正确" };
+    // 仅失败计入尝试（原子计数 + 判定），并发失败请求不会绕过阈值
+    const failed = await rateLimit.checkAndHit("settings-password", user.id, 10, 60 * 60 * 1000);
+    return {
+      ok: false,
+      error: failed.blocked
+        ? `尝试次数过多，请 ${failed.retryAfterSec} 秒后再试`
+        : "当前密码不正确",
+    };
   }
 
-  await rateLimit.hit("settings-password", user.id, 60 * 60 * 1000);
   await prisma.user.update({
     where: { id: user.id },
     data: { password: await bcrypt.hash(newPassword, 10) },

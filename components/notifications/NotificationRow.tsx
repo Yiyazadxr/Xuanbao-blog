@@ -3,11 +3,12 @@
 import { Icon } from "@/components/ui/Icon";
 import {
   NOTIFICATION_CATEGORY_META,
+  formatNotificationText,
   type NotificationItem,
 } from "@/lib/notification-types";
 import { formatRelativeTime } from "@/lib/utils";
 
-// 通知条目：分类图标 + 触发者昵称 + 标题 + 相对时间 + 删除按钮
+// 通知条目：分类图标 + 触发者/聚合文案 + 标题 + 相对时间 + 删除按钮
 // 复用铃铛下拉与通知中心（compact 控制间距与字号）
 export function NotificationRow({
   item,
@@ -19,6 +20,8 @@ export function NotificationRow({
   compact?: boolean;
 }) {
   const meta = NOTIFICATION_CATEGORY_META[item.category];
+  // 聚合文案
+  const text = formatNotificationText(item);
 
   const body = (
     <>
@@ -40,10 +43,13 @@ export function NotificationRow({
             item.read ? "text-muted" : "text-foreground"
           }`}
         >
-          {item.actorName && (
-            <span className="font-semibold">{item.actorName} </span>
+          {text.actorText && (
+            <span className="font-semibold">{text.actorText} </span>
           )}
-          {item.title}
+          {text.title}
+          {text.countSuffix && (
+            <span className="ml-1 text-xs text-muted">{text.countSuffix}</span>
+          )}
         </span>
         <span className="mt-0.5 flex items-center gap-2 text-xs text-muted">
           <span>{formatRelativeTime(item.createdAt)}</span>

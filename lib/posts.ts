@@ -2,7 +2,6 @@
 import { unstable_cache } from "next/cache";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { plainExcerpt, readingTime } from "@/lib/utils";
 
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
 const PUBLISHED_FILTER = { published: true, archived: false } as const;
@@ -27,22 +26,24 @@ type ListPostRow = {
   title: string;
   excerpt: string | null;
   coverImage: string | null;
-  content: string;
+  wordCount: number | null;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
   series: { id: string; name: string; slug: string } | null;
   tags: { tag: { id: string; name: string; slug: string } }[];
 };
 
-// 把数据库行映射为轻量列表项（服务端算好摘要与阅读时长，正文不下发到客户端）
+// 把数据库行映射为轻量列表项。
+// 摘要与字数在保存文章时已落库（excerpt / wordCount），列表查询不再回读 content 全文，
+// 避免把所有文章正文拉进服务端内存只为现场算摘要。
 function toListItem(row: ListPostRow): PostListItem {
   return {
     id: row.id,
     slug: row.slug,
     title: row.title,
-    excerpt: row.excerpt ?? plainExcerpt(row.content),
+    excerpt: row.excerpt ?? "",
     coverImage: row.coverImage,
-    readingTime: readingTime(row.content),
+    readingTime: Math.max(1, Math.round((row.wordCount ?? 0) / 400)),
     createdAt: row.createdAt,
     category: row.category,
     series: row.series,
@@ -50,10 +51,18 @@ function toListItem(row: ListPostRow): PostListItem {
   };
 }
 
-const listInclude = {
-  category: true,
-  series: true,
-  tags: { include: { tag: true } },
+// 列表查询字段：不取 content 全文（正文已在保存时折算为 excerpt + wordCount）
+const listSelect = {
+  id: true,
+  slug: true,
+  title: true,
+  excerpt: true,
+  coverImage: true,
+  wordCount: true,
+  createdAt: true,
+  category: { select: { id: true, name: true, slug: true } },
+  series: { select: { id: true, name: true, slug: true } },
+  tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
 } as const;
 
 // 文章列表（全部公开文章，客户端分页；置顶优先）
@@ -76,7 +85,7 @@ export async function getPosts({
   const rows = await prisma.post.findMany({
     where,
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
-    include: listInclude,
+    select: listSelect,
   });
 
   const posts = rows.map(toListItem);
@@ -89,7 +98,7 @@ export async function getFeaturedPosts() {
     where: { ...PUBLISHED_FILTER, featured: true },
     orderBy: { createdAt: "desc" },
     take: 3,
-    include: listInclude,
+    select: listSelect,
   });
   return rows.map(toListItem);
 }

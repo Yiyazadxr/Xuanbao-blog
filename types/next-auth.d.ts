@@ -19,5 +19,7 @@ declare module "next-auth/jwt" {
   interface JWT {
     id?: string;
     role?: Role;
+    // 昵称/头像等展示字段的上次回源时间（毫秒时间戳），用于定期回源而非每次请求查库
+    syncedAt?: number;
   }
 }

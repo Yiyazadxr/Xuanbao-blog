@@ -78,6 +78,8 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
       actorName: user.name,
       title: parentId ? "回复了评论，待审核" : `评论了你的文章《${post.title}》，待审核`,
       link: "/admin/comments",
+      // 按「文章 + 类型」聚合
+      aggregateKey: `${parentId ? "reply_pending" : "comment_pending"}:${postId}`,
     });
   }
 
@@ -121,6 +123,8 @@ export async function toggleLike(
         actorName: user.name,
         title: `赞了你的文章《${post.title}》`,
         link: `/blog/${post.slug}`,
+        // 同一篇文章的点赞合并为一条
+        aggregateKey: `like:${post.id}`,
       });
     }
   }

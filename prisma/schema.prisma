@@ -189,7 +189,7 @@ model RateLimit {
 
 // 站内通知：category 为分类（system 系统 / like 赞 / comment 评论与回复），type 为细分事件
 // 接收者 userId 为该通知的所属用户（管理员收到审核类通知，普通用户收到审核结果通知）
-// actorName 为触发者昵称快照（点赞/评论者），系统类通知为空
+// actorName 为最近一位触发者昵称快照（点赞/评论者），系统类通知为空
 model Notification {
   id        String   @id @default(cuid())
   userId    String
@@ -202,8 +202,17 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
+  // 点赞通知聚合：
+  // aggregateKey 相同、未读且在聚合窗口（24h）内的通知合并为同一条，避免刷屏
+  aggregateKey String?
+  // 去重后的触发者昵称 JSON 数组，最新在前，最多 20 个
+  actorNames   String?
+  // 聚合的事件总次数（同一人反复触发也会累加；条数永远只占一行）
+  count        Int      @default(1)
+
   @@index([userId, category, read, createdAt])
   @@index([userId, read, createdAt])
+  @@index([userId, aggregateKey, read])
 }
 
 // 文章版本快照：每次保存前记录旧状态，支持历史查看与回滚
