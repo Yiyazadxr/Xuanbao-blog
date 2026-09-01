@@ -60,13 +60,11 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
 }
 
 // 删除头像（需登录；无头像时删除，移除 image 并清理旧图）
-/* eslint-disable @typescript-eslint/no-unused-vars */
 export async function deleteAvatar(
   // 占位参数：useActionState 契约要求 (prevState, formData)；无需使用
   _prev: SettingsState,
   _formData?: FormData
 ): Promise<SettingsState> {
-  /* eslint-enable @typescript-eslint/no-unused-vars */
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };
 
