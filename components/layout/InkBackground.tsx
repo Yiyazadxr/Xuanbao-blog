@@ -7,8 +7,8 @@ import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { useEffect, useRef } from "react";
 
 /** 网格单元边长，越小越细腻但开销越大 */
-const CELL_SIZE = 13;
-/** 离屏放大倍率，先采样到 2 倍再拉伸，弱化块状感 */
+const CELL_SIZE = 12;
+/** 离屏放大倍率，先采样到 2 倍再拉伸更自然 */
 const RENDER_SCALE = 2;
 /** 设备像素比上限，墨迹本身是柔化的，无需高分屏全量渲染 */
 const MAX_DPR = 1.5;
@@ -17,12 +17,12 @@ const SPLAT_RADIUS = 1.5;
 const FORCE_SCALE = 0.3;
 /** 速度上限，单位是格每秒，防止猛甩时数值爆炸 */
 const MAX_SPEED = 75;
-const INK_STRENGTH = 0.6;
+const INK_STRENGTH = 0.7;
 /** 环境流强度，过大会把墨摊开、扩大屏幕占比 */
 const AMBIENT_STRENGTH = 0.9;
 const IDLE_MS = 4000;
 /** 墨迹淡尽阈值，必须按峰值判断，用平均值会在墨迹仍可见时提前停止 */
-const INK_EPS = 5;
+const INK_EPS = 3;
 
 /** 墨量转不透明度的查找表，指数越大则笔心越实、边缘越飞白 */
 const LUT_SIZE = 512;
@@ -30,7 +30,7 @@ const LUT_SCALE = (LUT_SIZE - 1) / INK_MAX_DENSITY;
 const ALPHA_LUT = new Float32Array(LUT_SIZE);
 for (let i = 0; i < LUT_SIZE; i++) {
   const d = (i / (LUT_SIZE - 1)) * INK_MAX_DENSITY;
-  ALPHA_LUT[i] = 1 - Math.exp(-d * 3.2);
+  ALPHA_LUT[i] = 1 - Math.exp(-d * 4.0);
 }
 
 type Rgb = [number, number, number];
@@ -218,9 +218,13 @@ export function InkBackground() {
       ctx.clearRect(0, 0, cw, ch);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-      // 晕染层，放大幅度过大会把细笔触糊成粗条
+      // 外层淡光晕：大幅放大、低透明，让墨迹边缘羽化出一次淡淡的扩散圈
+      const padSoft = Math.round(cw * 0.012);
+      ctx.globalAlpha = 0.18;
+      ctx.drawImage(oc, -padSoft, -padSoft, cw + padSoft * 2, ch + padSoft * 2);
+      // 内层晕染：放大度适中，保持笔触可辨又有层次
       const pad = Math.round(cw * 0.006);
-      ctx.globalAlpha = 0.34;
+      ctx.globalAlpha = 0.3;
       ctx.drawImage(oc, -pad, -pad, cw + pad * 2, ch + pad * 2);
       // 墨心层，保持笔触形状
       ctx.globalAlpha = 1;

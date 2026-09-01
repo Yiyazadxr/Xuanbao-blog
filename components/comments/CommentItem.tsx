@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteComment } from "@/app/(admin)/admin/actions";
 import { CommentForm } from "@/components/comments/CommentForm";
+import { Avatar } from "@/components/ui/Avatar";
 import type { CommentWithReplies } from "@/lib/comments";
 import { formatDate } from "@/lib/utils";
 
@@ -39,6 +40,8 @@ export function CommentItem({
     <li className="py-5">
       <CommentBody
         name={comment.author.name}
+        image={comment.author.image}
+        seed={comment.author.id}
         date={comment.createdAt}
         content={comment.content}
         action={
@@ -79,6 +82,8 @@ export function CommentItem({
             <li key={reply.id}>
               <CommentBody
                 name={reply.author.name}
+                image={reply.author.image}
+                seed={reply.author.id}
                 date={reply.createdAt}
                 content={reply.content}
                 action={
@@ -104,20 +109,22 @@ export function CommentItem({
 
 function CommentBody({
   name,
+  image,
+  seed,
   date,
   content,
   action,
 }: {
   name: string;
+  image?: string | null;
+  seed?: string;
   date: Date | string;
   content: string;
   action?: React.ReactNode;
 }) {
   return (
     <div className="flex gap-3">
-      <span className="mt-0.5 inline-flex size-9 shrink-0 items-center justify-center rounded-full bg-accent/15 text-sm font-bold text-accent">
-        {name.slice(0, 1)}
-      </span>
+      <Avatar image={image} name={name} seed={seed} shape="circle" className="size-9" />
       <div className="min-w-0">
         <p className="flex flex-wrap items-baseline gap-x-3">
           <span className="text-sm font-semibold">{name}</span>

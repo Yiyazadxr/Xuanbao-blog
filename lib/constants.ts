@@ -204,6 +204,13 @@ export const TOOLS = [
     category: "安全/网络",
   },
   {
+    name: "ipinfo",
+    icon: "ph:globe-bold",
+    url: "https://ipinfo.io/",
+    description: "一键查看我的公网 IP 及归属地，ISP/ASN/时区一目了然",
+    category: "安全/网络",
+  },
+  {
     name: "FreeConvert",
     icon: "ph:arrows-clockwise-bold",
     url: "https://www.freeconvert.com/",
@@ -299,7 +306,7 @@ export const SKILLS = [
   "Docker",
 ] as const;
 
-// 时间线（about 页使用，从新到旧）
+// 时间线
 export const TIMELINE = [
   { time: "2026", title: "博客全站重构", description: "用 Next.js 全栈重写个人博客，就是你现在看到的这个网站" },
   { time: "2025", title: "开始搭建个人博客", description: "从纯手写 HTML/CSS 起步，迈出建站第一步" },
