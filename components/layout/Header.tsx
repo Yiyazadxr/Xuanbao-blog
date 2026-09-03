@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import { motion } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -40,17 +41,17 @@ export function Header() {
 
   return (
     <header
-      className={`fixed inset-x-0 top-0 z-50 transition-colors duration-300 ${
+      className={`fixed inset-x-0 top-0 z-50 transition-[background-color,border-color,backdrop-filter] duration-300 ${
         scrolled || menuOpen
-          ? "border-b border-border bg-background/80 backdrop-blur-md"
-          : "bg-transparent"
+          ? "border-b border-border/80 bg-background/70 backdrop-blur-sm backdrop-saturate-150"
+          : "border-b border-transparent bg-transparent"
       }`}
     >
       <nav
         aria-label="主导航"
         className="mx-auto flex h-[var(--header-h)] max-w-6xl items-center justify-between px-4 sm:px-6"
       >
-        {/* Logo + 站名：中文「暄」字（幼圆手写感），日夜间自适应 */}
+        {/* Logo + 站名 */}
         <Link
           href="/"
           className="flex items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
@@ -68,27 +69,35 @@ export function Header() {
         </Link>
 
         {/* 桌面端导航 */}
-        <div className="hidden items-center gap-1 md:flex">
-          {NAV_LINKS.map((link) => {
-            const active =
-              link.href === "/"
-                ? pathname === "/"
-                : pathname.startsWith(link.href);
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? "page" : undefined}
-                className={`rounded-full px-4 py-2 text-sm font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
-                  active
-                    ? "text-foreground"
-                    : "text-muted hover:bg-foreground/5 hover:text-foreground"
-                }`}
-              >
-                {link.label}
-              </Link>
-            );
-          })}
+        <div className="hidden items-center md:flex">
+          <div className="flex items-center gap-0.5 rounded-full border border-border/10 bg-foreground/[0.03] p-1 shadow-[inset_0_1px_2px_rgba(0,0,0,0.06)] backdrop-blur-sm backdrop-saturate-150 dark:shadow-[inset_0_1px_2px_rgba(0,0,0,0.5)]">
+            {NAV_LINKS.map((link) => {
+              const active =
+                link.href === "/"
+                  ? pathname === "/"
+                  : pathname.startsWith(link.href);
+              return (
+                <motion.div
+                  key={link.href}
+                  whileHover={{ scale: 1.03 }}
+                  whileTap={{ scale: 0.97 }}
+                  transition={{ type: "spring", stiffness: 350, damping: 22 }}
+                >
+                  <Link
+                    href={link.href}
+                    aria-current={active ? "page" : undefined}
+                    className={`block rounded-full px-4 py-1.5 text-sm font-medium transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent ${
+                      active
+                        ? "bg-surface text-foreground ring-1 ring-border shadow-[0_1px_2px_rgba(0,0,0,0.06),inset_0_1px_0_rgba(255,255,255,0.7)] dark:shadow-[0_1px_2px_rgba(0,0,0,0.45),inset_0_1px_0_rgba(255,255,255,0.05)]"
+                        : "text-muted hover:bg-foreground/[0.045] hover:text-foreground"
+                    }`}
+                  >
+                    {link.label}
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
         </div>
 
         <div className="flex items-center gap-1">
@@ -115,7 +124,7 @@ export function Header() {
         <div
           ref={menuPanelRef}
           id="mobile-menu"
-          className="border-b border-border bg-background/95 backdrop-blur-md md:hidden"
+          className="border-b border-border/80 bg-background/80 backdrop-blur-sm backdrop-saturate-150 md:hidden"
         >
           <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
             {NAV_LINKS.map((link) => {

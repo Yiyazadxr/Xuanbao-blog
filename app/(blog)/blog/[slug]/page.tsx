@@ -6,6 +6,7 @@ import { LikeButton } from "@/components/blog/LikeButton";
 import { PostContent } from "@/components/blog/PostContent";
 import { PostNav } from "@/components/blog/PostNav";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
+import { ShareButton } from "@/components/blog/ShareButton";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
@@ -129,8 +130,8 @@ export default async function BlogPostPage({
           <div className="min-w-0 flex-1">
             <PostContent content={post.content} />
 
-            {/* 点赞 */}
-            <div className="mt-12 flex justify-center">
+            {/* 点赞 + 分享 */}
+            <div className="mt-12 flex items-center justify-center gap-3">
               <LikeButton
                 postId={post.id}
                 slug={post.slug}
@@ -138,6 +139,7 @@ export default async function BlogPostPage({
                 initialLiked={like.liked}
                 isLoggedIn={Boolean(user)}
               />
+              <ShareButton title={post.title} slug={post.slug} />
             </div>
 
             {/* 系列导航：同一系列内的上下篇 */}

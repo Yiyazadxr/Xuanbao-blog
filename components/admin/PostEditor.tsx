@@ -39,8 +39,11 @@ type EditorPost = {
   tags: { tag: { name: string } }[];
 };
 
-// 草稿自动保存：仅新建文章时生效，保存在 localStorage（浏览器崩溃/误关可恢复）
-const DRAFT_KEY = "post-draft-v1";
+// 草稿自动保存：新建/编辑均生效，保存在 localStorage（浏览器崩溃/误关可恢复）。
+// 新建用独立 key，编辑按文章 id 区分，避免互相覆盖。
+function draftKey(postId?: string): string {
+  return postId ? `post-draft-${postId}` : "post-draft-v1";
+}
 
 // 文章编辑器：新建（post 为空）与编辑共用
 export function PostEditor({
@@ -68,15 +71,15 @@ export function PostEditor({
   const [featured, setFeatured] = useState(post?.featured ?? false);
   const [content, setContent] = useState(post?.content ?? "");
   const [error, setError] = useState("");
-  const [autosaved, setAutosaved] = useState(false);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  // 新建文章时恢复上次的草稿（仅在客户端挂载时执行一次；从 localStorage 同步外部状态）
+  // 恢复上次的草稿（仅在客户端挂载时执行一次；从 localStorage 同步外部状态）。
+  // 新建与编辑都恢复对应 key 的草稿；编辑时草稿优先级高于已落库内容（用户未保存的修改）。
   /* eslint-disable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
   useEffect(() => {
-    if (post) return;
     try {
-      const raw = localStorage.getItem(DRAFT_KEY);
+      const raw = localStorage.getItem(draftKey(post?.id));
       if (!raw) return;
       const d = JSON.parse(raw) as Partial<EditorPost> & { tags?: string };
       if (d.title) setTitle(d.title);
@@ -98,18 +101,23 @@ export function PostEditor({
   }, []);
   /* eslint-enable react-hooks/set-state-in-effect, react-hooks/exhaustive-deps */
 
-  // 自动保存草稿（防抖，仅新建文章时）
+  // 自动保存草稿（防抖，新建与编辑均生效）。
+  // 跳过首次挂载：首屏加载的初始内容不应触发「已自动保存」，仅用户实际修改后才保存并提示。
   const autosaveTimer = useRef<ReturnType<typeof setTimeout>>(null);
+  const firstRun = useRef(true);
   useEffect(() => {
-    if (post) return;
+    if (firstRun.current) {
+      firstRun.current = false;
+      return;
+    }
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     autosaveTimer.current = setTimeout(() => {
       try {
         localStorage.setItem(
-          DRAFT_KEY,
+          draftKey(post?.id),
           JSON.stringify({ title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content })
         );
-        setAutosaved(true);
+        setLastSavedAt(new Date());
       } catch {
         // 存储失败忽略
       }
@@ -164,7 +172,7 @@ export function PostEditor({
     startTransition(async () => {
       const result = await savePost(payload);
       if (result.ok) {
-        localStorage.removeItem(DRAFT_KEY);
+        localStorage.removeItem(draftKey(post?.id));
         router.push("/admin/posts");
         router.refresh();
       } else {
@@ -355,8 +363,10 @@ export function PostEditor({
         >
           存为草稿
         </button>
-        {!post && autosaved && (
-          <span className="text-xs text-muted">已自动保存草稿</span>
+        {lastSavedAt && (
+          <span className="text-xs text-muted">
+            已自动保存 {lastSavedAt.toLocaleTimeString("zh-CN", { hour: "2-digit", minute: "2-digit" })}
+          </span>
         )}
       </div>
     </div>

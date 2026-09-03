@@ -96,6 +96,25 @@ body {
   transition: background-color 0.5s var(--ease-custom), color 0.5s var(--ease-custom);
 }
 
+/* 日夜间切换时，让内层主题色卡片/容器与 body 同步平滑过渡，避免内外撕裂。
+   只命中主题背景容器，不干扰交互元素的 hover 过渡 */
+[class~="bg-surface"],
+[class~="bg-background"] {
+  transition:
+    background-color 0.5s var(--ease-custom),
+    color 0.5s var(--ease-custom),
+    border-color 0.5s var(--ease-custom);
+}
+
+/* 日夜间切换时，让内层卡片/容器与 body 同步平滑过渡，避免内外撕裂 */
+body,
+[class*="bg-"] {
+  transition:
+    background-color 0.5s var(--ease-custom),
+    color 0.5s var(--ease-custom),
+    border-color 0.5s var(--ease-custom);
+}
+
 ::selection {
   background: var(--accent);
   color: var(--accent-foreground);
@@ -133,12 +152,4 @@ body {
 /* 噪点纹理叠层（SVG feTurbulence，内联 data URI，零请求） */
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
-}
-
-/* 尊重用户的减少动效偏好 */
-@media (prefers-reduced-motion: reduce) {
-  .animate-blob-a,
-  .animate-blob-b {
-    animation: none;
-  }
 }
