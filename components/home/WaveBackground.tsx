@@ -124,7 +124,8 @@ export function WaveBackground() {
     const mouse = { x: 0, y: 0 };
     const target = { x: 0, y: 0 };
 
-    function resize() {
+    // 用箭头常量而非 function 声明：后者会被提升，闭包内丢失 canvas/ctx/host 的 null 收窄
+    const resize = () => {
       const rect = host.getBoundingClientRect();
       width = Math.max(1, rect.width);
       height = Math.max(1, rect.height);
@@ -142,7 +143,7 @@ export function WaveBackground() {
       }
     }
 
-    function draw() {
+    const draw = () => {
       ctx.clearRect(0, 0, width, height);
       const [r, g, b] = paletteRef.current;
       const intensity = intensityRef.current;
@@ -203,7 +204,7 @@ export function WaveBackground() {
       }
     }
 
-    function frame(now: number) {
+    const frame = (now: number) => {
       rafId = requestAnimationFrame(frame);
       const dt = last ? Math.min((now - last) / 1000, MAX_DT) : 1 / 60;
       last = now;
@@ -215,19 +216,19 @@ export function WaveBackground() {
       draw();
     }
 
-    function start() {
+    const start = () => {
       if (rafId) return;
       last = 0;
       rafId = requestAnimationFrame(frame);
     }
 
-    function stop() {
+    const stop = () => {
       if (!rafId) return;
       cancelAnimationFrame(rafId);
       rafId = 0;
     }
 
-    function onMove(e: PointerEvent) {
+    const onMove = (e: PointerEvent) => {
       target.x = e.clientX / window.innerWidth - 0.5;
       target.y = e.clientY / window.innerHeight - 0.5;
     }

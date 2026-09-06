@@ -9,14 +9,14 @@ import { useEffect, useRef, useState } from "react";
 
 /** 网格单元边长，越小越细腻但开销越大 */
 const CELL_SIZE = 12;
-/** 离屏放大倍率，先采样到 2 倍再拉伸更自然 */
+/** 离屏放大倍率，采样到 2 倍再拉伸更自然 */
 const RENDER_SCALE = 2;
 /** 设备像素比上限，墨迹本身是柔化的，无需高分屏全量渲染 */
 const MAX_DPR = 1.5;
 /** 笔触半径，单位是格，乘以 CELL_SIZE 得像素大小 */
 const SPLAT_RADIUS = 1.5;
 const FORCE_SCALE = 0.3;
-/** 速度上限，单位是格每秒，防止猛甩时数值爆炸 */
+/** 速度上限，单位是格每秒，防止数值爆炸 */
 const MAX_SPEED = 75;
 const INK_STRENGTH = 0.7;
 /** 环境流强度，过大会把墨摊开、扩大屏幕占比 */
@@ -120,7 +120,8 @@ export function InkBackground() {
       lastSplatTime = performance.now();
     }
 
-    function setup() {
+    // 改用箭头常量：function 声明会被提升，闭包内丢失 canvas/ctx 的 null 收窄
+    const setup = () => {
       const vw = Math.max(1, window.innerWidth);
       const vh = Math.max(1, window.innerHeight);
       const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
@@ -147,7 +148,7 @@ export function InkBackground() {
     }
 
     // 返回峰值 alpha 供判断是否淡尽
-    function renderInk(): number {
+    const renderInk = (): number => {
       const f = fluid;
       const oc = offCanvas;
       const octx = offCtx;

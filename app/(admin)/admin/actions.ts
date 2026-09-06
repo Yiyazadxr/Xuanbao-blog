@@ -22,7 +22,7 @@ import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validat
 // 每篇文章保留的版本数上限
 const MAX_REVISIONS = 50;
 
-// 构造版本快照数据（保存/回滚前记录旧状态）
+// 构造版本快照数据
 function revisionData(
   post: {
     id: string;
@@ -59,7 +59,7 @@ function revisionData(
   };
 }
 
-// 清理超出上限的旧版本（保留最近 MAX_REVISIONS 个）
+// 清理超出上限的旧版本
 async function pruneRevisions(postId: string) {
   const oldest = await prisma.postRevision.findMany({
     where: { postId },
@@ -89,19 +89,19 @@ export async function savePost(
 
   const slug = slugify(p.slug.trim() || p.title);
 
-  // slug 唯一性检查（编辑时排除自己）
+  // slug 唯一性检查
   const dup = await prisma.post.findFirst({
     where: { slug, ...(p.id ? { id: { not: p.id } } : {}) },
   });
   if (dup) return { ok: false, error: `slug「${slug}」已被文章「${dup.title}」占用` };
 
-  // 校验分类存在（可选字段，但传入的值必须真实，防伪造 categoryId 触发外键错误）
+  // 校验分类存在
   if (p.categoryId) {
     const category = await prisma.category.findUnique({ where: { id: p.categoryId } });
     if (!category) return { ok: false, error: "分类不存在" };
   }
 
-  // 校验系列存在（可选）
+  // 校验系列存在
   if (p.seriesId) {
     const series = await prisma.series.findUnique({ where: { id: p.seriesId } });
     if (!series) return { ok: false, error: "系列不存在" };
@@ -135,7 +135,7 @@ export async function savePost(
     slug,
     content: p.content,
     // 摘要为空时用正文纯文本兜底并落库：列表查询已不再回读 content 正文
-    // 空结果归为 null，与列表查询 `row.excerpt ?? ""` 展示口径一致（避免空串残留）
+    // 空结果归为 null，与列表查询 `row.excerpt ?? ""` 展示口径一致
     excerpt: p.excerpt?.trim() || plainExcerpt(p.content ?? "") || null,
     coverImage: p.coverImage || null,
     categoryId: p.categoryId || null,
@@ -145,7 +145,7 @@ export async function savePost(
     archived: p.archived,
     pinned: p.pinned,
     featured: p.featured,
-    // 纯文字字数：保存时计算，页脚只做 sum，避免实时读全文
+    // 纯文字字数：保存时计算，页脚只做 sum
     wordCount: countWords(p.content ?? ""),
   };
 
@@ -277,7 +277,8 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   if (!admin) return { ok: false, error: "无权限" };
   const rid = parseId(requestId);
   if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
-  const request = await prisma.accountRequest.findUnique({ where: { id: rid.data } });
+  const ridId = rid.data; // 守卫后非空：事务回调内 TS 不做属性收窄，先固化为局部常量
+  const request = await prisma.accountRequest.findUnique({ where: { id: ridId } });
   if (!request) return { ok: false, error: "申请不存在" };
   if (request.status !== "PENDING") return { ok: false, error: "该申请已处理" };
 
@@ -327,7 +328,7 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
     }
     // 申请标记通过，清空暂存的明文密码
     await tx.accountRequest.update({
-      where: { id: rid.data },
+      where: { id: ridId },
       data: { status: "APPROVED", password: null },
     });
   });
@@ -356,12 +357,13 @@ export async function rejectRequest(requestId: string): Promise<AdminActionState
   if (!admin) return { ok: false, error: "无权限" };
   const rid = parseId(requestId);
   if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
-  const request = await prisma.accountRequest.findUnique({ where: { id: rid.data } });
+  const ridId = rid.data;
+  const request = await prisma.accountRequest.findUnique({ where: { id: ridId } });
   if (!request) return { ok: false, error: "申请不存在" };
 
   await prisma.$transaction(async (tx) => {
     await tx.accountRequest.update({
-      where: { id: rid.data },
+      where: { id: ridId },
       data: { status: "REJECTED", password: null },
     });
     // 邀请码路径提交时已建待审核账号，拒绝时删除该未激活账号，避免占用邮箱
@@ -421,7 +423,7 @@ export async function approveComment(id: string): Promise<AdminActionState> {
   });
   if (!comment) return { ok: false, error: "评论不存在" };
   await prisma.comment.update({ where: { id: cid.data }, data: { isApproved: true } });
-  // 站内通知评论作者（自己审核自己的内容时不重复通知）
+  // 站内通知评论作者
   if (comment.authorId !== admin.id) {
     await createNotification(comment.authorId, {
       category: NOTIFICATION_CATEGORIES.SYSTEM,
@@ -432,7 +434,7 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       aggregateKey: `comment_approved:${comment.postId}`,
     });
   }
-  // 通知文章作者有人评论了你的文章（排除本人与审核者，避免重复）
+  // 通知文章作者有人评论了你的文章
   if (
     comment.post.authorId !== comment.authorId &&
     comment.post.authorId !== admin.id
@@ -447,7 +449,7 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       aggregateKey: `comment:${comment.postId}`,
     });
   }
-  // 若为回复，通知被回复的用户（排除本人与审核者）
+  // 若为回复，通知被回复的用户
   if (
     comment.parent &&
     comment.parent.authorId !== comment.authorId &&
@@ -468,7 +470,7 @@ export async function approveComment(id: string): Promise<AdminActionState> {
   return { ok: true, message: "已通过" };
 }
 
-// 删除评论（连带回复一起删）
+// 删除评论
 export async function deleteComment(id: string): Promise<AdminActionState> {
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "无权限" };
@@ -488,7 +490,7 @@ export async function deleteComment(id: string): Promise<AdminActionState> {
   return { ok: true, message: "已删除" };
 }
 
-// 删除文章后跳回列表（供编辑页用）
+// 删除文章后跳回列表
 export async function deletePostAndRedirect(id: string) {
   const result = await deletePost(id);
   if (result.ok) redirect("/admin/posts");
@@ -544,7 +546,7 @@ export async function batchPosts(
   return { ok: true, message: "已批量处理" };
 }
 
-// 上传封面图（返回可访问 URL）
+// 上传封面图
 export async function uploadImage(
   formData: FormData
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
@@ -581,7 +583,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
   });
   if (!post) return { ok: false, error: "文章不存在" };
 
-  // slug 唯一性检查（历史 slug 可能已被其他文章占用）
+  // slug 唯一性检查
   const conflict = await prisma.post.findFirst({
     where: { slug: revision.slug, id: { not: post.id } },
   });
