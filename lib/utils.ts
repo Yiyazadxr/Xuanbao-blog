@@ -56,16 +56,33 @@ export function readingTime(content: string): number {
   return readingTimeFromWordCount(countWords(content));
 }
 
-// 从 Markdown 正文提取纯文本摘要（无手动摘要时兜底用）
-export function plainExcerpt(markdown: string, maxLength = 120): string {
-  const text = markdown
+// 从 Markdown 正文提取纯文本（去掉代码块/图片/链接/Markdown 符号）
+export function markdownToText(markdown: string): string {
+  return markdown
     .replace(/```[\s\S]*?```/g, "") // 代码块
     .replace(/!\[.*?\]\(.*?\)/g, "") // 图片
     .replace(/\[(.*?)\]\(.*?\)/g, "$1") // 链接保留文字
     .replace(/[#>*`_~\-|]/g, "") // Markdown 符号
     .replace(/\s+/g, " ")
     .trim();
+}
+
+// 从 Markdown 正文提取纯文本摘要（无手动摘要时兜底用）
+export function plainExcerpt(markdown: string, maxLength = 120): string {
+  const text = markdownToText(markdown);
   return text.length > maxLength ? `${text.slice(0, maxLength)}…` : text;
+}
+
+// 从正文纯文本中截取命中关键词前后的片段（全文搜索下拉展示用）；
+// 关键词未精确命中（如 Fuse 模糊匹配到标题）时返回 null，由调用方回退到摘要
+export function searchSnippet(text: string, query: string, radius = 40): string | null {
+  const q = query.trim();
+  if (!q || !text) return null;
+  const idx = text.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return null;
+  const start = Math.max(0, idx - radius);
+  const end = Math.min(text.length, idx + q.length + radius);
+  return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }
 
 // 标题转 URL slug（后台新建文章时用）

@@ -2,7 +2,7 @@
 import { unstable_cache } from "next/cache";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
-import { readingTimeFromWordCount } from "@/lib/utils";
+import { markdownToText, readingTimeFromWordCount } from "@/lib/utils";
 
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
 const PUBLISHED_FILTER = { published: true, archived: false } as const;
@@ -104,13 +104,21 @@ export async function getFeaturedPosts() {
   return rows.map(toListItem);
 }
 
-// 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）
+// 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）。
+// text 为正文去 Markdown 后的纯文本，使搜索覆盖正文全文；服务端生成避免把原始 Markdown 下发客户端。
 export async function getSearchIndex() {
-  return prisma.post.findMany({
+  const rows = await prisma.post.findMany({
     where: PUBLISHED_FILTER,
     orderBy: { createdAt: "desc" },
-    select: { slug: true, title: true, excerpt: true, createdAt: true },
+    select: { slug: true, title: true, excerpt: true, content: true, createdAt: true },
   });
+  return rows.map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    excerpt: r.excerpt ?? "",
+    text: markdownToText(r.content),
+    createdAt: r.createdAt,
+  }));
 }
 
 export type SearchIndexItem = Awaited<ReturnType<typeof getSearchIndex>>[number];

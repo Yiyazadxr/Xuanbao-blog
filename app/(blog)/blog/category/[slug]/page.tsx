@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { getPosts } from "@/lib/posts";
+import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 60;
@@ -19,7 +20,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const cat = await prisma.category.findUnique({ where: { slug } });
-  return { title: cat ? `${cat.name} · 分类` : "分类未找到" };
+  if (!cat) return { title: "分类未找到" };
+  return {
+    title: `${cat.name} · 分类`,
+    alternates: { types: { "application/rss+xml": `${SITE.url}/feed.xml/category/${slug}` } },
+  };
 }
 
 export default async function CategoryPage({

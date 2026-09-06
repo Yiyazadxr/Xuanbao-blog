@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { getPosts } from "@/lib/posts";
+import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 60;
@@ -19,7 +20,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const s = await prisma.series.findUnique({ where: { slug } });
-  return { title: s ? `${s.name} · 系列` : "系列未找到" };
+  if (!s) return { title: "系列未找到" };
+  return {
+    title: `${s.name} · 系列`,
+    alternates: { types: { "application/rss+xml": `${SITE.url}/feed.xml/series/${slug}` } },
+  };
 }
 
 export default async function SeriesPage({

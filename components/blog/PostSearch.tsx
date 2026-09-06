@@ -5,8 +5,9 @@ import Fuse from "fuse.js";
 import Link from "next/link";
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { SearchIndexItem } from "@/lib/posts";
+import { searchSnippet } from "@/lib/utils";
 
-// 客户端全文搜索：Fuse.js 模糊匹配标题/摘要，即时下拉展示，无服务端 LIKE 全表扫描
+// 客户端全文搜索：Fuse.js 模糊匹配标题/正文纯文本，即时下拉展示，无服务端 LIKE 全表扫描
 export function PostSearch({ index }: { index: SearchIndexItem[] }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
@@ -15,7 +16,7 @@ export function PostSearch({ index }: { index: SearchIndexItem[] }) {
   const fuse = useMemo(
     () =>
       new Fuse(index, {
-        keys: ["title", "excerpt"],
+        keys: ["title", "text"],
         threshold: 0.35,
         ignoreLocation: true,
       }),
@@ -77,20 +78,24 @@ export function PostSearch({ index }: { index: SearchIndexItem[] }) {
             <p className="px-4 py-3 text-sm text-muted">没有找到相关文章</p>
           ) : (
             <ul className="max-h-80 overflow-y-auto">
-              {results.map((post) => (
-                <li key={post.slug}>
-                  <Link
-                    href={`/blog/${post.slug}`}
-                    onClick={() => setOpen(false)}
-                    className="block px-4 py-3 transition-colors duration-150 hover:bg-foreground/5"
-                  >
-                    <span className="block text-sm font-medium">{post.title}</span>
-                    {post.excerpt && (
-                      <span className="mt-0.5 block truncate text-xs text-muted">{post.excerpt}</span>
-                    )}
-                  </Link>
-                </li>
-              ))}
+              {results.map((post) => {
+                // 正文命中时展示关键词附近片段，否则回退到摘要
+                const snippet = searchSnippet(post.text, trimmed) ?? post.excerpt;
+                return (
+                  <li key={post.slug}>
+                    <Link
+                      href={`/blog/${post.slug}`}
+                      onClick={() => setOpen(false)}
+                      className="block px-4 py-3 transition-colors duration-150 hover:bg-foreground/5"
+                    >
+                      <span className="block text-sm font-medium">{post.title}</span>
+                      {snippet && (
+                        <span className="mt-0.5 block truncate text-xs text-muted">{snippet}</span>
+                      )}
+                    </Link>
+                  </li>
+                );
+              })}
             </ul>
           )}
         </div>

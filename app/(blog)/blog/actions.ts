@@ -3,13 +3,14 @@
 // 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
+import { getApprovedComments, type CommentWithReplies } from "@/lib/comments";
 import { getMuteInfo } from "@/lib/mute";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/roles";
-import { commentSchema, likeSchema, parseInput } from "@/lib/validation";
+import { commentPageSchema, commentSchema, likeSchema, parseInput } from "@/lib/validation";
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
 
@@ -132,4 +133,26 @@ export async function toggleLike(
 
   revalidatePath(`/blog/${parsed.data.slug}`);
   return { ok: true, liked: !existing, count };
+}
+
+// 加载更多评论（公开读，游客也可查看；校验 postId/skip 防滥用，不做权限拦截）。
+// 是否还有更多由客户端用 topLevel 判断，这里不再重复 count 查询
+export async function getMoreComments(
+  postId: string,
+  skip: number
+): Promise<{ ok: boolean; error?: string; comments: CommentWithReplies[] }> {
+  const parsed = parseInput(commentPageSchema, { postId, skip });
+  if (!parsed.data) {
+    return { ok: false, error: parsed.error ?? "参数不合法", comments: [] };
+  }
+
+  // 校验文章存在且公开，避免对不存在/未公开文章发起无意义查询
+  const post = await prisma.post.findFirst({
+    where: { id: parsed.data.postId, published: true, archived: false },
+    select: { id: true },
+  });
+  if (!post) return { ok: false, error: "文章不存在", comments: [] };
+
+  const comments = await getApprovedComments(parsed.data.postId, { skip: parsed.data.skip });
+  return { ok: true, comments };
 }

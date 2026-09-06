@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { getPosts } from "@/lib/posts";
+import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
 export const revalidate = 60;
@@ -19,7 +20,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { slug } = await params;
   const tag = await prisma.tag.findUnique({ where: { slug } });
-  return { title: tag ? `#${tag.name} · 标签` : "标签未找到" };
+  if (!tag) return { title: "标签未找到" };
+  return {
+    title: `#${tag.name} · 标签`,
+    alternates: { types: { "application/rss+xml": `${SITE.url}/feed.xml/tag/${slug}` } },
+  };
 }
 
 export default async function TagPage({
