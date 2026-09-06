@@ -2,19 +2,9 @@
 
 // 显示偏好 Server Actions：跨设备同步到账号（字体缩放 + 页面间距 + 界面密度 + 自定义导航栏/页脚 + 视觉动效）
 import { getFreshUser } from "@/lib/auth";
-import {
-  FONT_SCALE_MAX,
-  FONT_SCALE_MIN,
-  FOOTER_PY_MAX,
-  FOOTER_PY_MIN,
-  HEADER_H_MAX,
-  HEADER_H_MIN,
-  isDensity,
-  isSpacingScale,
-  isWaveIntensity,
-  type Density,
-} from "@/lib/display";
+import { type Density } from "@/lib/display";
 import { prisma } from "@/lib/prisma";
+import { displayPreferencesSchema, parseInput } from "@/lib/validation";
 
 function toDensity(value: string | null | undefined): Density {
   return value === "compact" || value === "comfortable" || value === "custom" ? value : "normal";
@@ -72,36 +62,31 @@ export async function saveDisplayPreferences(
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };
-  if (
-    typeof fontScale !== "number" ||
-    fontScale < FONT_SCALE_MIN ||
-    fontScale > FONT_SCALE_MAX
-  ) {
-    return { ok: false, error: "字体缩放参数不合法" };
-  }
-  if (!isSpacingScale(spacingScale)) {
-    return { ok: false, error: "页面间距参数不合法" };
-  }
-  if (!isDensity(density)) {
-    return { ok: false, error: "界面密度参数不合法" };
-  }
-  const d = density;
-  const hh =
-    headerH != null ? Math.min(HEADER_H_MAX, Math.max(HEADER_H_MIN, Math.round(headerH))) : null;
-  const fp =
-    footerPy != null ? Math.min(FOOTER_PY_MAX, Math.max(FOOTER_PY_MIN, Math.round(footerPy))) : null;
-  const wv = waveIntensity != null && isWaveIntensity(waveIntensity) ? waveIntensity : null;
+
+  const parsed = parseInput(displayPreferencesSchema, {
+    fontScale,
+    spacingScale,
+    density,
+    headerH: headerH ?? null,
+    footerPy: footerPy ?? null,
+    waveIntensity: waveIntensity ?? null,
+    inkEnabled: inkEnabled ?? null,
+    reduceMotion: reduceMotion ?? null,
+  });
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+  const d = parsed.data;
+
   await prisma.user.update({
     where: { id: user.id },
     data: {
-      fontScale,
-      spacingScale,
-      density: d,
-      headerH: hh,
-      footerPy: fp,
-      waveIntensity: wv,
-      inkEnabled: inkEnabled ?? null,
-      reduceMotion: reduceMotion ?? null,
+      fontScale: d.fontScale,
+      spacingScale: d.spacingScale,
+      density: d.density,
+      headerH: d.headerH,
+      footerPy: d.footerPy,
+      waveIntensity: d.waveIntensity,
+      inkEnabled: d.inkEnabled,
+      reduceMotion: d.reduceMotion,
     },
   });
   return { ok: true };

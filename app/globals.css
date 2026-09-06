@@ -98,17 +98,7 @@ body {
   transition: background-color 0.5s var(--ease-custom), color 0.5s var(--ease-custom);
 }
 
-/* 日夜间切换时，让内层主题色卡片/容器与 body 同步平滑过渡，避免内外撕裂。
-   只命中主题背景容器，不干扰交互元素的 hover 过渡 */
-[class~="bg-surface"],
-[class~="bg-background"] {
-  transition:
-    background-color 0.5s var(--ease-custom),
-    color 0.5s var(--ease-custom),
-    border-color 0.5s var(--ease-custom);
-}
-
-/* 日夜间切换时，让内层卡片/容器与 body 同步平滑过渡，避免内外撕裂 */
+/* 日夜间切换时，让内层主题色卡片/容器与 body 同步平滑过渡，避免内外撕裂 */
 body,
 [class*="bg-"] {
   transition:

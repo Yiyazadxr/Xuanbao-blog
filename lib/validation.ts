@@ -1,5 +1,17 @@
 // 统一 API 输入校验（Zod）：所有 Server Action / Route Handler 不直接信任客户端入参
 import { z } from "zod";
+import {
+  FONT_SCALE_MAX,
+  FONT_SCALE_MIN,
+  FOOTER_PY_MAX,
+  FOOTER_PY_MIN,
+  HEADER_H_MAX,
+  HEADER_H_MIN,
+  SPACING_SCALE_MAX,
+  SPACING_SCALE_MIN,
+  WAVE_INTENSITY_MAX,
+  WAVE_INTENSITY_MIN,
+} from "@/lib/display";
 
 // 通用：数据库记录 ID（cuid 等字符串主键）
 export const idSchema = z.object({ id: z.string().trim().min(1, "缺少 ID").max(100) });
@@ -77,6 +89,12 @@ export const likeSchema = z.object({
   slug: z.string().trim().min(1).max(200),
 });
 
+// 评论分页读取（公开侧，游客也可查看；校验 postId/skip 防滥用）
+export const commentPageSchema = z.object({
+  postId: z.string().trim().min(1).max(100),
+  skip: z.number().int().min(0).max(100_000),
+});
+
 // 修改用户角色（角色值运行时也再校验一次，见 users/actions.ts）
 export const roleSchema = z.object({
   userId: z.string().trim().min(1).max(100),
@@ -111,6 +129,18 @@ export const tagSchema = z.object({
 export const seriesSchema = z.object({
   name: z.string().trim().min(1, "名称不能为空").max(50, "名称最长 50 字"),
   description: z.string().trim().max(200, "描述最长 200 字").optional().default(""),
+});
+
+// 显示偏好跨设备同步（范围常量复用 lib/display，保证前后一致）
+export const displayPreferencesSchema = z.object({
+  fontScale: z.number().min(FONT_SCALE_MIN, "字体缩放参数不合法").max(FONT_SCALE_MAX),
+  spacingScale: z.number().min(SPACING_SCALE_MIN, "页面间距参数不合法").max(SPACING_SCALE_MAX),
+  density: z.enum(["compact", "normal", "comfortable", "custom"], "界面密度参数不合法"),
+  headerH: z.number().int().min(HEADER_H_MIN).max(HEADER_H_MAX).nullable(),
+  footerPy: z.number().int().min(FOOTER_PY_MIN).max(FOOTER_PY_MAX).nullable(),
+  waveIntensity: z.number().min(WAVE_INTENSITY_MIN).max(WAVE_INTENSITY_MAX).nullable(),
+  inkEnabled: z.boolean().nullable(),
+  reduceMotion: z.boolean().nullable(),
 });
 
 // 文章批量操作

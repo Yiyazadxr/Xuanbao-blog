@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   clearDisplayPreferences,
   getDisplayPreferences,
@@ -59,7 +59,16 @@ export function DisplayForm() {
   const [waveIntensity, setWaveIntensity] = useState(readWaveIntensity);
   const [inkEnabled, setInkEnabled] = useState(readInkEnabled);
   const reduceMotion = usePrefersReducedMotion();
+  const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // 组件卸载时清掉未触发的防抖保存，避免在已卸载组件上更新状态
+  useEffect(() => {
+    return () => {
+      if (persistTimer.current) clearTimeout(persistTimer.current);
+    };
+  }, []);
+
+  // 防抖后同步到账号：拖动滑块不触发请求风暴，失败时提示而非静默丢弃
   function persist(
     scale: number,
     sp: number,
@@ -71,16 +80,21 @@ export function DisplayForm() {
     motion: boolean
   ) {
     if (!sync) return;
-    void saveDisplayPreferences(
-      scale,
-      sp,
-      d,
-      d === "custom" ? hh : null,
-      d === "custom" ? fp : null,
-      wv,
-      ink,
-      motion
-    );
+    if (persistTimer.current) clearTimeout(persistTimer.current);
+    persistTimer.current = setTimeout(() => {
+      void saveDisplayPreferences(
+        scale,
+        sp,
+        d,
+        d === "custom" ? hh : null,
+        d === "custom" ? fp : null,
+        wv,
+        ink,
+        motion
+      ).then((res) => {
+        if (!res.ok) setMsg(res.error ?? "同步失败");
+      });
+    }, 500);
   }
 
   function changeFontScale(v: number) {

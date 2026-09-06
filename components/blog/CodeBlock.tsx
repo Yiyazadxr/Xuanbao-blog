@@ -1,7 +1,8 @@
 "use client";
 
-import { isValidElement, useState, useRef, type ClassAttributes, type HTMLAttributes } from "react";
+import { isValidElement, useRef, type ClassAttributes, type HTMLAttributes } from "react";
 import type { ExtraProps } from "react-markdown";
+import { useCopyFeedback } from "@/lib/use-copy-feedback";
 
 // 代码块增强：在 rehype-highlight 输出的 <pre><code> 上叠加标签和复制
 // 作为 react-markdown 的 components.pre 自定义渲染器，仅代码块走此路径（行内 code 不受影响）。
@@ -13,9 +14,7 @@ export function CodeBlock({
   ...props
 }: ClassAttributes<HTMLPreElement> & HTMLAttributes<HTMLPreElement> & ExtraProps) {
   const preRef = useRef<HTMLPreElement>(null);
-  const [copied, setCopied] = useState(false);
-  // 保留定时器引用，连续点击时先清前一个，避免状态抖动
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const { status, show } = useCopyFeedback();
 
   // 从子 <code> 的 className 提取语言
   let language = "";
@@ -26,11 +25,15 @@ export function CodeBlock({
   }
   // 合并 hljs 与 react-markdown 透传的 className
   const preCls = ["hljs", className].filter(Boolean).join(" ") || undefined;
+  const copied = status === "copied";
+  const failed = status === "failed";
 
   async function handleCopy() {
     const text = preRef.current?.textContent ?? "";
+    let ok = false;
     try {
       await navigator.clipboard.writeText(text);
+      ok = true;
     } catch {
       // 回退：旧浏览器 / 无权限时用 execCommand 选区复制
       const range = document.createRange();
@@ -39,14 +42,11 @@ export function CodeBlock({
         range.selectNodeContents(preRef.current);
         sel.removeAllRanges();
         sel.addRange(range);
-        document.execCommand("copy");
+        ok = document.execCommand("copy");
         sel.removeAllRanges();
       }
     }
-    setCopied(true);
-    // 重置用 setTimeout 后置，不在 effect 内同步 setState
-    if (timer.current) clearTimeout(timer.current);
-    timer.current = setTimeout(() => setCopied(false), 2000);
+    show(ok ? "copied" : "failed");
   }
 
   return (
@@ -61,13 +61,23 @@ export function CodeBlock({
         <button
           type="button"
           onClick={handleCopy}
-          aria-label={copied ? "已复制" : "复制代码"}
+          aria-label={copied ? "已复制" : failed ? "复制失败" : "复制代码"}
           className="pointer-events-auto flex size-7 cursor-pointer items-center justify-center rounded text-zinc-400 transition-colors hover:bg-white/10 hover:text-zinc-100"
         >
           {copied ? (
             <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
               <path
                 d="M13.5 4.5L6 12l-3.5-3.5"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          ) : failed ? (
+            <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden>
+              <path
+                d="M4 4l8 8M12 4l-8 8"
                 stroke="currentColor"
                 strokeWidth="2"
                 strokeLinecap="round"

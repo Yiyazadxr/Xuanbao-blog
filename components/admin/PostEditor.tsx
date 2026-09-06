@@ -125,7 +125,7 @@ export function PostEditor({
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content, post]);
+  }, [title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content, post?.id]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
