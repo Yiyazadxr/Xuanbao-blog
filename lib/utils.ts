@@ -1,5 +1,10 @@
 // 通用工具函数
 
+// 千分位计数（统计看板/页脚等处统一口径，两端同源）
+export function formatCount(value: number): string {
+  return Math.max(0, Math.round(value)).toLocaleString("zh-CN");
+}
+
 // 日期格式化：2026 年 7 月 17 日
 export function formatDate(date: Date | string): string {
   const d = new Date(date);

@@ -2,11 +2,12 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { SITE } from "@/lib/constants";
+import { recordDailyView } from "@/lib/daily-stats";
 import { prisma } from "@/lib/prisma";
 import { markdownToText, readingTimeFromWordCount } from "@/lib/utils";
 
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
-const PUBLISHED_FILTER = { published: true, archived: false } as const;
+export const PUBLISHED_FILTER = { published: true, archived: false } as const;
 
 // 列表项类型：不含正文，readingTime 与摘要已在服务端算好（供卡片/客户端分页使用）
 export type PostListItem = {
@@ -185,13 +186,18 @@ export async function getAdjacentPosts(createdAt: Date) {
 }
 
 // 浏览量 +1（详情页触发，失败不影响页面渲染）
+// 同时给当日统计表记一笔（趋势图的时间维度来源）。两条写入互不依赖，
+// 分开执行：统计表一旦出问题也不能拖累文章自身的计数。
 export async function incrementViewCount(id: string) {
-  try {
-    await prisma.post.update({ where: { id }, data: { viewCount: { increment: 1 } } });
-  } catch (e) {
-    // 计数失败不影响渲染，记录日志便于排查
-    console.error("浏览量计数失败：", e);
-  }
+  await Promise.all([
+    prisma.post
+      .update({ where: { id }, data: { viewCount: { increment: 1 } } })
+      .catch((e: unknown) => {
+        // 计数失败不影响渲染，记录日志便于排查
+        console.error("浏览量计数失败：", e);
+      }),
+    recordDailyView(),
+  ]);
 }
 
 // 分类列表（带公开文章数）

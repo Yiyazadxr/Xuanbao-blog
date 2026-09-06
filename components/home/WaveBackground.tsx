@@ -41,10 +41,10 @@ interface Layer {
 
 // 四层远山，由远及近
 const LAYERS: Layer[] = [
-  { seed: 11, baseY: 0.6, amp: 0.24, alpha: 0.06, freq: 1.1, px: 8, py: 3, speed: 0.1, phase: 0, bottom: 0 },
-  { seed: 47, baseY: 0.72, amp: 0.27, alpha: 0.09, freq: 1.7, px: 16, py: 6, speed: 0.13, phase: 1.9, bottom: 0.12 },
-  { seed: 83, baseY: 0.84, amp: 0.28, alpha: 0.14, freq: 2.4, px: 26, py: 10, speed: 0.16, phase: 3.4, bottom: 0.3 },
-  { seed: 131, baseY: 0.96, amp: 0.3, alpha: 0.2, freq: 3.2, px: 38, py: 14, speed: 0.19, phase: 5.1, bottom: 0.55 },
+  { seed: 11, baseY: 0.6, amp: 0.24, alpha: 0.06, freq: 1.1, px: 8, py: 3, speed: 0.16, phase: 0, bottom: 0 },
+  { seed: 47, baseY: 0.72, amp: 0.27, alpha: 0.09, freq: 1.7, px: 16, py: 6, speed: 0.21, phase: 1.9, bottom: 0.12 },
+  { seed: 83, baseY: 0.84, amp: 0.28, alpha: 0.14, freq: 2.4, px: 26, py: 10, speed: 0.26, phase: 3.4, bottom: 0.3 },
+  { seed: 131, baseY: 0.96, amp: 0.3, alpha: 0.2, freq: 3.2, px: 38, py: 14, speed: 0.31, phase: 5.1, bottom: 0.55 },
 ];
 
 function hash(i: number, seed: number) {
@@ -156,7 +156,7 @@ export function WaveBackground() {
         const baseYpx = height * L.baseY;
         const ampPx = height * L.amp;
         // 极慢横向漂移 + 鼠标视差，只挪山体不变形状
-        const offX = mouse.x * L.px + Math.sin(elapsed * 0.045 + L.phase) * 7;
+        const offX = mouse.x * L.px + Math.sin(elapsed * 0.075 + L.phase) * 7;
         const offY = mouse.y * L.py + Math.sin(elapsed * L.speed + L.phase) * height * 0.012;
 
         let minY = height;

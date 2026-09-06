@@ -152,6 +152,16 @@ model Like {
   @@id([userId, postId])
 }
 
+// 每日浏览量：文章的 viewCount 是累计值（只有「总共多少」、没有「哪天多少」），
+// 这里按天记一笔增量，补上时间维度，供后台统计看板画趋势图。
+// 评论/点赞/注册本身带 createdAt，趋势可直接按天推算，无需入表。
+// date 为东八区日键 YYYY-MM-DD（避免 UTC 切日导致北京时间 08:00 才翻页）
+model DailyViewStat {
+  date      String   @id
+  views     Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
 // 账号申请：status 取值 PENDING | APPROVED | REJECTED
 // password 仅邀请码路径（自设密码）在审核通过前暂存明文，用于审核通过邮件再发一遍，通过后清空
 model AccountRequest {
