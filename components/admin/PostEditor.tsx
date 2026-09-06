@@ -5,8 +5,9 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import { useEffect, useRef, useState, useTransition } from "react";
-import { savePost, uploadImage } from "@/app/(admin)/admin/actions";
+import { savePost, uploadImage } from "@/app/(admin)/admin/posts/actions";
 import { errorCls, inputCls, labelCls, primaryBtnCls } from "@/components/ui/form-styles";
+import { EXCERPT_MAX } from "@/lib/validation";
 import { slugify } from "@/lib/utils";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
@@ -229,7 +230,7 @@ export function PostEditor({
           value={excerpt}
           onChange={(e) => setExcerpt(e.target.value)}
           rows={2}
-          maxLength={200}
+          maxLength={EXCERPT_MAX}
           placeholder="不填则自动截取正文开头"
           className={`${inputCls} h-auto py-3`}
         />

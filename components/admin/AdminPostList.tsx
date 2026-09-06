@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { batchPosts } from "@/app/(admin)/admin/actions";
+import { batchPosts } from "@/app/(admin)/admin/posts/actions";
 import { PostRowActions } from "@/components/admin/PostRowActions";
 import { formatDate } from "@/lib/utils";
 

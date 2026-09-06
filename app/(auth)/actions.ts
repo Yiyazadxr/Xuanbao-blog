@@ -4,22 +4,13 @@
 // CSRF 说明：Next.js Server Action 默认校验 Origin/Host（同源），跨站请求会被拒绝，
 // 因此这里无需额外手写 CSRF token；本文件的重点是与 Auth.js 配合的登录/注册与防暴力破解限流。
 import { AuthError } from "next-auth";
-import { headers } from "next/headers";
 import { signIn } from "@/lib/auth";
 import { verifyHCaptcha } from "@/lib/hcaptcha";
 import { submitAccountRequest, submitInviteRequest } from "@/lib/invites";
-import { rateLimit } from "@/lib/rate-limit";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { applySchema, loginSchema, parseInput, registerSchema } from "@/lib/validation";
 
 export type ActionState = { ok: boolean; error?: string; message?: string };
-
-// 从请求头解析客户端 IP（Vercel/反向代理下取 x-forwarded-for 第一跳）
-async function getClientIp(): Promise<string> {
-  const h = await headers();
-  const fwd = h.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]?.trim() || "unknown";
-  return h.get("x-real-ip") ?? "unknown";
-}
 
 // 邮箱密码登录（防暴力破解：按邮箱 + 按 IP 双重限流）
 export async function loginAction(

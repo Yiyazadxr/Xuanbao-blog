@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
-import { restorePostRevision } from "@/app/(admin)/admin/actions";
+import { restorePostRevision } from "@/app/(admin)/admin/posts/actions";
 import { formatDate, formatRelativeTime, plainExcerpt } from "@/lib/utils";
 
 type Revision = {

@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { deleteComment } from "@/app/(admin)/admin/actions";
+import { deleteComment } from "@/app/(admin)/admin/comments/actions";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { Avatar } from "@/components/ui/Avatar";
 import type { CommentWithReplies } from "@/lib/comments";

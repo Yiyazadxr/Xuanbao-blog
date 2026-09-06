@@ -1,23 +1,15 @@
 "use server";
 
-// 后台管理 Server Actions：每个操作都按具体权限校验（双重保险）
+// 文章管理 Server Actions：CRUD / 批量操作 / 版本回滚 / 封面图上传（按 manage_posts 权限校验）
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import bcrypt from "bcryptjs";
-import { getFreshUser, requirePermission } from "@/lib/auth";
-import { decryptSecret } from "@/lib/crypto";
+import { requirePermission } from "@/lib/auth";
 import { deleteImage, saveImage } from "@/lib/image-storage";
-import { createInviteCode } from "@/lib/invites";
-import { buildApprovalEmail, sendMail } from "@/lib/mail";
-import { createNotification } from "@/lib/notifications";
-import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
-import { hasPermission } from "@/lib/permissions-server";
 import { prisma } from "@/lib/prisma";
-import type { Role } from "@/lib/roles";
-import { generateRandomPassword } from "@/lib/random";
 import { countWords, plainExcerpt, slugify } from "@/lib/utils";
-import { parseId, parseInput, batchPostsSchema, postSchema } from "@/lib/validation";
+import { batchPostsSchema, parseId, parseInput, postSchema } from "@/lib/validation";
+import type { AdminActionState } from "../action-types";
 
 // 每篇文章保留的版本数上限
 const MAX_REVISIONS = 50;
@@ -73,8 +65,6 @@ async function pruneRevisions(postId: string) {
     });
   }
 }
-
-export type AdminActionState = { ok: boolean; error?: string; message?: string };
 
 // 新建/更新文章（id 为空则新建）
 export async function savePost(
@@ -271,225 +261,6 @@ export async function toggleArchive(id: string): Promise<AdminActionState> {
   return { ok: true, message: post.archived ? "已取消归档" : "已归档" };
 }
 
-// 通过账号申请：直接建号（普通申请发随机密码邮件）/ 激活（邀请码申请发自设密码邮件）
-export async function approveRequest(requestId: string): Promise<AdminActionState> {
-  const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
-  if (!admin) return { ok: false, error: "无权限" };
-  const rid = parseId(requestId);
-  if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
-  const ridId = rid.data; // 守卫后非空：事务回调内 TS 不做属性收窄，先固化为局部常量
-  const request = await prisma.accountRequest.findUnique({ where: { id: ridId } });
-  if (!request) return { ok: false, error: "申请不存在" };
-  if (request.status !== "PENDING") return { ok: false, error: "该申请已处理" };
-
-  const email = request.email;
-  // 邀请码路径（自设密码，提交时已建号待激活）
-  const isInvitePath = Boolean(request.password);
-  const existing = await prisma.user.findUnique({ where: { email } });
-
-  // 确定密码与回收期：邀请码路径用自设密码（解密暂存的密文）、14 天；普通申请随机密码、7 天
-  const graceDays = isInvitePath ? 14 : 7;
-  let password: string;
-  if (isInvitePath) {
-    try {
-      password = decryptSecret(request.password as string);
-    } catch {
-      return { ok: false, error: "申请数据损坏（密码无法解密），请删除后重新审核" };
-    }
-  } else {
-    password = generateRandomPassword();
-  }
-  const hashed = await bcrypt.hash(password, 10);
-
-  await prisma.$transaction(async (tx) => {
-    if (existing) {
-      // 已存在（被回收/待审核）则复用：重置密码 + 重新激活
-      // 普通申请路径需清空旧的邀请码关联，确保回收期按 7 天判定
-      await tx.user.update({
-        where: { id: existing.id },
-        data: {
-          password: hashed,
-          activatedAt: new Date(),
-          disabled: false,
-          lastLoginAt: null,
-          inviteCodeId: isInvitePath ? existing.inviteCodeId : null,
-        },
-      });
-    } else {
-      await tx.user.create({
-        data: {
-          email,
-          name: email.split("@")[0] ?? email,
-          password: hashed,
-          role: "MEMBER",
-          activatedAt: new Date(),
-        },
-      });
-    }
-    // 申请标记通过，清空暂存的明文密码
-    await tx.accountRequest.update({
-      where: { id: ridId },
-      data: { status: "APPROVED", password: null },
-    });
-  });
-
-  // 邮件：发账号 + 密码（未配置 SMTP 时降级为控制台打印）
-  const { subject, text } = buildApprovalEmail({ email, password, graceDays });
-  let mailSent = false;
-  try {
-    mailSent = await sendMail(email, subject, text);
-  } catch (e) {
-    console.error("审核通过邮件发送失败：", e);
-  }
-
-  revalidatePath("/admin/invites");
-  return {
-    ok: true,
-    message: mailSent
-      ? `已通过并发送账号密码邮件至 ${email}（${graceDays} 天内登录）`
-      : `已通过（${graceDays} 天内登录）。邮件未发送成功，请手动告知用户账号密码`,
-  };
-}
-
-// 拒绝申请
-export async function rejectRequest(requestId: string): Promise<AdminActionState> {
-  const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
-  if (!admin) return { ok: false, error: "无权限" };
-  const rid = parseId(requestId);
-  if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
-  const ridId = rid.data;
-  const request = await prisma.accountRequest.findUnique({ where: { id: ridId } });
-  if (!request) return { ok: false, error: "申请不存在" };
-
-  await prisma.$transaction(async (tx) => {
-    await tx.accountRequest.update({
-      where: { id: ridId },
-      data: { status: "REJECTED", password: null },
-    });
-    // 邀请码路径提交时已建待审核账号，拒绝时删除该未激活账号，避免占用邮箱
-    await tx.user.deleteMany({
-      where: { email: request.email, activatedAt: null },
-    });
-  });
-
-  revalidatePath("/admin/invites");
-  return { ok: true, message: "已拒绝" };
-}
-
-// 生成通用邀请码（不绑定邮箱，支持有效期与使用次数）
-export async function createFreeInvite(payload: {
-  expiresInDays?: number;
-  maxUses?: number;
-}): Promise<AdminActionState> {
-  const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
-  if (!admin) return { ok: false, error: "无权限" };
-  const days = Math.min(365, Math.max(1, Number(payload?.expiresInDays) || 7));
-  const uses = Math.min(1000, Math.max(1, Number(payload?.maxUses) || 1));
-  const invite = await createInviteCode(days, uses);
-  revalidatePath("/admin/invites");
-  return {
-    ok: true,
-    message: `邀请码 ${invite.code} 已生成（${days} 天有效 · 可用 ${uses} 次）`,
-  };
-}
-
-// 删除未使用的邀请码
-export async function deleteInvite(id: string): Promise<AdminActionState> {
-  const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
-  if (!admin) return { ok: false, error: "无权限" };
-  const iid = parseId(id);
-  if (!iid.data) return { ok: false, error: iid.error ?? "参数不合法" };
-  const invite = await prisma.inviteCode.findUnique({ where: { id: iid.data } });
-  if (!invite) return { ok: false, error: "邀请码不存在" };
-  if (invite.usedCount > 0) return { ok: false, error: "已被使用的邀请码不能删除" };
-  await prisma.inviteCode.delete({ where: { id: iid.data } });
-  revalidatePath("/admin/invites");
-  return { ok: true, message: "已删除" };
-}
-
-// 审核通过评论
-export async function approveComment(id: string): Promise<AdminActionState> {
-  const admin = await requirePermission(PERMISSIONS.APPROVE_COMMENTS);
-  if (!admin) return { ok: false, error: "无权限" };
-  const cid = parseId(id);
-  if (!cid.data) return { ok: false, error: cid.error ?? "参数不合法" };
-  const comment = await prisma.comment.findUnique({
-    where: { id: cid.data },
-    include: {
-      post: { select: { slug: true, title: true, authorId: true } },
-      author: { select: { name: true } },
-      parent: { select: { authorId: true } },
-    },
-  });
-  if (!comment) return { ok: false, error: "评论不存在" };
-  await prisma.comment.update({ where: { id: cid.data }, data: { isApproved: true } });
-  // 站内通知评论作者
-  if (comment.authorId !== admin.id) {
-    await createNotification(comment.authorId, {
-      category: NOTIFICATION_CATEGORIES.SYSTEM,
-      type: "comment_approved",
-      title: "你的评论已通过审核",
-      link: `/blog/${comment.post.slug}`,
-      // 同一文章下多条评论通过合并为一条
-      aggregateKey: `comment_approved:${comment.postId}`,
-    });
-  }
-  // 通知文章作者有人评论了你的文章
-  if (
-    comment.post.authorId !== comment.authorId &&
-    comment.post.authorId !== admin.id
-  ) {
-    await createNotification(comment.post.authorId, {
-      category: NOTIFICATION_CATEGORIES.COMMENT,
-      type: "comment",
-      actorName: comment.author.name,
-      title: `评论了你的文章《${comment.post.title}》`,
-      link: `/blog/${comment.post.slug}`,
-      // 同一文章的评论合并
-      aggregateKey: `comment:${comment.postId}`,
-    });
-  }
-  // 若为回复，通知被回复的用户
-  if (
-    comment.parent &&
-    comment.parent.authorId !== comment.authorId &&
-    comment.parent.authorId !== admin.id
-  ) {
-    await createNotification(comment.parent.authorId, {
-      category: NOTIFICATION_CATEGORIES.COMMENT,
-      type: "reply",
-      actorName: comment.author.name,
-      title: "回复了你的评论",
-      link: `/blog/${comment.post.slug}`,
-      // 同一文章下的回复合并
-      aggregateKey: `reply:${comment.postId}`,
-    });
-  }
-  revalidatePath(`/blog/${comment.post.slug}`);
-  revalidatePath("/admin/comments");
-  return { ok: true, message: "已通过" };
-}
-
-// 删除评论
-export async function deleteComment(id: string): Promise<AdminActionState> {
-  const user = await getFreshUser();
-  if (!user) return { ok: false, error: "无权限" };
-  const moderator = await hasPermission(user.role as Role, PERMISSIONS.DELETE_COMMENTS);
-  const cid = parseId(id);
-  if (!cid.data) return { ok: false, error: cid.error ?? "参数不合法" };
-  const comment = await prisma.comment.findUnique({
-    where: { id: cid.data },
-    include: { post: { select: { slug: true } } },
-  });
-  if (!comment) return { ok: false, error: "评论不存在" };
-  const permitted = moderator || comment.authorId === user.id;
-  if (!permitted) return { ok: false, error: "无权限" };
-  await prisma.comment.deleteMany({ where: { OR: [{ id: cid.data }, { parentId: cid.data }] } });
-  revalidatePath(`/blog/${comment.post.slug}`);
-  revalidatePath("/admin/comments");
-  return { ok: true, message: "已删除" };
-}
-
 // 删除文章后跳回列表
 export async function deletePostAndRedirect(id: string) {
   const result = await deletePost(id);
@@ -546,6 +317,10 @@ export async function batchPosts(
   return { ok: true, message: "已批量处理" };
 }
 
+// 上传失败时仅向客户端暴露这些已知中文文案，其余错误统一通用文案，
+// 避免 @vercel/blob 等底层错误泄漏 bucket 名/内部 URL
+const IMAGE_ERROR_MESSAGES = ["仅支持 JPEG / PNG / WebP / GIF 图片", "图片大小不能超过 5MB"];
+
 // 上传封面图
 export async function uploadImage(
   formData: FormData
@@ -563,7 +338,12 @@ export async function uploadImage(
     const url = await saveImage({ type: file.type, data: buf });
     return { ok: true, url };
   } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : "上传失败" };
+    const known =
+      e instanceof Error
+        ? IMAGE_ERROR_MESSAGES.find((m) => e.message.includes(m)) ?? null
+        : null;
+    if (!known) console.error("上传图片失败：", e);
+    return { ok: false, error: known ?? "上传失败，请稍后重试" };
   }
 }
 

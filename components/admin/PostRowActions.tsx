@@ -5,7 +5,7 @@ import {
   toggleArchive,
   togglePin,
   togglePublish,
-} from "@/app/(admin)/admin/actions";
+} from "@/app/(admin)/admin/posts/actions";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 
 // 文章列表行操作：置顶 / 发布切换 / 归档 / 删除（带确认）

@@ -3,7 +3,7 @@
 import { Icon } from "@/components/ui/Icon";
 import Fuse from "fuse.js";
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { SearchIndexItem } from "@/lib/posts";
 import { searchSnippet } from "@/lib/utils";
 
@@ -11,20 +11,18 @@ import { searchSnippet } from "@/lib/utils";
 export function PostSearch({ index }: { index: SearchIndexItem[] }) {
   const [query, setQuery] = useState("");
   const [open, setOpen] = useState(false);
+  // 惰性构建：仅在用户首次聚焦搜索框时构造索引，避免每次进入页面即付出 O(N·L) 开销
+  const [fuse, setFuse] = useState<Fuse<SearchIndexItem> | null>(null);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  const fuse = useMemo(
-    () =>
-      new Fuse(index, {
-        keys: ["title", "text"],
-        threshold: 0.35,
-        ignoreLocation: true,
-      }),
-    [index]
-  );
+  const ensureFuse = () => {
+    if (!fuse) {
+      setFuse(new Fuse(index, { keys: ["title", "text"], threshold: 0.35, ignoreLocation: true }));
+    }
+  };
 
   const trimmed = query.trim();
-  const results = trimmed
+  const results = fuse && trimmed
     ? fuse.search(trimmed).slice(0, 8).map((r) => r.item)
     : [];
 
@@ -65,8 +63,12 @@ export function PostSearch({ index }: { index: SearchIndexItem[] }) {
           onChange={(e) => {
             setQuery(e.target.value);
             setOpen(true);
+            ensureFuse();
           }}
-          onFocus={() => setOpen(true)}
+          onFocus={() => {
+            setOpen(true);
+            ensureFuse();
+          }}
           placeholder="搜索文章…"
           className="h-11 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
         />

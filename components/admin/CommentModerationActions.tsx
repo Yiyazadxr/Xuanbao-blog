@@ -1,6 +1,6 @@
 "use client";
 
-import { approveComment, deleteComment } from "@/app/(admin)/admin/actions";
+import { approveComment, deleteComment } from "@/app/(admin)/admin/comments/actions";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 
 // 评论审核操作：通过 / 删除

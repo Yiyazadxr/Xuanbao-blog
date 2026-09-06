@@ -2,12 +2,13 @@
 
 // 显示偏好 Server Actions：跨设备同步到账号（字体缩放 + 页面间距 + 界面密度 + 自定义导航栏/页脚 + 视觉动效）
 import { getFreshUser } from "@/lib/auth";
-import { type Density } from "@/lib/display";
+import { type Density, isDensity } from "@/lib/display";
 import { prisma } from "@/lib/prisma";
 import { displayPreferencesSchema, parseInput } from "@/lib/validation";
 
 function toDensity(value: string | null | undefined): Density {
-  return value === "compact" || value === "comfortable" || value === "custom" ? value : "normal";
+  // 复用 lib/display 的白名单守卫，消除分类枚举双份维护
+  return isDensity(value) ? value : "normal";
 }
 
 // 读取账号已同步的显示偏好（未设置返回 null）

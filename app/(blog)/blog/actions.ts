@@ -9,6 +9,7 @@ import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { ROLES } from "@/lib/roles";
 import { commentPageSchema, commentSchema, likeSchema, parseInput } from "@/lib/validation";
 
@@ -38,15 +39,12 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
 
   const isSuperAdmin = user.role === ROLES.SUPER_ADMIN;
 
-  // 普通用户限流：30 秒内只能发一条（防刷评论淹没审核后台）；超管不受限
+  // 普通用户限流：30 秒内只能发一条（防刷评论淹没审核后台）；超管不受限。
+  // 统一走 DB 限流器（与登录/注册同款），消除自造"查最后一条评论时间"的双轨逻辑
   if (!isSuperAdmin) {
-    const lastComment = await prisma.comment.findFirst({
-      where: { authorId: user.id },
-      orderBy: { createdAt: "desc" },
-      select: { createdAt: true },
-    });
-    if (lastComment && Date.now() - lastComment.createdAt.getTime() < 30 * 1000) {
-      return { ok: false, error: "评论太频繁了，请稍等 30 秒再试" };
+    const check = await rateLimit.checkAndHit("comment", user.id, 1, 30 * 1000);
+    if (check.blocked) {
+      return { ok: false, error: `评论太频繁了，请 ${check.retryAfterSec} 秒后再试` };
     }
   }
 
@@ -103,6 +101,14 @@ export async function toggleLike(
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
   const { postId: pid } = parsed.data;
 
+  // 限流：防高频点赞刷 DB 写与通知；超管不受限
+  if (user.role !== ROLES.SUPER_ADMIN) {
+    const check = await rateLimit.checkAndHit("like", user.id, 30, 60 * 1000);
+    if (check.blocked) {
+      return { ok: false, error: `操作太频繁，请 ${check.retryAfterSec} 秒后再试` };
+    }
+  }
+
   // 校验文章存在（防伪造 postId 触发外键错误 / 给不存在的文章点赞）
   const post = await prisma.post.findFirst({
     where: { id: pid, published: true, archived: false },
@@ -144,6 +150,13 @@ export async function getMoreComments(
   const parsed = parseInput(commentPageSchema, { postId, skip });
   if (!parsed.data) {
     return { ok: false, error: parsed.error ?? "参数不合法", comments: [] };
+  }
+
+  // 限流：游客可调用，按 IP 限制拉取频率，防滥用
+  const ip = await getClientIp();
+  const ipCheck = await rateLimit.checkAndHit("comments-fetch", ip, 30, 60 * 1000);
+  if (ipCheck.blocked) {
+    return { ok: false, error: `请求过于频繁，请 ${ipCheck.retryAfterSec} 秒后再试`, comments: [] };
   }
 
   // 校验文章存在且公开，避免对不存在/未公开文章发起无意义查询

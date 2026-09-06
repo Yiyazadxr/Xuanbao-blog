@@ -4,24 +4,20 @@ import { Reveal } from "@/components/ui/Reveal";
 import { Stagger, StaggerItem } from "@/components/ui/Stagger";
 import { HomeSidebar } from "@/components/home/HomeSidebar";
 import { getCategoriesWithCount, getFeaturedPosts, getPosts, getTagsWithCount } from "@/lib/posts";
-import { prisma } from "@/lib/prisma";
+import { getOwnerProfile } from "@/lib/profile";
 
 // 首页主体：双栏布局
 export async function HomeSections() {
-  const [featured, { posts: latest }, categories, tags, owner] = await Promise.all([
+  const [featured, { posts: latestPosts }, categories, tags, owner] = await Promise.all([
     getFeaturedPosts(),
-    getPosts(),
+    // 首页仅展示最新 6 篇，查询层直接 take，避免全量查询后内存切片
+    getPosts({ take: 6 }),
     getCategoriesWithCount(),
     getTagsWithCount(),
-    // 博主资料
-    prisma.user.findFirst({
-      where: { role: "SUPER_ADMIN" },
-      orderBy: { createdAt: "asc" }, // 多个超管时取最早创建者，保证稳定
-      select: { name: true, image: true },
-    }),
+    // 博主资料（数据访问收敛于 lib/）
+    getOwnerProfile(),
   ]);
 
-  const latestPosts = latest.slice(0, 6);
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-24 sm:px-6 lg:flex-row">

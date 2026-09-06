@@ -6,7 +6,7 @@ import {
   createFreeInvite,
   deleteInvite,
   rejectRequest,
-} from "@/app/(admin)/admin/actions";
+} from "@/app/(admin)/admin/invites/actions";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
 import { successCls } from "@/components/ui/form-styles";
 

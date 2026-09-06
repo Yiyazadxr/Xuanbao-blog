@@ -1,5 +1,6 @@
 // 数据库限流（固定窗口计数）：多实例/Serverless 部署下共享同一计数，
 // 生产环境配合 Postgres（Neon）使用，避免内存限流在重启/多实例间失效。
+import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
 function keyName(prefix: string, value: string) {
@@ -97,3 +98,12 @@ export const rateLimit = {
     await prisma.rateLimit.deleteMany({ where: { key: keyName(prefix, value) } });
   },
 };
+
+// 从请求头解析客户端 IP（Vercel/反向代理下取 x-forwarded-for 第一跳）。
+// 原先各 action 文件各自实现，现收敛为单一来源，保证口径一致。
+export async function getClientIp(): Promise<string> {
+  const h = await headers();
+  const fwd = h.get("x-forwarded-for");
+  if (fwd) return fwd.split(",")[0]?.trim() || "unknown";
+  return h.get("x-real-ip") ?? "unknown";
+}

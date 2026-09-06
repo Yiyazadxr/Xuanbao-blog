@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
-import { getPosts } from "@/lib/posts";
+import { getCategoryBySlug, getPosts } from "@/lib/posts";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -19,7 +19,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const cat = await prisma.category.findUnique({ where: { slug } });
+  const cat = await getCategoryBySlug(slug);
   if (!cat) return { title: "分类未找到" };
   return {
     title: `${cat.name} · 分类`,
@@ -33,7 +33,7 @@ export default async function CategoryPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const cat = await prisma.category.findUnique({ where: { slug } });
+  const cat = await getCategoryBySlug(slug);
   if (!cat) notFound();
 
   const { posts, total } = await getPosts({ categorySlug: slug });

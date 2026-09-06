@@ -6,6 +6,7 @@ import { PostContent } from "@/components/blog/PostContent";
 import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { parseId } from "@/lib/validation";
 import { formatDate, readingTime } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "预览文章" };
@@ -21,8 +22,10 @@ export default async function PreviewPostPage({
   if (!admin) redirect("/");
 
   const { id } = await params;
+  const parsed = parseId(id);
+  if (!parsed.data) notFound();
   const post = await prisma.post.findUnique({
-    where: { id },
+    where: { id: parsed.data },
     include: { category: true, tags: { include: { tag: true } } },
   });
   if (!post) notFound();

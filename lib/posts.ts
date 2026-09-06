@@ -1,5 +1,6 @@
 // 文章数据查询层：所有文章相关的数据库读写集中在这里
 import { unstable_cache } from "next/cache";
+import { cache } from "react";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { markdownToText, readingTimeFromWordCount } from "@/lib/utils";
@@ -17,7 +18,6 @@ export type PostListItem = {
   readingTime: number;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
-  series: { id: string; name: string; slug: string } | null;
   tags: { tag: { id: string; name: string; slug: string } }[];
 };
 
@@ -30,7 +30,6 @@ type ListPostRow = {
   wordCount: number | null;
   createdAt: Date;
   category: { id: string; name: string; slug: string } | null;
-  series: { id: string; name: string; slug: string } | null;
   tags: { tag: { id: string; name: string; slug: string } }[];
 };
 
@@ -47,7 +46,6 @@ function toListItem(row: ListPostRow): PostListItem {
     readingTime: readingTimeFromWordCount(row.wordCount),
     createdAt: row.createdAt,
     category: row.category,
-    series: row.series,
     tags: row.tags,
   };
 }
@@ -62,19 +60,21 @@ const listSelect = {
   wordCount: true,
   createdAt: true,
   category: { select: { id: true, name: true, slug: true } },
-  series: { select: { id: true, name: true, slug: true } },
   tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
 } as const;
 
 // 文章列表（全部公开文章，客户端分页；置顶优先）
+// take 可选：首页等只需前 N 篇时在查询层直接裁剪，避免全量查询后内存切片
 export async function getPosts({
   categorySlug,
   tagSlug,
   seriesSlug,
+  take,
 }: {
   categorySlug?: string;
   tagSlug?: string;
   seriesSlug?: string;
+  take?: number;
 } = {}) {
   const where = {
     ...PUBLISHED_FILTER,
@@ -87,6 +87,7 @@ export async function getPosts({
     where,
     orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
     select: listSelect,
+    take,
   });
 
   const posts = rows.map(toListItem);
@@ -105,26 +106,33 @@ export async function getFeaturedPosts() {
 }
 
 // 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）。
-// text 为正文去 Markdown 后的纯文本，使搜索覆盖正文全文；服务端生成避免把原始 Markdown 下发客户端。
+// text 为正文去 Markdown 后的纯文本，截断至 SEARCH_INDEX_TEXT_MAX 字符：
+// 足以覆盖 searchSnippet 片段提取与常见关键词命中，同时避免长正文把 RSC payload 撑到数百 KB。
+const SEARCH_INDEX_TEXT_MAX = 500;
+
 export async function getSearchIndex() {
   const rows = await prisma.post.findMany({
     where: PUBLISHED_FILTER,
     orderBy: { createdAt: "desc" },
     select: { slug: true, title: true, excerpt: true, content: true, createdAt: true },
   });
-  return rows.map((r) => ({
-    slug: r.slug,
-    title: r.title,
-    excerpt: r.excerpt ?? "",
-    text: markdownToText(r.content),
-    createdAt: r.createdAt,
-  }));
+  return rows.map((r) => {
+    const full = markdownToText(r.content);
+    return {
+      slug: r.slug,
+      title: r.title,
+      excerpt: r.excerpt ?? "",
+      text: full.length > SEARCH_INDEX_TEXT_MAX ? full.slice(0, SEARCH_INDEX_TEXT_MAX) : full,
+      createdAt: r.createdAt,
+    };
+  });
 }
 
 export type SearchIndexItem = Awaited<ReturnType<typeof getSearchIndex>>[number];
 
 // 单篇文章详情
-export async function getPostBySlug(slug: string) {
+// 用 React cache 包裹：详情页 generateMetadata 与 Page 同一请求内只查一次库
+export const getPostBySlug = cache(async (slug: string) => {
   return prisma.post.findFirst({
     where: { slug, ...PUBLISHED_FILTER },
     include: {
@@ -134,7 +142,13 @@ export async function getPostBySlug(slug: string) {
       tags: { include: { tag: true } },
     },
   });
-}
+});
+
+// 分类详情（按 slug）
+// 用 React cache 包裹：分类页 generateMetadata 与 Page 同一请求内只查一次库
+export const getCategoryBySlug = cache(async (slug: string) => {
+  return prisma.category.findUnique({ where: { slug } });
+});
 
 // 同一系列内的上一篇 / 下一篇（按发布时间升序，即系列连载顺序）
 export async function getSeriesAdjacent(seriesId: string, postId: string) {
@@ -217,7 +231,11 @@ export async function getArchive() {
 }
 
 // 页脚统计：运行天数 + 总阅读量 + 公开文章数 + 正文总字数
-// 用 unstable_cache 包裹，5 分钟内重复请求直接返回缓存，避免全站每个页面都查库拖慢性能
+// 用 unstable_cache 包裹，5 分钟内重复请求直接返回缓存，避免全站每个页面都查库拖慢性能。
+// 注：Next 16 中 unstable_cache 已弃用，推荐迁移至 "use cache" 指令 + cacheTag/cacheLife；
+// 但 "use cache"/cacheTag 要求在 next.config.ts 启用 cacheComponents（全应用静态优先、
+// 动态 API 需显式 opt-in），属于影响所有路由缓存语义的大变更，超出本次优化爆炸半径，
+// 暂缓迁移，待单独评估 cacheComponents 全量影响后再做。
 export const getSiteStats = unstable_cache(
   async () => {
     const [postCount, viewAgg, wordAgg] = await Promise.all([

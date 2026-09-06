@@ -12,6 +12,7 @@ import {
   WAVE_INTENSITY_MAX,
   WAVE_INTENSITY_MIN,
 } from "@/lib/display";
+import { NOTIFICATION_CATEGORIES, type NotificationCategory } from "@/lib/notification-types";
 
 // 通用：数据库记录 ID（cuid 等字符串主键）
 export const idSchema = z.object({ id: z.string().trim().min(1, "缺少 ID").max(100) });
@@ -55,6 +56,9 @@ export const changePasswordSchema = z.object({
   confirmPassword: z.string().min(1, "请再次输入新密码"),
 });
 
+// 摘要最大字数：前后端共用同一来源，消除 PostEditor maxLength 与 Zod 约束漂移
+export const EXCERPT_MAX = 500;
+
 // 文章保存/发布
 export const postSchema = z.object({
   id: z.string().trim().max(100).optional(),
@@ -64,7 +68,7 @@ export const postSchema = z.object({
     .string()
     .max(1_000_000, "正文过长")
     .refine((v) => v.trim().length > 0, "正文不能为空"),
-  excerpt: z.string().trim().max(500, "摘要最长 500 字").optional().default(""),
+  excerpt: z.string().trim().max(EXCERPT_MAX, `摘要最长 ${EXCERPT_MAX} 字`).optional().default(""),
   coverImage: z.string().trim().max(500).nullable().optional().default(null),
   categoryId: z.string().trim().max(100).nullable().optional().default(null),
   seriesId: z.string().trim().max(100).nullable().optional().default(null),
@@ -148,6 +152,23 @@ export const batchPostsSchema = z.object({
   ids: z.array(z.string().min(1).max(100)).min(1, "请选择文章").max(200, "一次最多 200 篇"),
   operation: z.enum(["publish", "unpublish", "archive", "delete", "category"]),
   categoryId: z.string().max(100).nullable().optional(),
+});
+
+// 通用邀请码生成参数（有效期天数 + 可用次数，带默认值）
+export const freeInviteSchema = z.object({
+  expiresInDays: z.number().int().min(1, "有效期至少 1 天").max(365, "有效期最长 365 天").optional().default(7),
+  maxUses: z.number().int().min(1, "可用次数至少 1 次").max(1000, "可用次数最多 1000 次").optional().default(1),
+});
+
+// 通知分类枚举（与 NOTIFICATION_CATEGORIES 同源，新增分类时 schema 自动同步）
+export const notificationCategorySchema = z.enum(
+  Object.values(NOTIFICATION_CATEGORIES) as [NotificationCategory, ...NotificationCategory[]]
+);
+
+// 通知列表查询参数：分类（all 或具体分类）+ 游标
+export const notificationsQuerySchema = z.object({
+  category: z.union([z.literal("all"), notificationCategorySchema]),
+  cursor: z.string().trim().max(200).optional(),
 });
 
 // 通用解析：返回统一错误信息，避免把 Zod 原始错误结构暴露给客户端
