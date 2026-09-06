@@ -3,8 +3,9 @@
 // 全站水墨背景：鼠标划过拖出墨迹，随流场晕开后淡去；点击是点墨
 
 import { InkFluid, INK_MAX_DENSITY } from "@/lib/ink-fluid";
+import { readVar, type Rgb } from "@/lib/color";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 /** 网格单元边长，越小越细腻但开销越大 */
 const CELL_SIZE = 12;
@@ -33,49 +34,28 @@ for (let i = 0; i < LUT_SIZE; i++) {
   ALPHA_LUT[i] = 1 - Math.exp(-d * 4.0);
 }
 
-type Rgb = [number, number, number];
 interface Palette {
   rgb: Rgb;
   /** 最浓处的不透明度 */
   peak: number;
 }
 
-/** 解析 CSS 变量颜色，失败时回落到 fallback */
-function parseColor(value: string, fallback: Rgb): Rgb {
-  const raw = value.trim();
-  if (raw.startsWith("#")) {
-    const hex = raw.slice(1);
-    if (hex.length === 3 || hex.length === 4) {
-      const r = parseInt(hex[0] + hex[0], 16);
-      const g = parseInt(hex[1] + hex[1], 16);
-      const b = parseInt(hex[2] + hex[2], 16);
-      if ([r, g, b].every((n) => Number.isFinite(n))) return [r, g, b];
-    } else if (hex.length === 6 || hex.length === 8) {
-      const r = parseInt(hex.slice(0, 2), 16);
-      const g = parseInt(hex.slice(2, 4), 16);
-      const b = parseInt(hex.slice(4, 6), 16);
-      if ([r, g, b].every((n) => Number.isFinite(n))) return [r, g, b];
-    }
-  } else {
-    const m = raw.match(/-?\d+(\.\d+)?/g);
-    if (m && m.length >= 3) {
-      return [Number(m[0]), Number(m[1]), Number(m[2])];
-    }
-  }
-  return fallback;
-}
-
-function readVar(name: string, fallback: Rgb): Rgb {
-  if (typeof document === "undefined") return fallback;
-  const raw = getComputedStyle(document.documentElement).getPropertyValue(name);
-  return parseColor(raw, fallback);
-}
-
 export function InkBackground() {
   const reduceMotion = usePrefersReducedMotion();
+  const [enabled, setEnabled] = useState(true);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const paletteRef = useRef<Palette>({ rgb: [28, 25, 23], peak: 0.42 });
   const reduceMotionRef = useRef(false);
+
+  // 墨迹开关：读 <html data-ink>，设置页可关。默认开。
+  useEffect(() => {
+    const html = document.documentElement;
+    const sync = () => setEnabled(html.getAttribute("data-ink") !== "off");
+    sync();
+    const obs = new MutationObserver(sync);
+    obs.observe(html, { attributes: true, attributeFilter: ["data-ink"] });
+    return () => obs.disconnect();
+  }, []);
 
   // 用 ref 传值而非 effect 依赖，避免偏好变化时重建 fluid 把已有墨迹清空
   useEffect(() => {
@@ -100,6 +80,7 @@ export function InkBackground() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext("2d");
@@ -367,7 +348,9 @@ export function InkBackground() {
       document.removeEventListener("visibilitychange", onVisibility);
       ctx.clearRect(0, 0, canvas.width, canvas.height);
     };
-  }, []);
+  }, [enabled]);
+
+  if (!enabled) return null;
 
   return (
     <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">

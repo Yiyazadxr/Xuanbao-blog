@@ -21,18 +21,26 @@ import {
   readFooterPy,
   readFontScale,
   readHeaderH,
+  readInkEnabled,
   readSpacingScale,
+  readWaveIntensity,
   setSyncEnabled,
   SPACING_SCALE_MAX,
   SPACING_SCALE_MIN,
   SPACING_SCALE_STEP,
+  WAVE_INTENSITY_MAX,
+  WAVE_INTENSITY_MIN,
+  WAVE_INTENSITY_STEP,
   writeDensity,
   writeFontScale,
   writeFooterPy,
   writeHeaderH,
+  writeInkEnabled,
   writeSpacingScale,
+  writeWaveIntensity,
   type Density,
 } from "@/lib/display";
+import { setReducedMotion, usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { successCls } from "@/components/ui/form-styles";
 
 const rangeCls =
@@ -48,15 +56,30 @@ export function DisplayForm() {
   const [sync, setSync] = useState(isSyncEnabled());
   const [syncPending, setSyncPending] = useState(false);
   const [msg, setMsg] = useState("");
+  const [waveIntensity, setWaveIntensity] = useState(readWaveIntensity);
+  const [inkEnabled, setInkEnabled] = useState(readInkEnabled);
+  const reduceMotion = usePrefersReducedMotion();
 
-  function persist(scale: number, sp: number, d: Density, hh: number, fp: number) {
+  function persist(
+    scale: number,
+    sp: number,
+    d: Density,
+    hh: number,
+    fp: number,
+    wv: number,
+    ink: boolean,
+    motion: boolean
+  ) {
     if (!sync) return;
     void saveDisplayPreferences(
       scale,
       sp,
       d,
       d === "custom" ? hh : null,
-      d === "custom" ? fp : null
+      d === "custom" ? fp : null,
+      wv,
+      ink,
+      motion
     );
   }
 
@@ -64,35 +87,52 @@ export function DisplayForm() {
     setFontScale(v);
     writeFontScale(v);
     applyDisplay(v, density, headerH, footerPy, spacingScale);
-    persist(v, spacingScale, density, headerH, footerPy);
+    persist(v, spacingScale, density, headerH, footerPy, waveIntensity, inkEnabled, reduceMotion);
   }
 
   function changeSpacingScale(v: number) {
     setSpacingScale(v);
     writeSpacingScale(v);
     applyDisplay(fontScale, density, headerH, footerPy, v);
-    persist(fontScale, v, density, headerH, footerPy);
+    persist(fontScale, v, density, headerH, footerPy, waveIntensity, inkEnabled, reduceMotion);
   }
 
   function changeDensity(d: Density) {
     setDensity(d);
     writeDensity(d);
     applyDisplay(fontScale, d, headerH, footerPy, spacingScale);
-    persist(fontScale, spacingScale, d, headerH, footerPy);
+    persist(fontScale, spacingScale, d, headerH, footerPy, waveIntensity, inkEnabled, reduceMotion);
   }
 
   function changeHeaderH(px: number) {
     setHeaderH(px);
     writeHeaderH(px);
     applyDisplay(fontScale, density, px, footerPy, spacingScale);
-    persist(fontScale, spacingScale, density, px, footerPy);
+    persist(fontScale, spacingScale, density, px, footerPy, waveIntensity, inkEnabled, reduceMotion);
   }
 
   function changeFooterPy(px: number) {
     setFooterPy(px);
     writeFooterPy(px);
     applyDisplay(fontScale, density, headerH, px, spacingScale);
-    persist(fontScale, spacingScale, density, headerH, px);
+    persist(fontScale, spacingScale, density, headerH, px, waveIntensity, inkEnabled, reduceMotion);
+  }
+
+  function changeWaveIntensity(v: number) {
+    setWaveIntensity(v);
+    writeWaveIntensity(v);
+    persist(fontScale, spacingScale, density, headerH, footerPy, v, inkEnabled, reduceMotion);
+  }
+
+  function changeInkEnabled(enabled: boolean) {
+    setInkEnabled(enabled);
+    writeInkEnabled(enabled);
+    persist(fontScale, spacingScale, density, headerH, footerPy, waveIntensity, enabled, reduceMotion);
+  }
+
+  function changeReduceMotion(enabled: boolean) {
+    setReducedMotion(enabled);
+    persist(fontScale, spacingScale, density, headerH, footerPy, waveIntensity, inkEnabled, enabled);
   }
 
   async function toggleSync(enabled: boolean) {
@@ -112,23 +152,34 @@ export function DisplayForm() {
       const finalDensity = prefs?.density ?? density;
       const finalH = prefs?.headerH ?? headerH;
       const finalFp = prefs?.footerPy ?? footerPy;
+      const finalWave = prefs?.waveIntensity ?? waveIntensity;
+      const finalInk = prefs?.inkEnabled ?? inkEnabled;
+      const finalMotion = prefs?.reduceMotion ?? reduceMotion;
       setFontScale(finalScale);
       setSpacingScale(finalSpacing);
       setDensity(finalDensity);
       setHeaderH(finalH);
       setFooterPy(finalFp);
+      setWaveIntensity(finalWave);
+      setInkEnabled(finalInk);
+      setReducedMotion(finalMotion);
       writeFontScale(finalScale);
       writeSpacingScale(finalSpacing);
       writeDensity(finalDensity);
       writeHeaderH(finalH);
       writeFooterPy(finalFp);
+      writeWaveIntensity(finalWave);
+      writeInkEnabled(finalInk);
       applyDisplay(finalScale, finalDensity, finalH, finalFp, finalSpacing);
       await saveDisplayPreferences(
         finalScale,
         finalSpacing,
         finalDensity,
         finalDensity === "custom" ? finalH : null,
-        finalDensity === "custom" ? finalFp : null
+        finalDensity === "custom" ? finalFp : null,
+        finalWave,
+        finalInk,
+        finalMotion
       );
       setMsg("已开启跨设备同步，登录其他设备会自动同步");
     } finally {
@@ -247,6 +298,59 @@ export function DisplayForm() {
           </div>
         </div>
       )}
+
+      {/* 远山水墨强度 */}
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">远山水墨强度</span>
+          <span className="text-sm tabular-nums text-muted">{Math.round(waveIntensity * 100)}%</span>
+        </div>
+        <input
+          id="wave-intensity"
+          type="range"
+          min={WAVE_INTENSITY_MIN}
+          max={WAVE_INTENSITY_MAX}
+          step={WAVE_INTENSITY_STEP}
+          value={waveIntensity}
+          onChange={(e) => changeWaveIntensity(Number(e.target.value))}
+          className={rangeCls}
+        />
+        <p className="mt-1 text-xs text-muted">调节页面底部远山水墨装饰的浓淡</p>
+      </div>
+
+      {/* 水墨墨迹开关 */}
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border p-4">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">水墨墨迹</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            鼠标划过时拖出水墨晕染特效（关闭可提升性能）
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={inkEnabled}
+          onChange={(e) => changeInkEnabled(e.target.checked)}
+          className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+          role="switch"
+        />
+      </label>
+
+      {/* 减少动效开关 */}
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border p-4">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">减少动效</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            关闭全站入场与滚动动画，减少视觉刺激
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={reduceMotion}
+          onChange={(e) => changeReduceMotion(e.target.checked)}
+          className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+          role="switch"
+        />
+      </label>
 
       {/* 跨设备同步 */}
       <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border p-4">

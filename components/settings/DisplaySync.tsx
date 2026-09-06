@@ -10,8 +10,11 @@ import {
   writeFontScale,
   writeFooterPy,
   writeHeaderH,
+  writeInkEnabled,
   writeSpacingScale,
+  writeWaveIntensity,
 } from "@/lib/display";
+import { setReducedMotion } from "@/lib/use-reduced-motion";
 
 // 登录后若开启跨设备同步，从账号拉取显示偏好并应用（否则仅用本地 localStorage）
 export function DisplaySync() {
@@ -27,6 +30,9 @@ export function DisplaySync() {
       writeDensity(prefs.density);
       if (prefs.headerH != null) writeHeaderH(prefs.headerH);
       if (prefs.footerPy != null) writeFooterPy(prefs.footerPy);
+      if (prefs.waveIntensity != null) writeWaveIntensity(prefs.waveIntensity);
+      if (prefs.inkEnabled != null) writeInkEnabled(prefs.inkEnabled);
+      if (prefs.reduceMotion != null) setReducedMotion(prefs.reduceMotion);
       applyDisplay(
         prefs.fontScale,
         prefs.density,

@@ -38,6 +38,10 @@ model User {
   density      String?
   headerH      Int? // 自定义密度：导航栏高度 px
   footerPy     Int? // 自定义密度：页脚间距 px
+  // 视觉动效偏好（跨设备同步）
+  waveIntensity Float? // 远山水墨强度 0~1.5
+  inkEnabled    Boolean? // 水墨墨迹开关
+  reduceMotion  Boolean? // 减少动效开关
 
   posts        Post[]
   comments     Comment[]

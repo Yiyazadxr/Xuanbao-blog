@@ -9,9 +9,11 @@ import { NAV_LINKS, SITE } from "@/lib/constants";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
+import { AnimatedText } from "@/components/ui/AnimatedText";
+import { SPRING_SNAP } from "@/lib/motion";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
-// 全站吸顶导航：玻璃拟态，滚动后加深背景；移动端折叠为汉堡菜单
+// 全站吸顶导航 移动端折叠成汉堡菜单
 export function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
@@ -26,7 +28,7 @@ export function Header() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  // 移动端菜单打开时锁定焦点、关闭时归还给汉堡按钮
+  // 移动端菜单打开时锁定焦点、关闭时归还
   useFocusTrap(menuPanelRef, menuOpen);
 
   // Escape 键关闭移动端菜单
@@ -79,9 +81,10 @@ export function Header() {
               return (
                 <motion.div
                   key={link.href}
-                  whileHover={{ scale: 1.03 }}
+                  className="group"
+                  whileHover={{ scale: 1.02, y: -1 }}
                   whileTap={{ scale: 0.97 }}
-                  transition={{ type: "spring", stiffness: 350, damping: 22 }}
+                  transition={SPRING_SNAP}
                 >
                   <Link
                     href={link.href}
@@ -92,7 +95,7 @@ export function Header() {
                         : "text-muted hover:bg-foreground/[0.045] hover:text-foreground"
                     }`}
                   >
-                    {link.label}
+                    <AnimatedText text={link.label} />
                   </Link>
                 </motion.div>
               );

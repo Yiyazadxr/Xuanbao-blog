@@ -19,6 +19,8 @@
   /* 背景光斑：亮色模式用更柔和的光斑 */
   --glow-1: rgba(15, 118, 110, 0.12);
   --glow-2: rgba(34, 211, 238, 0.1);
+  /* 远山水墨强度（WaveBackground 各层透明度倍率，设置页可调） */
+  --wave-intensity: 1;
   /* 全站统一缓动（与 lib/motion.ts 的 EASE_DRAMATIC 一致） */
   --ease-custom: cubic-bezier(0.79, 0, 0.06, 1);
 }

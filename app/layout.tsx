@@ -9,6 +9,7 @@ import { InkBackground } from "@/components/layout/InkBackground";
 import { ScrollToTop } from "@/components/layout/ScrollToTop";
 import { Providers } from "@/components/Providers";
 import { SmoothScroll } from "@/components/SmoothScroll";
+import { WaveBackground } from "@/components/home/WaveBackground";
 import { SITE } from "@/lib/constants";
 import { DISPLAY_PREHYDRATE_SCRIPT } from "@/lib/display";
 
@@ -78,6 +79,7 @@ export default function RootLayout({
           <SmoothScroll />
           <Header />
           <main id="main-content" className="flex-1">{children}</main>
+          <WaveBackground />
           <Footer />
           <ScrollToTop />
         </Providers>

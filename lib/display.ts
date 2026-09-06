@@ -45,12 +45,31 @@ export const FOOTER_PY_MIN = Math.round(24 / 1.2); // 20
 export const FOOTER_PY_MAX = Math.floor(48 * 1.2); // 57
 export const FOOTER_PY_DEFAULT = 40;
 
+// 远山水墨强度：0~1.5 倍率，作用于 WaveBackground 各层透明度
+export const WAVE_INTENSITY_MIN = 0;
+export const WAVE_INTENSITY_MAX = 1.5;
+export const WAVE_INTENSITY_STEP = 0.05;
+export const WAVE_INTENSITY_DEFAULT = 1;
+
+export function isWaveIntensity(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    value >= WAVE_INTENSITY_MIN &&
+    value <= WAVE_INTENSITY_MAX
+  );
+}
+
+// 水墨墨迹（InkBackground）开关：默认开
+export const INK_ENABLED_DEFAULT = true;
+
 const LS_FONT_SCALE = "xr-font-scale";
 const LS_DENSITY = "xr-density";
 const LS_HEADER_H = "xr-header-h";
 const LS_FOOTER_PY = "xr-footer-py";
 const LS_SPACING = "xr-spacing";
 const LS_SYNC = "xr-sync";
+const LS_WAVE_INTENSITY = "xr-wave-intensity";
+const LS_INK_ENABLED = "xr-ink-enabled";
 
 function clampNum(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
@@ -131,6 +150,41 @@ export function writeFooterPy(px: number): void {
   }
 }
 
+export function readWaveIntensity(): number {
+  if (typeof window === "undefined") return WAVE_INTENSITY_DEFAULT;
+  const v = Number(localStorage.getItem(LS_WAVE_INTENSITY));
+  return Number.isFinite(v) && v >= WAVE_INTENSITY_MIN && v <= WAVE_INTENSITY_MAX
+    ? v
+    : WAVE_INTENSITY_DEFAULT;
+}
+
+export function writeWaveIntensity(v: number): void {
+  try {
+    localStorage.setItem(LS_WAVE_INTENSITY, String(v));
+  } catch {
+    /* 忽略 */
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.style.setProperty("--wave-intensity", String(v));
+  }
+}
+
+export function readInkEnabled(): boolean {
+  if (typeof window === "undefined") return INK_ENABLED_DEFAULT;
+  return localStorage.getItem(LS_INK_ENABLED) !== "0";
+}
+
+export function writeInkEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(LS_INK_ENABLED, enabled ? "1" : "0");
+  } catch {
+    /* 忽略 */
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-ink", enabled ? "on" : "off");
+  }
+}
+
 export function setSyncEnabled(enabled: boolean): void {
   try {
     if (enabled) localStorage.setItem(LS_SYNC, "1");
@@ -164,4 +218,4 @@ export function applyDisplay(
 }
 
 // 预水合内联脚本（注入到 <head>，React 挂载前执行，避免 FOUC）
-export const DISPLAY_PREHYDRATE_SCRIPT = `(function(){try{var s=localStorage.getItem("xr-font-scale"),sp=localStorage.getItem("xr-spacing"),d=localStorage.getItem("xr-density"),hh=localStorage.getItem("xr-header-h"),fp=localStorage.getItem("xr-footer-py"),h=document.documentElement;if(s)h.style.setProperty("--font-scale",s);if(sp)h.style.setProperty("--spacing-scale",sp);if(d==="custom"){if(hh)h.style.setProperty("--header-h",hh+"px");if(fp)h.style.setProperty("--footer-py",fp+"px");}else if(d){h.setAttribute("data-density",d);}}catch(e){}})();`;
+export const DISPLAY_PREHYDRATE_SCRIPT = `(function(){try{var s=localStorage.getItem("xr-font-scale"),sp=localStorage.getItem("xr-spacing"),d=localStorage.getItem("xr-density"),hh=localStorage.getItem("xr-header-h"),fp=localStorage.getItem("xr-footer-py"),wv=localStorage.getItem("xr-wave-intensity"),ink=localStorage.getItem("xr-ink-enabled"),h=document.documentElement;if(s)h.style.setProperty("--font-scale",s);if(sp)h.style.setProperty("--spacing-scale",sp);if(wv)h.style.setProperty("--wave-intensity",wv);if(ink==="0")h.setAttribute("data-ink","off");if(d==="custom"){if(hh)h.style.setProperty("--header-h",hh+"px");if(fp)h.style.setProperty("--footer-py",fp+"px");}else if(d){h.setAttribute("data-density",d);}}catch(e){}})();`;

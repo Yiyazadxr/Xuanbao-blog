@@ -1,6 +1,6 @@
 "use server";
 
-// 显示偏好 Server Actions：跨设备同步到账号（字体缩放 + 页面间距 + 界面密度 + 自定义导航栏/页脚）
+// 显示偏好 Server Actions：跨设备同步到账号（字体缩放 + 页面间距 + 界面密度 + 自定义导航栏/页脚 + 视觉动效）
 import { getFreshUser } from "@/lib/auth";
 import {
   FONT_SCALE_MAX,
@@ -11,6 +11,7 @@ import {
   HEADER_H_MIN,
   isDensity,
   isSpacingScale,
+  isWaveIntensity,
   type Density,
 } from "@/lib/display";
 import { prisma } from "@/lib/prisma";
@@ -26,12 +27,24 @@ export async function getDisplayPreferences(): Promise<{
   density: Density;
   headerH: number | null;
   footerPy: number | null;
+  waveIntensity: number | null;
+  inkEnabled: boolean | null;
+  reduceMotion: boolean | null;
 } | null> {
   const user = await getFreshUser();
   if (!user) return null;
   const dbUser = await prisma.user.findUnique({
     where: { id: user.id },
-    select: { fontScale: true, spacingScale: true, density: true, headerH: true, footerPy: true },
+    select: {
+      fontScale: true,
+      spacingScale: true,
+      density: true,
+      headerH: true,
+      footerPy: true,
+      waveIntensity: true,
+      inkEnabled: true,
+      reduceMotion: true,
+    },
   });
   if (!dbUser || dbUser.fontScale == null) return null;
   return {
@@ -40,6 +53,9 @@ export async function getDisplayPreferences(): Promise<{
     density: toDensity(dbUser.density),
     headerH: dbUser.headerH,
     footerPy: dbUser.footerPy,
+    waveIntensity: dbUser.waveIntensity,
+    inkEnabled: dbUser.inkEnabled,
+    reduceMotion: dbUser.reduceMotion,
   };
 }
 
@@ -49,7 +65,10 @@ export async function saveDisplayPreferences(
   spacingScale: number,
   density: string,
   headerH?: number | null,
-  footerPy?: number | null
+  footerPy?: number | null,
+  waveIntensity?: number | null,
+  inkEnabled?: boolean | null,
+  reduceMotion?: boolean | null
 ): Promise<{ ok: boolean; error?: string }> {
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };
@@ -71,9 +90,19 @@ export async function saveDisplayPreferences(
     headerH != null ? Math.min(HEADER_H_MAX, Math.max(HEADER_H_MIN, Math.round(headerH))) : null;
   const fp =
     footerPy != null ? Math.min(FOOTER_PY_MAX, Math.max(FOOTER_PY_MIN, Math.round(footerPy))) : null;
+  const wv = waveIntensity != null && isWaveIntensity(waveIntensity) ? waveIntensity : null;
   await prisma.user.update({
     where: { id: user.id },
-    data: { fontScale, spacingScale, density: d, headerH: hh, footerPy: fp },
+    data: {
+      fontScale,
+      spacingScale,
+      density: d,
+      headerH: hh,
+      footerPy: fp,
+      waveIntensity: wv,
+      inkEnabled: inkEnabled ?? null,
+      reduceMotion: reduceMotion ?? null,
+    },
   });
   return { ok: true };
 }
@@ -84,7 +113,16 @@ export async function clearDisplayPreferences(): Promise<{ ok: boolean; error?: 
   if (!user) return { ok: false, error: "请先登录" };
   await prisma.user.update({
     where: { id: user.id },
-    data: { fontScale: null, spacingScale: null, density: null, headerH: null, footerPy: null },
+    data: {
+      fontScale: null,
+      spacingScale: null,
+      density: null,
+      headerH: null,
+      footerPy: null,
+      waveIntensity: null,
+      inkEnabled: null,
+      reduceMotion: null,
+    },
   });
   return { ok: true };
 }

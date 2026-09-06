@@ -1,18 +1,19 @@
 import Link from "next/link";
 import { PostCard } from "@/components/blog/PostCard";
 import { Reveal } from "@/components/ui/Reveal";
+import { Stagger, StaggerItem } from "@/components/ui/Stagger";
 import { HomeSidebar } from "@/components/home/HomeSidebar";
 import { getCategoriesWithCount, getFeaturedPosts, getPosts, getTagsWithCount } from "@/lib/posts";
 import { prisma } from "@/lib/prisma";
 
-// 首页主体：双栏布局（左侧信息栏 + 右侧文章流）
+// 首页主体：双栏布局
 export async function HomeSections() {
   const [featured, { posts: latest }, categories, tags, owner] = await Promise.all([
     getFeaturedPosts(),
     getPosts(),
     getCategoriesWithCount(),
     getTagsWithCount(),
-    // 博主（SUPER_ADMIN）资料：左侧栏展示其头像/昵称，未配置则为默认「暄」字
+    // 博主资料
     prisma.user.findFirst({
       where: { role: "SUPER_ADMIN" },
       orderBy: { createdAt: "asc" }, // 多个超管时取最早创建者，保证稳定
@@ -37,13 +38,13 @@ export async function HomeSections() {
                 精选文章
               </h2>
             </Reveal>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              {featured.map((post, i) => (
-                <Reveal key={post.id} delay={i * 0.08}>
+            <Stagger className="mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
+              {featured.map((post) => (
+                <StaggerItem key={post.id}>
                   <PostCard post={post} />
-                </Reveal>
+                </StaggerItem>
               ))}
-            </div>
+            </Stagger>
           </section>
         )}
 
@@ -63,13 +64,13 @@ export async function HomeSections() {
                 </Link>
               </div>
             </Reveal>
-            <div className="mt-6 grid gap-5 sm:grid-cols-2">
-              {latestPosts.map((post, i) => (
-                <Reveal key={post.id} delay={i * 0.06}>
+            <Stagger className="mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
+              {latestPosts.map((post) => (
+                <StaggerItem key={post.id}>
                   <PostCard post={post} />
-                </Reveal>
+                </StaggerItem>
               ))}
-            </div>
+            </Stagger>
           </section>
         )}
       </div>
