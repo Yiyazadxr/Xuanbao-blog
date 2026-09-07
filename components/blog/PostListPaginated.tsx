@@ -32,7 +32,7 @@ export function PostListPaginated({
 
   return (
     <>
-      <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="cover-grid-3 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
         {current.map((post) => (
           <PostCard key={post.id} post={post} />
         ))}

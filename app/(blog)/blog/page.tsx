@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
+import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { PostSearch } from "@/components/blog/PostSearch";
 import { websiteOpenGraph } from "@/lib/metadata";
@@ -55,7 +56,9 @@ export default async function BlogPage() {
       </div>
 
       <div className="mt-10">
-        <Suspense>
+        {/* PostListPaginated 是客户端组件且用 useSearchParams，静态渲染时需要 Suspense 边界，
+            fallback 直接给骨架，首屏与翻页都不留空白 */}
+        <Suspense fallback={<PostGridSkeleton />}>
           <PostListPaginated posts={posts} basePath="/blog" />
         </Suspense>
       </div>

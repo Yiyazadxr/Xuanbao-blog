@@ -34,7 +34,7 @@ export async function HomeSections() {
                 精选文章
               </h2>
             </Reveal>
-            <Stagger className="mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
+            <Stagger className="cover-grid-2 mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
               {featured.map((post) => (
                 <StaggerItem key={post.id}>
                   <PostCard post={post} />
@@ -60,7 +60,7 @@ export async function HomeSections() {
                 </Link>
               </div>
             </Reveal>
-            <Stagger className="mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
+            <Stagger className="cover-grid-2 mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
               {latestPosts.map((post) => (
                 <StaggerItem key={post.id}>
                   <PostCard post={post} />

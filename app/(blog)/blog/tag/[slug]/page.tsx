@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
+import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { websiteOpenGraph } from "@/lib/metadata";
 import { getPosts } from "@/lib/posts";
@@ -49,7 +50,7 @@ export default async function TagPage({
       </h1>
       <p className="mt-2 text-sm text-muted">共 {total} 篇文章</p>
       <div className="mt-8">
-        <Suspense>
+        <Suspense fallback={<PostGridSkeleton />}>
           <PostListPaginated posts={posts} basePath={`/blog/tag/${slug}`} />
         </Suspense>
       </div>
