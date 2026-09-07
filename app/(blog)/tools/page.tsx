@@ -1,8 +1,15 @@
 import { Icon } from "@/components/ui/Icon";
 import type { Metadata } from "next";
 import { TOOLS, TOOL_CATEGORIES } from "@/lib/constants";
+import { websiteOpenGraph } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "工具" };
+const toolsDescription = "常用工具推荐，按设计、开发、安全、文件处理等分类整理";
+
+export const metadata: Metadata = {
+  title: "工具",
+  description: toolsDescription,
+  openGraph: websiteOpenGraph("工具", toolsDescription, "/tools"),
+};
 
 // 常用工具推荐，按分类分组
 export default function ToolsPage() {

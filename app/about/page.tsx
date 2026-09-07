@@ -1,11 +1,18 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { SKILLS, TIMELINE } from "@/lib/constants";
+import { SITE, SKILLS, TIMELINE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 import { Avatar } from "@/components/ui/Avatar";
 import { ROLES } from "@/lib/roles";
+import { websiteOpenGraph } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "关于作者" };
+const aboutDescription = `关于 ${SITE.shortName} —— 个人简介、技能栈与建站时间线`;
+
+export const metadata: Metadata = {
+  title: "关于作者",
+  description: aboutDescription,
+  openGraph: websiteOpenGraph("关于作者", aboutDescription, "/about"),
+};
 
 // 关于作者：简介 + 技能 + 时间线
 export default async function AboutPage() {

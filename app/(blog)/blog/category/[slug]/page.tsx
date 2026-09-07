@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
+import { websiteOpenGraph } from "@/lib/metadata";
 import { getCategoryBySlug, getPosts } from "@/lib/posts";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -21,8 +22,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const cat = await getCategoryBySlug(slug);
   if (!cat) return { title: "分类未找到" };
+  const description = cat.description || `浏览「${cat.name}」分类下的全部文章`;
   return {
     title: `${cat.name} · 分类`,
+    description,
+    openGraph: websiteOpenGraph(`${cat.name} · 分类`, description, `/blog/category/${slug}`),
     alternates: { types: { "application/rss+xml": `${SITE.url}/feed.xml/category/${slug}` } },
   };
 }

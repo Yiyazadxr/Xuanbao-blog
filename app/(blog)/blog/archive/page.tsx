@@ -1,9 +1,16 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { websiteOpenGraph } from "@/lib/metadata";
 import { getArchive } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "归档" };
+const archiveDescription = "按时间线浏览全部文章归档";
+
+export const metadata: Metadata = {
+  title: "归档",
+  description: archiveDescription,
+  openGraph: websiteOpenGraph("归档", archiveDescription, "/blog/archive"),
+};
 export const revalidate = 60;
 
 // 时间线归档：按年分组，最新的在上面

@@ -185,6 +185,49 @@ export async function getAdjacentPosts(createdAt: Date) {
   return { prev, next };
 }
 
+// 相关阅读条数
+const RELATED_COUNT = 3;
+
+// 相关阅读：优先同分类、不足补同标签，按浏览量降序（热文优先）。
+// 两段查询而非 OR：保证同分类结果排在前，避免被同标签结果冲散。
+export async function getRelatedPosts(post: {
+  id: string;
+  categoryId: string | null;
+  tagIds: string[];
+}): Promise<PostListItem[]> {
+  const picked: PostListItem[] = [];
+  const exclude = new Set<string>([post.id]);
+
+  if (post.categoryId) {
+    const rows = await prisma.post.findMany({
+      where: { ...PUBLISHED_FILTER, categoryId: post.categoryId, id: { notIn: [...exclude] } },
+      orderBy: [{ viewCount: "desc" }, { createdAt: "desc" }],
+      take: RELATED_COUNT,
+      select: listSelect,
+    });
+    for (const row of rows) {
+      picked.push(toListItem(row));
+      exclude.add(row.id);
+    }
+  }
+
+  if (picked.length < RELATED_COUNT && post.tagIds.length > 0) {
+    const rows = await prisma.post.findMany({
+      where: {
+        ...PUBLISHED_FILTER,
+        id: { notIn: [...exclude] },
+        tags: { some: { tagId: { in: post.tagIds } } },
+      },
+      orderBy: [{ viewCount: "desc" }, { createdAt: "desc" }],
+      take: RELATED_COUNT - picked.length,
+      select: listSelect,
+    });
+    for (const row of rows) picked.push(toListItem(row));
+  }
+
+  return picked;
+}
+
 // 浏览量 +1（详情页触发，失败不影响页面渲染）
 // 同时给当日统计表记一笔（趋势图的时间维度来源）。两条写入互不依赖，
 // 分开执行：统计表一旦出问题也不能拖累文章自身的计数。

@@ -3,9 +3,16 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { PostSearch } from "@/components/blog/PostSearch";
+import { websiteOpenGraph } from "@/lib/metadata";
 import { getCategoriesWithCount, getPosts, getSearchIndex } from "@/lib/posts";
 
-export const metadata: Metadata = { title: "文章" };
+const blogDescription = "浏览全部文章，支持全文模糊搜索与分类筛选";
+
+export const metadata: Metadata = {
+  title: "文章",
+  description: blogDescription,
+  openGraph: websiteOpenGraph("文章", blogDescription, "/blog"),
+};
 export const revalidate = 60;
 
 // 文章列表页：服务端一次性取全部文章（ISR），分页在客户端完成 + 客户端模糊搜索

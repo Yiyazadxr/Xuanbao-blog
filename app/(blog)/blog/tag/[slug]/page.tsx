@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
+import { websiteOpenGraph } from "@/lib/metadata";
 import { getPosts } from "@/lib/posts";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
@@ -21,8 +22,11 @@ export async function generateMetadata({
   const { slug } = await params;
   const tag = await prisma.tag.findUnique({ where: { slug } });
   if (!tag) return { title: "标签未找到" };
+  const description = `浏览标签 #${tag.name} 下的全部文章`;
   return {
     title: `#${tag.name} · 标签`,
+    description,
+    openGraph: websiteOpenGraph(`#${tag.name} · 标签`, description, `/blog/tag/${slug}`),
     alternates: { types: { "application/rss+xml": `${SITE.url}/feed.xml/tag/${slug}` } },
   };
 }

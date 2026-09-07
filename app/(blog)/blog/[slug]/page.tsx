@@ -3,9 +3,11 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LikeButton } from "@/components/blog/LikeButton";
+import { MobileToc } from "@/components/blog/MobileToc";
 import { PostContent } from "@/components/blog/PostContent";
 import { PostNav } from "@/components/blog/PostNav";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
+import { RelatedPosts } from "@/components/blog/RelatedPosts";
 import { ShareButton } from "@/components/blog/ShareButton";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -13,7 +15,13 @@ import { getCurrentUser } from "@/lib/auth";
 import { SITE } from "@/lib/constants";
 import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
-import { getAdjacentPosts, getPostBySlug, getSeriesAdjacent, incrementViewCount } from "@/lib/posts";
+import {
+  getAdjacentPosts,
+  getPostBySlug,
+  getRelatedPosts,
+  getSeriesAdjacent,
+  incrementViewCount,
+} from "@/lib/posts";
 import { formatDate, readingTime } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -74,15 +82,21 @@ export default async function BlogPostPage({
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
   const user = await getCurrentUser();
-  const [adjacent, like, seriesAdjacent] = await Promise.all([
+  const [adjacent, like, seriesAdjacent, related] = await Promise.all([
     getAdjacentPosts(post.createdAt),
     getLikeInfo(post.id, user?.id),
     post.seriesId ? getSeriesAdjacent(post.seriesId, post.id) : Promise.resolve(null),
+    getRelatedPosts({
+      id: post.id,
+      categoryId: post.categoryId,
+      tagIds: post.tags.map((t) => t.tag.id),
+    }),
   ]);
 
   return (
     <>
       <ReadingProgress />
+      <MobileToc toc={toc} />
       <article className="mx-auto max-w-4xl">
         {/* 文章头部 */}
         <header className="mb-12">
@@ -182,6 +196,8 @@ export default async function BlogPostPage({
             )}
 
             <PostNav prev={adjacent.prev} next={adjacent.next} />
+
+            <RelatedPosts posts={related} />
 
             {/* 评论区 */}
             <CommentSection postId={post.id} slug={post.slug} />

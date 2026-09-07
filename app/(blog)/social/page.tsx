@@ -3,8 +3,15 @@ import type { Metadata } from "next";
 import { EmailCard, MailtoButton } from "@/components/ui/EmailCard";
 import { QQCard } from "@/components/ui/QQCard";
 import { FRIEND_LINKS, SOCIAL_LINKS } from "@/lib/constants";
+import { websiteOpenGraph } from "@/lib/metadata";
 
-export const metadata: Metadata = { title: "社交" };
+const socialDescription = "社交链接与友情链接 —— GitHub 等平台的入口";
+
+export const metadata: Metadata = {
+  title: "社交",
+  description: socialDescription,
+  openGraph: websiteOpenGraph("社交", socialDescription, "/social"),
+};
 
 // 社交链接 + 友链
 export default function SocialPage() {
