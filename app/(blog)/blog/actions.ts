@@ -2,7 +2,7 @@
 
 // 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
 import { revalidatePath } from "next/cache";
-import { requirePermission } from "@/lib/auth";
+import { getFreshUser, requirePermission } from "@/lib/auth";
 import { getApprovedComments, type CommentWithReplies } from "@/lib/comments";
 import { getMuteInfo } from "@/lib/mute";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
@@ -11,7 +11,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { ROLES } from "@/lib/roles";
-import { commentPageSchema, commentSchema, likeSchema, parseInput } from "@/lib/validation";
+import { commentPageSchema, commentSchema, likeSchema, parseId, parseInput } from "@/lib/validation";
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
 
@@ -139,6 +139,34 @@ export async function toggleLike(
 
   revalidatePath(`/blog/${parsed.data.slug}`);
   return { ok: true, liked: !existing, count };
+}
+
+// 收藏 / 取消收藏（仅登录，个人收藏无需单独权限）
+export async function toggleBookmark(
+  postId: string
+): Promise<CommentActionState & { bookmarked?: boolean }> {
+  const user = await getFreshUser();
+  if (!user) return { ok: false, error: "请先登录" };
+
+  const parsed = parseId(postId);
+  if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
+
+  // 校验文章存在且公开，防伪造 postId 触发外键错误
+  const post = await prisma.post.findFirst({
+    where: { id: parsed.data, published: true, archived: false },
+    select: { id: true },
+  });
+  if (!post) return { ok: false, error: "文章不存在" };
+
+  const key = { userId_postId: { userId: user.id, postId: parsed.data } };
+  const existing = await prisma.bookmark.findUnique({ where: key });
+  if (existing) {
+    await prisma.bookmark.delete({ where: key });
+  } else {
+    await prisma.bookmark.create({ data: { userId: user.id, postId: parsed.data } });
+  }
+
+  return { ok: true, bookmarked: !existing };
 }
 
 // 加载更多评论（公开读，游客也可查看；校验 postId/skip 防滥用，不做权限拦截）。

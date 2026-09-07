@@ -46,6 +46,8 @@ model User {
   posts        Post[]
   comments     Comment[]
   likes        Like[]
+  bookmarks    Bookmark[]
+  readingLogs  ReadingLog[]
   inviteCodeId String?
   inviteCode   InviteCode?   @relation(fields: [inviteCodeId], references: [id], onDelete: SetNull)
   notifications Notification[]
@@ -106,6 +108,8 @@ model Post {
   tags       PostTag[]
   comments   Comment[]
   likes      Like[]
+  bookmarks  Bookmark[]
+  readingLogs ReadingLog[]
   revisions  PostRevision[]
 
   @@index([published, createdAt])
@@ -150,6 +154,32 @@ model Like {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@id([userId, postId])
+}
+
+// 收藏：一个用户对一篇文章只能收藏一次（书签）
+model Bookmark {
+  userId    String
+  postId    String
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@id([userId, postId])
+}
+
+// 阅读记录：登录用户读过的文章（去重），wordCount 为首次阅读时该文章的字数快照，
+// 供个人页「累计阅读字数」聚合；同一文章重复阅读不重复计数
+model ReadingLog {
+  id        String   @id @default(cuid())
+  userId    String
+  postId    String
+  wordCount Int      @default(0)
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, postId])
+  @@index([userId, createdAt])
 }
 
 // 每日浏览量：文章的 viewCount 是累计值（只有「总共多少」、没有「哪天多少」），

@@ -37,7 +37,7 @@ type ListPostRow = {
 // 把数据库行映射为轻量列表项。
 // 摘要与字数在保存文章时已落库（excerpt / wordCount），列表查询不再回读 content 全文，
 // 避免把所有文章正文拉进服务端内存只为现场算摘要。
-function toListItem(row: ListPostRow): PostListItem {
+export function toListItem(row: ListPostRow): PostListItem {
   return {
     id: row.id,
     slug: row.slug,
@@ -52,7 +52,7 @@ function toListItem(row: ListPostRow): PostListItem {
 }
 
 // 列表查询字段：不取 content 全文（正文已在保存时折算为 excerpt + wordCount）
-const listSelect = {
+export const listSelect = {
   id: true,
   slug: true,
   title: true,

@@ -6,6 +6,7 @@ import { Avatar } from "@/components/ui/Avatar";
 import { AvatarEntryCard } from "@/components/settings/AvatarEntryCard";
 import { DisplayForm } from "@/components/settings/DisplayForm";
 import { ROLE_BADGE_CLS, ROLE_LABELS, type Role } from "@/lib/roles";
+import { formatCount } from "@/lib/utils";
 
 // 设置页：个人资料和显示两个分区
 export function SettingsPanel({
@@ -15,6 +16,9 @@ export function SettingsPanel({
   image,
   days,
   joinedDate,
+  postsRead,
+  wordsRead,
+  bookmarkCount,
 }: {
   name: string;
   email: string;
@@ -22,6 +26,9 @@ export function SettingsPanel({
   image?: string | null;
   days: number;
   joinedDate: string;
+  postsRead: number;
+  wordsRead: number;
+  bookmarkCount: number;
 }) {
   const [tab, setTab] = useState<"profile" | "display">("profile");
 
@@ -81,6 +88,16 @@ export function SettingsPanel({
 
           {/* 账号操作入口 */}
           <div className="flex flex-col gap-2">
+            <Link
+              href="/bookmarks"
+              className="flex items-center justify-between rounded-2xl border border-border bg-surface p-5 transition-colors duration-200 hover:border-accent"
+            >
+              <span>
+                <span className="block font-medium">我的收藏</span>
+                <span className="mt-0.5 block text-xs text-muted">收藏的文章</span>
+              </span>
+              <span className="text-muted">{bookmarkCount} 篇 →</span>
+            </Link>
             <AvatarEntryCard image={image} />
             <Link
               href="/settings/name"
@@ -102,6 +119,18 @@ export function SettingsPanel({
               </span>
               <span className="text-muted">→</span>
             </Link>
+          </div>
+
+          {/* 阅读统计 */}
+          <div className="grid grid-cols-2 gap-3">
+            <div className="rounded-2xl border border-border bg-surface p-4">
+              <p className="text-xs text-muted">已读文章</p>
+              <p className="mt-1 text-xl font-bold tabular-nums">{formatCount(postsRead)} 篇</p>
+            </div>
+            <div className="rounded-2xl border border-border bg-surface p-4">
+              <p className="text-xs text-muted">累计阅读</p>
+              <p className="mt-1 text-xl font-bold tabular-nums">{formatCount(wordsRead)} 字</p>
+            </div>
           </div>
         </div>
       ) : (

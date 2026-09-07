@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { SettingsPanel } from "@/components/settings/SettingsPanel";
 import { getFreshUser } from "@/lib/auth";
+import { getBookmarkCount } from "@/lib/bookmarks";
+import { getReadingStats } from "@/lib/reading";
 import { type Role } from "@/lib/roles";
 import { formatDate } from "@/lib/utils";
 
@@ -16,6 +18,10 @@ export default async function SettingsPage() {
   const role = user.role as Role;
   const days = Math.max(0, Math.floor((new Date().getTime() - user.createdAt.getTime()) / 86400000));
   const joinedDate = formatDate(user.createdAt);
+  const [readingStats, bookmarkCount] = await Promise.all([
+    getReadingStats(user.id),
+    getBookmarkCount(user.id),
+  ]);
 
   return (
     <SettingsPanel
@@ -25,6 +31,9 @@ export default async function SettingsPage() {
       image={user.image}
       days={days}
       joinedDate={joinedDate}
+      postsRead={readingStats.postsRead}
+      wordsRead={readingStats.wordsRead}
+      bookmarkCount={bookmarkCount}
     />
   );
 }

@@ -3,6 +3,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { LikeButton } from "@/components/blog/LikeButton";
+import { BookmarkButton } from "@/components/blog/BookmarkButton";
 import { MobileToc } from "@/components/blog/MobileToc";
 import { PostContent } from "@/components/blog/PostContent";
 import { PostNav } from "@/components/blog/PostNav";
@@ -12,9 +13,11 @@ import { ShareButton } from "@/components/blog/ShareButton";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
+import { getBookmarkInfo } from "@/lib/bookmarks";
 import { SITE } from "@/lib/constants";
 import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
+import { recordRead } from "@/lib/reading";
 import {
   getAdjacentPosts,
   getPostBySlug,
@@ -82,9 +85,10 @@ export default async function BlogPostPage({
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
   const user = await getCurrentUser();
-  const [adjacent, like, seriesAdjacent, related] = await Promise.all([
+  const [adjacent, like, bookmark, seriesAdjacent, related] = await Promise.all([
     getAdjacentPosts(post.createdAt),
     getLikeInfo(post.id, user?.id),
+    getBookmarkInfo(post.id, user?.id),
     post.seriesId ? getSeriesAdjacent(post.seriesId, post.id) : Promise.resolve(null),
     getRelatedPosts({
       id: post.id,
@@ -92,6 +96,9 @@ export default async function BlogPostPage({
       tagIds: post.tags.map((t) => t.tag.id),
     }),
   ]);
+
+  // 登录用户记录一次阅读（去重，失败不影响渲染）
+  void recordRead(post.id, user?.id, post.wordCount);
 
   return (
     <>
@@ -151,6 +158,11 @@ export default async function BlogPostPage({
                 slug={post.slug}
                 initialCount={like.count}
                 initialLiked={like.liked}
+                isLoggedIn={Boolean(user)}
+              />
+              <BookmarkButton
+                postId={post.id}
+                initialBookmarked={bookmark.bookmarked}
                 isLoggedIn={Boolean(user)}
               />
               <ShareButton title={post.title} slug={post.slug} />
