@@ -52,7 +52,7 @@ export default async function AdminUsersPage({
     <>
       <h1 className="font-display text-3xl font-bold tracking-tight">用户管理</h1>
       <p className="mt-2 text-sm text-muted">
-        角色层级：超级管理员 &gt; 管理员 &gt; 成员。管理员可管理文章/评论/邀请码；成员可评论点赞。
+        角色层级：超级管理员 &gt; 管理员 &gt; 成员。管理员可管理文章、评论与邀请码，成员可评论点赞。
       </p>
 
       {/* 搜索 */}

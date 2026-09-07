@@ -25,7 +25,7 @@ export default async function TaxonomyPage() {
   return (
     <>
       <h1 className="font-display text-3xl font-bold tracking-tight">分类、系列与标签</h1>
-      <p className="mt-2 text-sm text-muted">管理文章的分类、系列专题与标签，新建、编辑或删除</p>
+      <p className="mt-2 text-sm text-muted">管理分类、系列与标签</p>
       <div className="mt-8">
         <TaxonomyManager
           categories={categories.map((c) => ({ ...c, postCount: c._count.posts }))}

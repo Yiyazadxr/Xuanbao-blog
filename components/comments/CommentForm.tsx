@@ -32,11 +32,11 @@ export function CommentForm({
         <Link href="/login" className="text-accent hover:underline">
           登录
         </Link>{" "}
-        后参与评论（本站注册采用邀请制，可在
+        后参与评论。本站采用邀请制，可去
         <Link href="/register" className="text-accent hover:underline">
           注册页
         </Link>
-        提交申请）
+        提交申请
       </p>
     );
   }
@@ -62,7 +62,7 @@ export function CommentForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       {muted ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-          你当前处于禁言状态{muteInfo.permanent ? "（永久）" : muteInfo.until ? `，解禁时间 ${new Date(muteInfo.until).toLocaleString("zh-CN")}` : ""}
+          你当前已被{muteInfo.permanent ? "永久禁言" : muteInfo.until ? `禁言至 ${new Date(muteInfo.until).toLocaleString("zh-CN")}` : "禁言"}
           {muteInfo.reason ? `，原因：${muteInfo.reason}` : ""}，暂不能发表评论。
         </p>
       ) : (

@@ -25,7 +25,7 @@ export function PostListPaginated({
     return (
       <div className="rounded-2xl border border-dashed border-border py-20 text-center">
         <p className="text-lg font-medium">这里空空如也</p>
-        <p className="mt-2 text-sm text-muted">没有找到符合条件的文章</p>
+        <p className="mt-2 text-sm text-muted">没有匹配的文章，换个分类或标签试试</p>
       </div>
     );
   }

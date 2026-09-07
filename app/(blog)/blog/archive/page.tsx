@@ -4,7 +4,7 @@ import { websiteOpenGraph } from "@/lib/metadata";
 import { getArchive } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
 
-const archiveDescription = "按时间线浏览全部文章归档";
+const archiveDescription = "按时间线浏览全部文章";
 
 export const metadata: Metadata = {
   title: "归档",

@@ -44,7 +44,7 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
   if (!isSuperAdmin) {
     const check = await rateLimit.checkAndHit("comment", user.id, 1, 30 * 1000);
     if (check.blocked) {
-      return { ok: false, error: `评论太频繁了，请 ${check.retryAfterSec} 秒后再试` };
+      return { ok: false, error: `操作过于频繁，请 ${check.retryAfterSec} 秒后再试` };
     }
   }
 
@@ -105,7 +105,7 @@ export async function toggleLike(
   if (user.role !== ROLES.SUPER_ADMIN) {
     const check = await rateLimit.checkAndHit("like", user.id, 30, 60 * 1000);
     if (check.blocked) {
-      return { ok: false, error: `操作太频繁，请 ${check.retryAfterSec} 秒后再试` };
+      return { ok: false, error: `操作过于频繁，请 ${check.retryAfterSec} 秒后再试` };
     }
   }
 
@@ -156,7 +156,7 @@ export async function getMoreComments(
   const ip = await getClientIp();
   const ipCheck = await rateLimit.checkAndHit("comments-fetch", ip, 30, 60 * 1000);
   if (ipCheck.blocked) {
-    return { ok: false, error: `请求过于频繁，请 ${ipCheck.retryAfterSec} 秒后再试`, comments: [] };
+    return { ok: false, error: `操作过于频繁，请 ${ipCheck.retryAfterSec} 秒后再试`, comments: [] };
   }
 
   // 校验文章存在且公开，避免对不存在/未公开文章发起无意义查询

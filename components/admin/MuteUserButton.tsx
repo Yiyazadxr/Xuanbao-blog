@@ -26,7 +26,7 @@ export function MuteUserButton({
     setFeedback("");
     const daysNum = Number(days);
     if (!Number.isInteger(daysNum) || daysNum < 0 || daysNum > 3650) {
-      setFeedback("请输入 0~3650 的整数天数（0 表示永久）");
+      setFeedback("请输入 0~3650 的整数天数，0 为永久");
       return;
     }
     startTransition(async () => {
@@ -96,7 +96,7 @@ export function MuteUserButton({
             </div>
           ) : (
             <form onSubmit={handleMute} className="space-y-3">
-              <label className="block text-xs font-medium text-muted">禁言时长（天，0 即永久）</label>
+              <label className="block text-xs font-medium text-muted">禁言天数（0 为永久）</label>
               <input
                 type="number"
                 min={0}
@@ -105,13 +105,13 @@ export function MuteUserButton({
                 onChange={(e) => setDays(e.target.value)}
                 className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors duration-200 focus:border-accent"
               />
-              <label className="block text-xs font-medium text-muted">原因（可选）</label>
+              <label className="block text-xs font-medium text-muted">原因</label>
               <input
                 type="text"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
                 maxLength={200}
-                placeholder="例如：恶意刷屏"
+                placeholder="选填，例如：恶意刷屏"
                 className="h-9 w-full rounded-lg border border-border bg-surface px-3 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
               />
               {feedback && <p className="text-xs text-red-500">{feedback}</p>}

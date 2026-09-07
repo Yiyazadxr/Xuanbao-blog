@@ -58,7 +58,7 @@ export function MobileToc({ toc }: { toc: TocItem[] }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label="打开文章目录"
+        aria-label="打开目录"
         className="fixed bottom-6 right-4 z-[60] flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium shadow-lg transition-colors duration-200 hover:border-accent xl:hidden"
       >
         <Icon icon="ph:list-bullets-bold" width={16} height={16} aria-hidden />

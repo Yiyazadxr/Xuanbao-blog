@@ -24,7 +24,7 @@ export function RelatedPosts({ posts }: { posts: PostListItem[] }) {
               </h3>
               <p className="mt-1 text-xs text-muted">
                 {post.category ? `${post.category.name} · ` : ""}
-                {formatDate(post.createdAt)} · 约 {post.readingTime} 分钟
+                {formatDate(post.createdAt)} · 约 {post.readingTime} 分钟阅读
               </p>
             </div>
             <Icon

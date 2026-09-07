@@ -63,7 +63,7 @@ export const EXCERPT_MAX = 500;
 export const postSchema = z.object({
   id: z.string().trim().max(100).optional(),
   title: z.string().trim().min(1, "标题不能为空").max(200, "标题最长 200 字"),
-  slug: z.string().trim().max(200, "slug 过长").optional().default(""),
+  slug: z.string().trim().max(200, "链接标识过长").optional().default(""),
   content: z
     .string()
     .max(1_000_000, "正文过长")

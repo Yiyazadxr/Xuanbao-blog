@@ -66,14 +66,14 @@ export default async function AdminCommentsPage({
                     {comment.content}
                   </p>
                   <p className="mt-2 text-xs text-muted">
-                    {formatDate(comment.createdAt)} · 评论于《
+                    评论于《
                     <Link
                       href={`/blog/${comment.post.slug}`}
                       className="transition-colors duration-200 hover:text-accent"
                     >
                       {comment.post.title}
                     </Link>
-                    》
+                    》 · {formatDate(comment.createdAt)}
                   </p>
                 </div>
                 <CommentModerationActions id={comment.id} isApproved={comment.isApproved} />

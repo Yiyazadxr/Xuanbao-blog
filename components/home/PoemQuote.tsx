@@ -3,6 +3,7 @@
 import { motion, AnimatePresence } from "framer-motion";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { SITE } from "@/lib/constants";
 import { POEMS } from "@/lib/poems";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -47,7 +48,7 @@ export function PoemQuote() {
 
   return (
     <p className="mt-6 max-w-3xl text-base leading-relaxed text-muted sm:text-lg">
-      欢迎来到暄宝xr的个人博客网站
+      欢迎来到{SITE.shortName}的个人博客
       <span className="ml-4 inline-flex min-w-0 items-baseline gap-1.5">
         <AnimatePresence mode="wait" initial={false}>
           <motion.span

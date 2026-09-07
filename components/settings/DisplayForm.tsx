@@ -337,7 +337,7 @@ export function DisplayForm() {
         <span className="min-w-0">
           <span className="block text-sm font-medium">水墨墨迹</span>
           <span className="mt-0.5 block text-xs text-muted">
-            鼠标划过时拖出水墨晕染特效（关闭可提升性能）
+            鼠标划过时拖出水墨晕染特效
           </span>
         </span>
         <input
@@ -371,7 +371,7 @@ export function DisplayForm() {
         <span className="min-w-0">
           <span className="block text-sm font-medium">跨设备同步</span>
           <span className="mt-0.5 block text-xs text-muted">
-            开启后偏好保存到账号，登录其他设备自动同步（默认仅保存在本机）
+            开启后偏好保存到账号，多端自动同步
           </span>
         </span>
         <input

@@ -42,7 +42,7 @@ export default function RegisterPage() {
     <>
       <h1 className="font-display text-3xl font-bold tracking-tight">加入这里</h1>
       <p className="mt-2 text-sm text-muted">
-        本站注册采用邀请制：提交申请后，博主审核通过会向你发送账号密码。已有邀请码可凭码快速申请。已有账号？{" "}
+        本站采用邀请制。提交申请，审核通过后发放账号密码；持邀请码可直接注册。已有账号？{" "}
         <Link href="/login" className="text-accent hover:underline">
           直接登录
         </Link>
@@ -97,14 +97,14 @@ export default function RegisterPage() {
           </div>
           <div>
             <label htmlFor="apply-message" className={labelCls}>
-              申请说明（选填）
+              申请说明
             </label>
             <textarea
               id="apply-message"
               name="message"
               rows={3}
               maxLength={500}
-              placeholder="介绍一下自己，或说明想注册的原因"
+              placeholder="选填：介绍一下自己，或说明想注册的原因"
               className={`${inputCls} h-auto py-3`}
             />
           </div>

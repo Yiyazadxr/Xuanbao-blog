@@ -45,7 +45,7 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
     url = await saveImage({ type: file.type, data: buf }, "avatars");
   } catch (e) {
     console.error("上传头像失败：", e);
-    return { ok: false, error: "上传失败，请稍后重试" };
+    return { ok: false, error: "头像上传失败，请稍后重试" };
   }
 
   // 更新数据库并删除旧头像（上传成功后才删，失败不误删）

@@ -206,7 +206,7 @@ export function PostEditor({
         </div>
         <div>
           <label htmlFor="post-slug" className={labelCls}>
-            Slug（URL 标识）
+            链接标识（Slug）
           </label>
           <input
             id="post-slug"
@@ -223,7 +223,7 @@ export function PostEditor({
 
       <div>
         <label htmlFor="post-excerpt" className={labelCls}>
-          摘要（选填，列表页展示）
+          摘要（列表页展示）
         </label>
         <textarea
           id="post-excerpt"
@@ -237,7 +237,7 @@ export function PostEditor({
       </div>
 
       <div>
-        <span className={labelCls}>封面图（选填，列表与详情页展示）</span>
+        <span className={labelCls}>封面图</span>
         <div className="flex items-start gap-4">
           {coverImage && (
             <div className="relative h-28 w-44 shrink-0 overflow-hidden rounded-xl border border-border">
@@ -290,7 +290,7 @@ export function PostEditor({
         </div>
         <div>
           <label htmlFor="post-series" className={labelCls}>
-            系列 / 专题（选填）
+            系列 / 专题
           </label>
           <select
             id="post-series"
@@ -310,7 +310,7 @@ export function PostEditor({
 
       <div>
         <label htmlFor="post-tags" className={labelCls}>
-          标签（逗号分隔）
+          标签
         </label>
         <input
           id="post-tags"
@@ -334,7 +334,7 @@ export function PostEditor({
             onChange={(e) => setPinned(e.target.checked)}
             className="size-4 cursor-pointer accent-[var(--accent)]"
           />
-          置顶（列表页排最前）
+          置顶
         </label>
         <label className="flex cursor-pointer items-center gap-2 text-sm">
           <input
@@ -343,7 +343,7 @@ export function PostEditor({
             onChange={(e) => setFeatured(e.target.checked)}
             className="size-4 cursor-pointer accent-[var(--accent)]"
           />
-          设为精选（首页展示）
+          设为精选
         </label>
       </div>
 

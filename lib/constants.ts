@@ -1,8 +1,11 @@
 // 站点全局配置常量
+// 博主简称单独提出：欢迎语/描述等多处复用，改名只需改这一处（避免各处硬编码不一致）
+const SHORT_NAME = "暄宝xr";
+
 export const SITE = {
   name: "Xuanbao.dev",
-  shortName: "暄宝xr",
-  description: "欢迎来到暄宝xr的个人博客网站。",
+  shortName: SHORT_NAME,
+  description: `欢迎来到${SHORT_NAME}的个人博客。`,
   // 生产环境通过 NEXT_PUBLIC_SITE_URL 注入正式域名，用于 sitemap/RSS/元数据
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   // 建站日：用于页脚「运行 N 天」等叙事（2026-07-17）
@@ -109,7 +112,7 @@ export const TOOLS = [
     name: "ToolRunner",
     icon: "ph:wrench-bold",
     url: "https://toolrunner.dev/",
-    description: "浏览器端开发者工具箱，JSON/正则/JWT/Base64等20+工具，数据不上传",
+    description: "浏览器端开发者工具箱，JSON、正则、JWT、Base64 等 20+ 工具，数据不上传",
     category: "开发/部署",
   },
   {
@@ -308,6 +311,6 @@ export const SKILLS = [
 
 // 时间线
 export const TIMELINE = [
-  { time: "2026", title: "博客全站重构", description: "用 Next.js 全栈重写个人博客，就是你现在看到的这个网站" },
-  { time: "2025", title: "开始搭建个人博客", description: "从纯手写 HTML/CSS 起步，迈出建站第一步" },
+  { time: "2026", title: "博客全站重构", description: "用 Next.js 全栈重写个人博客" },
+  { time: "2025", title: "开始搭建个人博客", description: "从纯手写 HTML/CSS 起步" },
 ] as const;

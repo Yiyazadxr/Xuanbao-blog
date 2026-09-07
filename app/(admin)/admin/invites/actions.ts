@@ -36,7 +36,7 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
     try {
       password = decryptSecret(request.password as string);
     } catch {
-      return { ok: false, error: "申请数据损坏（密码无法解密），请删除后重新审核" };
+      return { ok: false, error: "申请数据损坏，密码无法解密，请删除后重新审核" };
     }
   } else {
     password = generateRandomPassword();
@@ -88,8 +88,8 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   return {
     ok: true,
     message: mailSent
-      ? `已通过并发送账号密码邮件至 ${email}（${graceDays} 天内登录）`
-      : `已通过（${graceDays} 天内登录）。邮件未发送成功，请手动告知用户账号密码`,
+      ? `已通过，账号密码邮件已发送至 ${email}，请在 ${graceDays} 天内登录`
+      : `已通过，请在 ${graceDays} 天内登录。邮件未发送成功，请手动告知账号密码`,
   };
 }
 
@@ -129,7 +129,7 @@ export async function createFreeInvite(payload: unknown): Promise<AdminActionSta
   revalidatePath("/admin/invites");
   return {
     ok: true,
-    message: `邀请码 ${invite.code} 已生成（${days} 天有效 · 可用 ${uses} 次）`,
+    message: `邀请码 ${invite.code} 已生成：${days} 天有效，可用 ${uses} 次`,
   };
 }
 

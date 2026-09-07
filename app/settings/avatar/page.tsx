@@ -21,7 +21,7 @@ export default async function ChangeAvatarPage() {
         ← 返回设置
       </Link>
       <h1 className="font-display mt-4 text-3xl font-bold tracking-tight">修改头像</h1>
-      <p className="mt-2 text-sm text-muted">上传并裁剪你的头像，支持缩放 / 旋转</p>
+      <p className="mt-2 text-sm text-muted">上传并裁剪你的头像</p>
       <div className="mt-8">
         <AvatarEditor initialImage={user.image} name={user.name} />
       </div>

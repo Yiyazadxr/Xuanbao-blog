@@ -117,7 +117,7 @@ export default async function AdminPage({
           <TrendChart data={data.trend} />
         </div>
         <p className="mt-3 text-xs text-muted">
-          评论 / 点赞 / 新用户按记录创建时间统计；浏览量按天累计，自接入统计之日起才有数据。
+          评论、点赞与新用户按创建时间统计；浏览量按天累计，自接入统计之日起才有数据。
         </p>
       </section>
 

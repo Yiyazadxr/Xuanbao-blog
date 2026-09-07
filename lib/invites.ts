@@ -133,7 +133,7 @@ export async function submitInviteRequest({
   await notifyAdmins({
     category: NOTIFICATION_CATEGORIES.SYSTEM,
     type: "account_request",
-    title: `新账号申请（邀请码）：${normalized}`,
+    title: `凭邀请码新账号申请：${normalized}`,
     link: "/admin/invites",
   });
 

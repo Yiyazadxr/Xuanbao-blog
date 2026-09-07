@@ -141,8 +141,8 @@ function NamedSection({
           <input id={`${idPrefix}-name`} value={name} onChange={(e) => setName(e.target.value)} placeholder="如：技术" className={inputCls} />
         </div>
         <div className="flex-1">
-          <label htmlFor={`${idPrefix}-desc`} className={labelCls}>描述（选填）</label>
-          <input id={`${idPrefix}-desc`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="一句话说明" className={inputCls} />
+          <label htmlFor={`${idPrefix}-desc`} className={labelCls}>描述</label>
+          <input id={`${idPrefix}-desc`} value={description} onChange={(e) => setDescription(e.target.value)} placeholder="选填，一句话说明" className={inputCls} />
         </div>
         <button type="submit" disabled={pending || !name.trim()} className="h-11 shrink-0 cursor-pointer rounded-xl bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90 disabled:opacity-50">
           {createLabel}

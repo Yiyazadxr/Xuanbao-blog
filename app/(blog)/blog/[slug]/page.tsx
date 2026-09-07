@@ -163,7 +163,7 @@ export default async function BlogPostPage({
                   href={`/blog/series/${post.series.slug}`}
                   className="text-sm font-semibold text-accent transition-colors duration-200 hover:opacity-80"
                 >
-                  📚 {post.series.name}
+                  {post.series.name}
                 </Link>
                 {post.series.description && (
                   <p className="mt-1 text-xs text-muted">{post.series.description}</p>

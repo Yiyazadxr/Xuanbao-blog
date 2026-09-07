@@ -26,13 +26,13 @@ export const ALL_PERMISSIONS: Permission[] = Object.values(PERMISSIONS);
 export const PERMISSION_LABELS: Record<Permission, string> = {
   comment: "发表评论",
   like: "点赞",
-  manage_posts: "管理文章（新建/编辑/删除/发布）",
+  manage_posts: "管理文章：新建、编辑、删除、发布",
   approve_comments: "审核评论",
   delete_comments: "删除评论",
   review_requests: "处理账号申请",
   manage_invites: "管理邀请码",
-  manage_users: "管理用户（改角色/删除）",
-  mute_users: "禁言用户（禁言/解除禁言）",
+  manage_users: "管理用户：改角色、删除",
+  mute_users: "禁言用户：禁言、解除禁言",
 };
 
 // 权限分组（权限管理页按此展示，后续扩容可在此加分组）

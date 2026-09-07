@@ -39,7 +39,7 @@ export function PostCard({ post }: { post: PostListItem }) {
           </Link>
         )}
         <time dateTime={post.createdAt.toISOString()}>{formatDate(post.createdAt)}</time>
-        <span>约 {post.readingTime} 分钟</span>
+        <span>约 {post.readingTime} 分钟阅读</span>
       </div>
 
       <h3 className="mt-4 text-lg font-bold leading-snug tracking-tight">
