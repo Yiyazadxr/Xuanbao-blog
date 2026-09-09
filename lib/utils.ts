@@ -90,6 +90,22 @@ export function searchSnippet(text: string, query: string, radius = 40): string 
   return `${start > 0 ? "…" : ""}${text.slice(start, end)}${end < text.length ? "…" : ""}`;
 }
 
+// 在标题中定位关键词首次出现位置，返回前/中/后三段（用于高亮渲染）；未命中返回 null
+export function findTitleMatch(
+  title: string,
+  query: string
+): { before: string; match: string; after: string } | null {
+  const q = query.trim();
+  if (!q) return null;
+  const idx = title.toLowerCase().indexOf(q.toLowerCase());
+  if (idx === -1) return null;
+  return {
+    before: title.slice(0, idx),
+    match: title.slice(idx, idx + q.length),
+    after: title.slice(idx + q.length),
+  };
+}
+
 // 标题转 URL slug（后台新建文章时用）
 export function slugify(title: string): string {
   const base = title

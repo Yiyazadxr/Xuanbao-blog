@@ -1,32 +1,49 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
-import Fuse from "fuse.js";
-import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import type { SearchIndexItem } from "@/lib/posts";
-import { searchSnippet } from "@/lib/utils";
+import { pushHistory, readHistory, writeHistory } from "@/lib/search-history";
 
-// 客户端全文搜索：Fuse.js 模糊匹配标题/正文纯文本，即时下拉展示，无服务端 LIKE 全表扫描
-export function PostSearch({ index }: { index: SearchIndexItem[] }) {
-  const [query, setQuery] = useState("");
+// 搜索框（受控）：输入交给父组件做列表过滤，自身只负责历史记录的读写与展示
+export function PostSearch({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+}) {
   const [open, setOpen] = useState(false);
-  // 惰性构建：仅在用户首次聚焦搜索框时构造索引，避免每次进入页面即付出 O(N·L) 开销
-  const [fuse, setFuse] = useState<Fuse<SearchIndexItem> | null>(null);
+  const [history, setHistory] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  const ensureFuse = () => {
-    if (!fuse) {
-      setFuse(new Fuse(index, { keys: ["title", "text"], threshold: 0.35, ignoreLocation: true }));
-    }
-  };
+  // 首帧回填搜索历史：只执行一次，属「同步外部系统后的收尾」，故允许 effect 内 setState
+  /* eslint-disable react-hooks/set-state-in-effect */
+  useEffect(() => {
+    setHistory(readHistory());
+  }, []);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
-  const trimmed = query.trim();
-  const results = fuse && trimmed
-    ? fuse.search(trimmed).slice(0, 8).map((r) => r.item)
-    : [];
+  function addHistory(term: string) {
+    const t = term.trim();
+    if (!t) return;
+    const next = pushHistory(history, t);
+    setHistory(next);
+    writeHistory(next);
+  }
 
-  // 点击外部 / Escape 关闭下拉
+  function clearHistory() {
+    setHistory([]);
+    writeHistory([]);
+  }
+
+  // 点击历史词：回填到输入框（提到历史最前）并触发搜索
+  function selectHistory(term: string) {
+    addHistory(term);
+    onChange(term);
+    setOpen(false);
+  }
+
+  // 点击外部 / Escape 关闭历史下拉
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {
@@ -43,9 +60,17 @@ export function PostSearch({ index }: { index: SearchIndexItem[] }) {
     };
   }, [open]);
 
+  const showHistory = open && !value.trim() && history.length > 0;
+
   return (
     <div ref={boxRef} className="relative w-full sm:w-72">
-      <form role="search" onSubmit={(e) => e.preventDefault()}>
+      <form
+        role="search"
+        onSubmit={(e) => {
+          e.preventDefault();
+          addHistory(value);
+        }}
+      >
         <label htmlFor="post-search" className="sr-only">
           搜索文章
         </label>
@@ -59,47 +84,43 @@ export function PostSearch({ index }: { index: SearchIndexItem[] }) {
         <input
           id="post-search"
           type="search"
-          value={query}
+          value={value}
           onChange={(e) => {
-            setQuery(e.target.value);
+            onChange(e.target.value);
             setOpen(true);
-            ensureFuse();
           }}
-          onFocus={() => {
-            setOpen(true);
-            ensureFuse();
-          }}
+          onFocus={() => setOpen(true)}
           placeholder="搜索文章…"
           className="h-11 w-full rounded-full border border-border bg-surface pl-11 pr-4 text-sm outline-none transition-colors duration-200 placeholder:text-muted focus:border-accent"
         />
       </form>
 
-      {open && trimmed && (
+      {showHistory && (
         <div className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-border bg-surface shadow-lg">
-          {results.length === 0 ? (
-            <p className="px-4 py-3 text-sm text-muted">没有找到相关文章</p>
-          ) : (
-            <ul className="max-h-80 overflow-y-auto">
-              {results.map((post) => {
-                // 正文命中时展示关键词附近片段，否则回退到摘要
-                const snippet = searchSnippet(post.text, trimmed) ?? post.excerpt;
-                return (
-                  <li key={post.slug}>
-                    <Link
-                      href={`/blog/${post.slug}`}
-                      onClick={() => setOpen(false)}
-                      className="block px-4 py-3 transition-colors duration-150 hover:bg-foreground/5"
-                    >
-                      <span className="block text-sm font-medium">{post.title}</span>
-                      {snippet && (
-                        <span className="mt-0.5 block truncate text-xs text-muted">{snippet}</span>
-                      )}
-                    </Link>
-                  </li>
-                );
-              })}
-            </ul>
-          )}
+          <div className="flex items-center justify-between border-b border-border/60 px-4 py-2">
+            <span className="text-xs font-medium text-muted">搜索历史</span>
+            <button
+              type="button"
+              onClick={clearHistory}
+              className="cursor-pointer text-xs text-muted transition-colors duration-150 hover:text-foreground"
+            >
+              清空
+            </button>
+          </div>
+          <ul className="max-h-60 overflow-y-auto">
+            {history.map((term) => (
+              <li key={term}>
+                <button
+                  type="button"
+                  onClick={() => selectHistory(term)}
+                  className="flex w-full cursor-pointer items-center gap-2 px-4 py-2.5 text-left text-sm text-muted transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground"
+                >
+                  <Icon icon="ph:clock-counter-clockwise-bold" width={14} height={14} aria-hidden />
+                  <span className="truncate">{term}</span>
+                </button>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>

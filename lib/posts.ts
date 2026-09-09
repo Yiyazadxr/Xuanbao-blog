@@ -109,7 +109,7 @@ export async function getFeaturedPosts() {
 // 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）。
 // text 为正文去 Markdown 后的纯文本，截断至 SEARCH_INDEX_TEXT_MAX 字符：
 // 足以覆盖 searchSnippet 片段提取与常见关键词命中，同时避免长正文把 RSC payload 撑到数百 KB。
-const SEARCH_INDEX_TEXT_MAX = 500;
+const SEARCH_INDEX_TEXT_MAX = 800;
 
 export async function getSearchIndex() {
   const rows = await prisma.post.findMany({

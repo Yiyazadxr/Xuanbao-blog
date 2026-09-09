@@ -1,10 +1,20 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { PostListItem } from "@/lib/posts";
-import { formatDate } from "@/lib/utils";
+import { findTitleMatch, formatDate } from "@/lib/utils";
 
 // 文章卡片：列表页/首页复用
-export function PostCard({ post }: { post: PostListItem }) {
+// searchQuery 命中标题时高亮关键词；snippet 命中正文时替换摘要展示关键词前后片段
+export function PostCard({
+  post,
+  searchQuery,
+  snippet,
+}: {
+  post: PostListItem;
+  searchQuery?: string;
+  snippet?: string | null;
+}) {
+  const titleMatch = searchQuery ? findTitleMatch(post.title, searchQuery) : null;
   return (
     <article className="group relative flex h-full flex-col rounded-2xl border border-border bg-surface p-6 transition-all duration-200 hover:-translate-y-1 hover:border-accent/30 hover:shadow-lg hover:shadow-foreground/5">
       {/* 封面区固定 h-40：无封面时保留等高占位，卡片高度统一，
@@ -54,12 +64,20 @@ export function PostCard({ post }: { post: PostListItem }) {
           href={`/blog/${post.slug}`}
           className="after:absolute after:inset-0 after:rounded-2xl group-hover:text-accent transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"
         >
-          {post.title}
+          {titleMatch ? (
+            <>
+              {titleMatch.before}
+              <mark className="rounded-sm bg-accent/20 text-accent">{titleMatch.match}</mark>
+              {titleMatch.after}
+            </>
+          ) : (
+            post.title
+          )}
         </Link>
       </h3>
 
       <p className="mt-3 line-clamp-3 flex-1 text-sm leading-relaxed text-muted">
-        {post.excerpt}
+        {snippet ?? post.excerpt}
       </p>
 
       {post.tags.length > 0 && (

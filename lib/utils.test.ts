@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   countWords,
+  findTitleMatch,
   formatCount,
   formatDate,
   formatRelativeTime,
@@ -146,5 +147,35 @@ describe("slugify", () => {
 
   it("空标题回落到 post- 前缀", () => {
     expect(slugify("   ")).toMatch(/^post-/);
+  });
+});
+
+describe("findTitleMatch", () => {
+  it("命中时返回前/中/后三段", () => {
+    expect(findTitleMatch("Next.js 入门教程", "入门")).toEqual({
+      before: "Next.js ",
+      match: "入门",
+      after: "教程",
+    });
+  });
+
+  it("忽略大小写", () => {
+    expect(findTitleMatch("Hello World", "world")).toEqual({
+      before: "Hello ",
+      match: "World",
+      after: "",
+    });
+  });
+
+  it("未命中返回 null", () => {
+    expect(findTitleMatch("你好世界", "xyz")).toBeNull();
+  });
+
+  it("空关键词返回 null", () => {
+    expect(findTitleMatch("标题", "  ")).toBeNull();
+  });
+
+  it("多个出现位置取首个", () => {
+    expect(findTitleMatch("aXbXc", "X")).toEqual({ before: "a", match: "X", after: "bXc" });
   });
 });
