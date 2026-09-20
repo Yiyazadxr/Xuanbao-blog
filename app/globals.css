@@ -98,9 +98,13 @@ body {
   transition: background-color 0.5s var(--ease-custom), color 0.5s var(--ease-custom);
 }
 
-/* 日夜间切换时，让内层主题色卡片/容器与 body 同步平滑过渡，避免内外撕裂 */
+/* 日夜间切换时，让内层主题色卡片/容器与 body 同步平滑过渡，避免内外撕裂。
+   只圈定真正承载主题色的语义类，不用 [class*="bg-"] 通配（覆盖面过大、滚动时有拖影） */
 body,
-[class*="bg-"] {
+.bg-background,
+.bg-surface,
+.bg-accent,
+.bg-foreground {
   transition:
     background-color 0.5s var(--ease-custom),
     color 0.5s var(--ease-custom),
@@ -219,4 +223,28 @@ body,
 /* 噪点纹理叠层（SVG feTurbulence，内联 data URI，零请求） */
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
+}
+
+/* ===== 文章正文窄屏兜底 =====
+   长无空格 URL / 行内代码在窄屏会撑破容器，强制断词；
+   表格包一层横向滚动（prose 默认不给表格滚动容器） */
+.prose {
+  overflow-wrap: break-word;
+}
+.prose table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+}
+.prose td,
+.prose th {
+  min-width: 4rem;
+}
+.prose pre {
+  max-width: 100%;
+  overflow-x: auto;
+}
+/* 正文内嵌图片（react-markdown 渲染为原生 img）懒加载 + 圆角收边 */
+.prose img {
+  border-radius: 0.75rem;
 }

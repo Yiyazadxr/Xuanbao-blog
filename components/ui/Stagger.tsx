@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, type Variants } from "framer-motion";
+import { m, type Variants } from "framer-motion";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -19,7 +19,7 @@ export function Stagger({
   const reduceMotion = usePrefersReducedMotion();
 
   return (
-    <motion.div
+    <m.div
       className={className}
       variants={staggerContainer({ staggerChildren, delayChildren })}
       initial={reduceMotion ? false : "hidden"}
@@ -27,7 +27,7 @@ export function Stagger({
       viewport={{ once: true, margin: "-60px" }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 
@@ -41,9 +41,9 @@ export function StaggerItem({
   variants?: Variants;
 }) {
   return (
-    <motion.div className={className} variants={variants}>
+    <m.div className={className} variants={variants}>
       {children}
-    </motion.div>
+    </m.div>
   );
 }
 

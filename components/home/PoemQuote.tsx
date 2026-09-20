@@ -1,6 +1,6 @@
 "use client";
 
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { SITE } from "@/lib/constants";
@@ -51,7 +51,7 @@ export function PoemQuote() {
       欢迎来到{SITE.shortName}的个人博客
       <span className="ml-4 inline-flex min-w-0 items-baseline gap-1.5">
         <AnimatePresence mode="wait" initial={false}>
-          <motion.span
+          <m.span
             key={index}
             initial={reduceMotion ? false : { opacity: 0, y: 6 }}
             animate={{ opacity: 1, y: 0 }}
@@ -74,7 +74,7 @@ export function PoemQuote() {
             /* 从而触发 mouseleave 造成闪烁 */}
             <AnimatePresence>
               {showSource && (
-                <motion.span
+                <m.span
                   initial={reduceMotion ? false : { opacity: 0, y: 6, scale: 0.96 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
                   exit={reduceMotion ? undefined : { opacity: 0, y: 4, scale: 0.98 }}
@@ -102,10 +102,10 @@ export function PoemQuote() {
                       )}
                     </span>
                   </span>
-                </motion.span>
+                </m.span>
               )}
             </AnimatePresence>
-          </motion.span>
+          </m.span>
         </AnimatePresence>
         <button
           type="button"

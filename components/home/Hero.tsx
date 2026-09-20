@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef } from "react";
@@ -65,35 +65,35 @@ export function Hero() {
       </div>
 
       {/* 内容区使用统一 Stagger 编排入场 */}
-      <motion.div
+      <m.div
         // 顶部沿用全站内容区间，跟随显示密度设置
         className="relative mx-auto w-full max-w-6xl px-4 pt-[var(--content-pt)] pb-24 sm:px-6 sm:pb-32"
         variants={staggerContainer({ staggerChildren: 0.12, delayChildren: 0.15 })}
         initial={reduceMotion ? false : "hidden"}
         animate="visible"
       >
-        <motion.p
+        <m.p
           variants={fadeUp()}
           className="font-display mb-5 text-sm font-medium uppercase tracking-[0.3em] text-muted"
         >
           Xuanbao · XR · Blog
-        </motion.p>
+        </m.p>
 
         {/* 大标题 */}
-        <motion.h1
+        <m.h1
           variants={fadeUp(32, 0.9)}
           // 不锁 nowrap，昵称过长时允许折行，否则会被 overflow-hidden 裁掉
           className="font-display break-words text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.05] font-bold tracking-tight"
         >
           <MaskedText text="你好，" delay={0.1} />
           <MaskedText text={displayName} delay={0.45} className="text-accent" />
-        </motion.h1>
+        </m.h1>
 
-        <motion.div variants={fadeUp()}>
+        <m.div variants={fadeUp()}>
           <PoemQuote />
-        </motion.div>
+        </m.div>
 
-        <motion.div
+        <m.div
           variants={fadeUp()}
           className="mt-9 flex flex-wrap items-center gap-4"
         >
@@ -109,8 +109,8 @@ export function Hero() {
               className="transition-transform duration-200 group-hover:translate-x-0.5"
             />
           </Link>
-        </motion.div>
-      </motion.div>
+        </m.div>
+      </m.div>
     </section>
   );
 }

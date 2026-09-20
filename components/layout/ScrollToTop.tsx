@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import { useEffect, useState } from "react";
 import { DURATION, EASE_OUT } from "@/lib/motion";
 
@@ -25,7 +25,7 @@ export function ScrollToTop() {
   return (
     <AnimatePresence>
       {visible && (
-        <motion.button
+        <m.button
           type="button"
           onClick={scrollToTop}
           initial={{ opacity: 0, scale: 0.8, y: 16 }}
@@ -36,7 +36,7 @@ export function ScrollToTop() {
           className="fixed bottom-4 right-4 z-40 flex size-11 cursor-pointer items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg ring-2 ring-accent/20 transition-shadow duration-200 hover:shadow-xl hover:-translate-y-0.5 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent sm:bottom-6 sm:right-6 sm:size-12"
         >
           <Icon icon="ph:arrow-up-bold" className="size-5 sm:size-6" aria-hidden />
-        </motion.button>
+        </m.button>
       )}
     </AnimatePresence>
   );

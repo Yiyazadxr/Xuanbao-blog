@@ -2,33 +2,28 @@ import type { Metadata } from "next";
 import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { LikeButton } from "@/components/blog/LikeButton";
-import { BookmarkButton } from "@/components/blog/BookmarkButton";
+import { EngagementBar } from "@/components/blog/EngagementBar";
 import { MobileToc } from "@/components/blog/MobileToc";
 import { PostContent } from "@/components/blog/PostContent";
 import { PostNav } from "@/components/blog/PostNav";
 import { ReadingProgress } from "@/components/blog/ReadingProgress";
 import { RelatedPosts } from "@/components/blog/RelatedPosts";
-import { ShareButton } from "@/components/blog/ShareButton";
+import { ViewTracker } from "@/components/blog/ViewTracker";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { getCurrentUser } from "@/lib/auth";
-import { getBookmarkInfo } from "@/lib/bookmarks";
+import { Reveal } from "@/components/ui/Reveal";
 import { SITE } from "@/lib/constants";
-import { runAfter } from "@/lib/deferred";
-import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
-import { recordRead } from "@/lib/reading";
 import {
   getAdjacentPosts,
   getPostBySlug,
   getRelatedPosts,
   getSeriesAdjacent,
-  incrementViewCount,
 } from "@/lib/posts";
 import { formatDate, readingTime } from "@/lib/utils";
 
-export const dynamic = "force-dynamic";
+// ISR：公开文章页走静态缓存，浏览量/点赞/收藏/评论等个性化数据由客户端挂载后按需拉取
+export const revalidate = 60;
 
 // 动态 SEO：标题 + 摘要 + OpenGraph/Twitter 分享信息
 export async function generateMetadata({
@@ -80,16 +75,10 @@ export default async function BlogPostPage({
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  // 浏览量异步 +1（响应结束后执行，内部已捕获异常）
-  runAfter(() => incrementViewCount(post.id));
-
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
-  const user = await getCurrentUser();
-  const [adjacent, like, bookmark, seriesAdjacent, related] = await Promise.all([
+  const [adjacent, seriesAdjacent, related] = await Promise.all([
     getAdjacentPosts(post.createdAt),
-    getLikeInfo(post.id, user?.id),
-    getBookmarkInfo(post.id, user?.id),
     post.seriesId ? getSeriesAdjacent(post.seriesId, post.id) : Promise.resolve(null),
     getRelatedPosts({
       id: post.id,
@@ -98,15 +87,15 @@ export default async function BlogPostPage({
     }),
   ]);
 
-  // 登录用户记录一次阅读（去重，失败不影响渲染）
-  runAfter(() => recordRead(post.id, user?.id, post.wordCount));
-
   return (
     <>
       <ReadingProgress />
       <MobileToc toc={toc} />
+      {/* 浏览量 +1 / 阅读记录上报（客户端挂载时触发） */}
+      <ViewTracker postId={post.id} slug={post.slug} wordCount={post.wordCount} />
       <article className="mx-auto max-w-4xl">
         {/* 文章头部 */}
+        <Reveal>
         <header className="mb-12">
           {post.category && (
             <p className="text-sm font-medium text-accent">{post.category.name}</p>
@@ -148,28 +137,17 @@ export default async function BlogPostPage({
             </div>
           )}
         </header>
+        </Reveal>
 
         {/* 正文 + 侧栏 TOC */}
         <div className="flex gap-12 xl:gap-16">
           <div className="min-w-0 flex-1">
-            <PostContent content={post.content} />
+            <Reveal delay={0.1}>
+              <PostContent content={post.content} />
+            </Reveal>
 
-            {/* 点赞 + 分享 */}
-            <div className="mt-12 flex items-center justify-center gap-3">
-              <LikeButton
-                postId={post.id}
-                slug={post.slug}
-                initialCount={like.count}
-                initialLiked={like.liked}
-                isLoggedIn={Boolean(user)}
-              />
-              <BookmarkButton
-                postId={post.id}
-                initialBookmarked={bookmark.bookmarked}
-                isLoggedIn={Boolean(user)}
-              />
-              <ShareButton title={post.title} slug={post.slug} />
-            </div>
+            {/* 点赞 + 收藏 + 分享（个性化状态客户端挂载后拉取） */}
+            <EngagementBar postId={post.id} slug={post.slug} title={post.title} />
 
             {/* 系列导航：同一系列内的上下篇 */}
             {post.series && (

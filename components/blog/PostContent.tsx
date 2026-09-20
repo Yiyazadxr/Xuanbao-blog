@@ -12,7 +12,14 @@ export function PostContent({ content }: { content: string }) {
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         rehypePlugins={[rehypeSlug, rehypeHighlight]}
-        components={{ pre: CodeBlock }}
+        components={{
+          pre: CodeBlock,
+          // 正文内嵌图懒加载（首屏外的图不阻塞加载）；alt 由 react-markdown 透传
+          img: (props) => {
+            /* eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text */
+            return <img loading="lazy" decoding="async" {...props} />;
+          },
+        }}
       >
         {content}
       </ReactMarkdown>

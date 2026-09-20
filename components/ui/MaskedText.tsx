@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { EASE_DRAMATIC } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -31,7 +31,7 @@ export function MaskedText({
       <span aria-hidden>
       {chars.map((char, i) => (
         <span key={i} className="inline-block overflow-hidden align-bottom">
-          <motion.span
+          <m.span
             className="inline-block will-change-transform"
             initial={{ y: "110%" }}
             animate={{ y: "0%" }}
@@ -42,7 +42,7 @@ export function MaskedText({
             }}
           >
             {char === " " ? " " : char}
-          </motion.span>
+          </m.span>
         </span>
       ))}
       </span>
@@ -69,14 +69,14 @@ export function MaskedLine({
 
   return (
     <span className="block overflow-hidden">
-      <motion.span
+      <m.span
         className={`block will-change-transform ${className ?? ""}`}
         initial={{ y: "110%" }}
         animate={{ y: "0%" }}
         transition={{ duration: 1, delay, ease: EASE_DRAMATIC }}
       >
         {children}
-      </motion.span>
+      </m.span>
     </span>
   );
 }

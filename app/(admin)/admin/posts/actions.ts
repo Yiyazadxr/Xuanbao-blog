@@ -181,6 +181,7 @@ export async function savePost(
 
     revalidatePath("/");
     revalidatePath("/blog");
+    revalidatePath(`/blog/${p.slug}`);
     revalidatePath("/admin/posts");
     return { ok: true, message: p.id ? "已保存" : "已创建", id: postId };
   } catch (e) {
@@ -208,6 +209,7 @@ export async function deletePost(id: string): Promise<AdminActionState> {
   runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
   revalidatePath("/");
   revalidatePath("/blog");
+  revalidatePath(`/blog/${post.slug}`);
   revalidatePath("/admin/posts");
   return { ok: true, message: "已删除" };
 }
@@ -230,6 +232,7 @@ export async function togglePublish(id: string): Promise<AdminActionState> {
   });
   revalidatePath("/");
   revalidatePath("/blog");
+  revalidatePath(`/blog/${post.slug}`);
   revalidatePath("/admin/posts");
   return { ok: true, message: published ? "已发布" : "已转为草稿" };
 }
@@ -245,6 +248,7 @@ export async function togglePin(id: string): Promise<AdminActionState> {
   await prisma.post.update({ where: { id: pid.data }, data: { pinned: !post.pinned } });
   revalidatePath("/");
   revalidatePath("/blog");
+  revalidatePath(`/blog/${post.slug}`);
   revalidatePath("/admin/posts");
   return { ok: true, message: post.pinned ? "已取消置顶" : "已置顶" };
 }
@@ -260,6 +264,7 @@ export async function toggleArchive(id: string): Promise<AdminActionState> {
   await prisma.post.update({ where: { id: pid.data }, data: { archived: !post.archived } });
   revalidatePath("/");
   revalidatePath("/blog");
+  revalidatePath(`/blog/${post.slug}`);
   revalidatePath("/admin/posts");
   return { ok: true, message: post.archived ? "已取消归档" : "已归档" };
 }
@@ -287,7 +292,7 @@ export async function batchPosts(
   if (op === "delete") {
     const posts = await prisma.post.findMany({
       where: { id: { in: idList } },
-      select: { coverImage: true, revisions: { select: { coverImage: true } } },
+      select: { slug: true, coverImage: true, revisions: { select: { coverImage: true } } },
     });
     await prisma.post.deleteMany({ where: { id: { in: idList } } });
     for (const p of posts) {
@@ -295,6 +300,7 @@ export async function batchPosts(
         (c): c is string => Boolean(c)
       );
       runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
+      revalidatePath(`/blog/${p.slug}`);
     }
   } else if (op === "publish") {
     // 首次发布补齐发布时间
@@ -312,6 +318,15 @@ export async function batchPosts(
       where: { id: { in: idList } },
       data: { categoryId: cid || null },
     });
+  }
+
+  // 详情页是 ISR 缓存：批量改动（发布/转草稿/归档）会影响详情页可见性，逐篇刷新
+  if (op !== "delete") {
+    const affected = await prisma.post.findMany({
+      where: { id: { in: idList } },
+      select: { slug: true },
+    });
+    for (const p of affected) revalidatePath(`/blog/${p.slug}`);
   }
 
   revalidatePath("/");

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import { getAvatarColor } from "@/lib/avatar";
 
 // 安全校验：只允许安全协议的 URL，阻止 javascript:/data: 等注入
@@ -26,14 +27,15 @@ export function Avatar({
   const radiusCls = shape === "circle" ? "rounded-full" : "rounded-2xl";
 
   if (image && isSafeUrl(image)) {
-    // 有头像：object-cover 裁成方形（显示层裁剪，无需服务端处理）
+    // 有头像：next/image 优化（object-cover 裁成方形，显示层裁剪，无需服务端处理）
     return (
-      <span className={`relative inline-flex shrink-0 ${className}`}>
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
+      <span className={`relative inline-flex shrink-0 overflow-hidden ${radiusCls} ${className}`}>
+        <Image
           src={image}
           alt=""
-          className={`size-full object-cover ${radiusCls}`}
+          fill
+          sizes="96px"
+          className="object-cover"
           referrerPolicy="no-referrer"
         />
       </span>

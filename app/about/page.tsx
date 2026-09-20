@@ -22,8 +22,8 @@ export default async function AboutPage() {
   });
 
   return (
-    // 不透明底，遮挡水墨背景
-    <div className="mx-auto mt-28 w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
+    // 不透明底，遮挡水墨背景；顶部留白跟随密度体系（--content-pt）
+    <div className="mx-auto mt-[var(--content-pt)] w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
       {/* 简介 */}
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
         <Avatar

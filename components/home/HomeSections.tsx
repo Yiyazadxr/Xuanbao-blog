@@ -35,9 +35,10 @@ export async function HomeSections() {
               </h2>
             </Reveal>
             <Stagger className="cover-grid-2 mt-6 grid gap-5 sm:grid-cols-2" staggerChildren={0.06}>
-              {featured.map((post) => (
+              {featured.map((post, i) => (
                 <StaggerItem key={post.id}>
-                  <PostCard post={post} />
+                  {/* 首屏前两张封面立即加载（LCP 候选） */}
+                  <PostCard post={post} priority={i < 2} />
                 </StaggerItem>
               ))}
             </Stagger>

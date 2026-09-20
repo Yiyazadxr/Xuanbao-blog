@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { useEffect, useState } from "react";
 import { EASE_DRAMATIC } from "@/lib/motion";
 
@@ -40,7 +40,7 @@ export function Preloader() {
   if (phase === "done") return null;
 
   return (
-    <motion.div
+    <m.div
       aria-hidden
       className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-background"
       initial={false}
@@ -60,6 +60,6 @@ export function Preloader() {
           style={{ width: `${progress}%` }}
         />
       </span>
-    </motion.div>
+    </m.div>
   );
 }

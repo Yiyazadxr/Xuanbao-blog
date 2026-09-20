@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
-import { motion } from "framer-motion";
+import { AnimatePresence, m } from "framer-motion";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -10,7 +10,7 @@ import { NotificationBell } from "@/components/layout/NotificationBell";
 import { UserMenu } from "@/components/layout/UserMenu";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { AnimatedText } from "@/components/ui/AnimatedText";
-import { SPRING_SNAP } from "@/lib/motion";
+import { EASE_OUT, SPRING_SNAP } from "@/lib/motion";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // 全站吸顶导航 移动端折叠成汉堡菜单
@@ -18,6 +18,12 @@ export function Header() {
   const pathname = usePathname();
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // 路由变化时收起菜单（渲染期调整，React 支持同源 setState 模式）
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (prevPathname !== pathname) {
+    setPrevPathname(pathname);
+    setMenuOpen(false);
+  }
   const menuBtnRef = useRef<HTMLButtonElement>(null);
   const menuPanelRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +45,16 @@ export function Header() {
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
+  }, [menuOpen]);
+
+  // 菜单打开时锁定背景滚动（与 MobileToc 行为一致）
+  useEffect(() => {
+    if (!menuOpen) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [menuOpen]);
 
   return (
@@ -79,7 +95,7 @@ export function Header() {
                   ? pathname === "/"
                   : pathname.startsWith(link.href);
               return (
-                <motion.div
+                <m.div
                   key={link.href}
                   className="group"
                   whileHover={{ scale: 1.02, y: -1 }}
@@ -97,7 +113,7 @@ export function Header() {
                   >
                     <AnimatedText text={link.label} />
                   </Link>
-                </motion.div>
+                </m.div>
               );
             })}
           </div>
@@ -122,38 +138,50 @@ export function Header() {
         </div>
       </nav>
 
-      {/* 移动端下拉菜单 */}
-      {menuOpen && (
-        <div
-          ref={menuPanelRef}
-          id="mobile-menu"
-          className="border-b border-border/80 bg-background/80 backdrop-blur-sm backdrop-saturate-150 md:hidden"
-        >
-          <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
-            {NAV_LINKS.map((link) => {
-              const active =
-                link.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(link.href);
-              return (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  aria-current={active ? "page" : undefined}
-                  onClick={() => setMenuOpen(false)}
-                  className={`rounded-lg px-4 py-3 text-base font-medium transition-colors duration-200 ${
-                    active
-                      ? "bg-foreground/5 text-foreground"
-                      : "text-muted hover:bg-foreground/5 hover:text-foreground"
-                  }`}
-                >
-                  {link.label}
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
+      {/* 移动端下拉菜单：AnimatePresence 提供展开/收起过渡，链接逐项错位淡入 */}
+      <AnimatePresence>
+        {menuOpen && (
+          <m.div
+            ref={menuPanelRef}
+            id="mobile-menu"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: EASE_OUT }}
+            className="max-h-[calc(100dvh-var(--header-h))] overflow-y-auto border-b border-border/80 bg-background/80 backdrop-blur-sm backdrop-saturate-150 md:hidden"
+          >
+            <div className="mx-auto flex max-w-6xl flex-col gap-1 px-4 py-3">
+              {NAV_LINKS.map((link, i) => {
+                const active =
+                  link.href === "/"
+                    ? pathname === "/"
+                    : pathname.startsWith(link.href);
+                return (
+                  <m.div
+                    key={link.href}
+                    initial={{ opacity: 0, y: -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, ease: EASE_OUT, delay: 0.05 + i * 0.04 }}
+                  >
+                    <Link
+                      href={link.href}
+                      aria-current={active ? "page" : undefined}
+                      onClick={() => setMenuOpen(false)}
+                      className={`block rounded-lg px-4 py-3 text-base font-medium transition-colors duration-200 ${
+                        active
+                          ? "bg-foreground/5 text-foreground"
+                          : "text-muted hover:bg-foreground/5 hover:text-foreground"
+                      }`}
+                    >
+                      {link.label}
+                    </Link>
+                  </m.div>
+                );
+              })}
+            </div>
+          </m.div>
+        )}
+      </AnimatePresence>
     </header>
   );
 }

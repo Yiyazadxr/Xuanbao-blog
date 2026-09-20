@@ -35,6 +35,8 @@ const nextConfig: NextConfig = {
       // 封面图上传（默认 1MB，放开到 6MB 覆盖 5MB 图片 + multipart 开销）
       bodySizeLimit: "6mb",
     },
+    // framer-motion 不在默认优化列表：按需加载实际用到的导出（配合 LazyMotion + m）
+    optimizePackageImports: ["framer-motion"],
   },
   images: {
     formats: ["image/webp"],

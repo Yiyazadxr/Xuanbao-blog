@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { m } from "framer-motion";
 import { EASE_OUT } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
@@ -16,7 +16,7 @@ export function Reveal({
 }) {
   const reduceMotion = usePrefersReducedMotion();
   return (
-    <motion.div
+    <m.div
       className={className}
       initial={{ opacity: 0, y: reduceMotion ? 0 : 24 }}
       whileInView={{ opacity: 1, y: 0 }}
@@ -24,6 +24,6 @@ export function Reveal({
       transition={{ duration: 0.6, delay, ease: EASE_OUT }}
     >
       {children}
-    </motion.div>
+    </m.div>
   );
 }
