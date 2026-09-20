@@ -17,8 +17,10 @@ export function PostListPaginated({
   basePath: string;
 }) {
   const searchParams = useSearchParams();
-  const page = Math.max(1, Number(searchParams.get("page")) || 1);
+  const requested = Math.max(1, Number(searchParams.get("page")) || 1);
   const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
+  // 越界页码收敛到最后一页，避免渲染空网格却仍显示「第 999 页」
+  const page = Math.min(requested, totalPages);
   const current = posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   if (posts.length === 0) {

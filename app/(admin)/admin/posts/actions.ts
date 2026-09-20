@@ -4,10 +4,11 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
+import { runAfter } from "@/lib/deferred";
 import { deleteImage, saveImage } from "@/lib/image-storage";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
-import { countWords, plainExcerpt, slugify } from "@/lib/utils";
+import { countWords, buildSearchText, plainExcerpt, slugify } from "@/lib/utils";
 import { batchPostsSchema, parseId, parseInput, postSchema } from "@/lib/validation";
 import type { AdminActionState } from "../action-types";
 
@@ -137,6 +138,8 @@ export async function savePost(
     featured: p.featured,
     // 纯文字字数：保存时计算，页脚只做 sum
     wordCount: countWords(p.content ?? ""),
+    // 搜索索引正文：保存时落库，搜索查询不再回读 content 全文
+    searchText: buildSearchText(p.content ?? ""),
   };
 
   try {
@@ -202,7 +205,7 @@ export async function deletePost(id: string): Promise<AdminActionState> {
     (c): c is string => Boolean(c)
   );
   await prisma.post.delete({ where: { id: pid.data } });
-  for (const cover of covers) void deleteImage(cover);
+  runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
   revalidatePath("/");
   revalidatePath("/blog");
   revalidatePath("/admin/posts");
@@ -291,7 +294,7 @@ export async function batchPosts(
       const covers = [p.coverImage, ...p.revisions.map((r) => r.coverImage)].filter(
         (c): c is string => Boolean(c)
       );
-      for (const cover of covers) void deleteImage(cover);
+      runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
     }
   } else if (op === "publish") {
     // 首次发布补齐发布时间
@@ -335,7 +338,7 @@ export async function uploadImage(
 
   try {
     const buf = Buffer.from(await file.arrayBuffer());
-    const url = await saveImage({ type: file.type, data: buf });
+    const url = await saveImage(buf);
     return { ok: true, url };
   } catch (e) {
     const known =
@@ -398,6 +401,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
           archived: revision.archived,
           // 回滚后字数随正文变化，重新计算（版本快照不存 wordCount，用 content 现算）
           wordCount: countWords(revision.content ?? ""),
+          searchText: buildSearchText(revision.content ?? ""),
         },
       });
 

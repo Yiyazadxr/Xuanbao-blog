@@ -4,7 +4,7 @@ import { cache } from "react";
 import { SITE } from "@/lib/constants";
 import { recordDailyView } from "@/lib/daily-stats";
 import { prisma } from "@/lib/prisma";
-import { markdownToText, readingTimeFromWordCount } from "@/lib/utils";
+import { readingTimeFromWordCount } from "@/lib/utils";
 
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
 export const PUBLISHED_FILTER = { published: true, archived: false } as const;
@@ -107,26 +107,21 @@ export async function getFeaturedPosts() {
 }
 
 // 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）。
-// text 为正文去 Markdown 后的纯文本，截断至 SEARCH_INDEX_TEXT_MAX 字符：
-// 足以覆盖 searchSnippet 片段提取与常见关键词命中，同时避免长正文把 RSC payload 撑到数百 KB。
-const SEARCH_INDEX_TEXT_MAX = 800;
-
+// text 为保存时落库的 searchText（去 Markdown 后截断），查询不再回读 content 全文；
+// 存量未回填的文章退回摘要，保证仍可被标题/摘要命中。
 export async function getSearchIndex() {
   const rows = await prisma.post.findMany({
     where: PUBLISHED_FILTER,
     orderBy: { createdAt: "desc" },
-    select: { slug: true, title: true, excerpt: true, content: true, createdAt: true },
+    select: { slug: true, title: true, excerpt: true, searchText: true, createdAt: true },
   });
-  return rows.map((r) => {
-    const full = markdownToText(r.content);
-    return {
-      slug: r.slug,
-      title: r.title,
-      excerpt: r.excerpt ?? "",
-      text: full.length > SEARCH_INDEX_TEXT_MAX ? full.slice(0, SEARCH_INDEX_TEXT_MAX) : full,
-      createdAt: r.createdAt,
-    };
-  });
+  return rows.map((r) => ({
+    slug: r.slug,
+    title: r.title,
+    excerpt: r.excerpt ?? "",
+    text: r.searchText ?? r.excerpt ?? "",
+    createdAt: r.createdAt,
+  }));
 }
 
 export type SearchIndexItem = Awaited<ReturnType<typeof getSearchIndex>>[number];

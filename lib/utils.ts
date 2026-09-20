@@ -72,6 +72,16 @@ export function markdownToText(markdown: string): string {
     .trim();
 }
 
+// 搜索索引正文上限：覆盖片段提取与常见关键词命中，同时避免长正文把 RSC payload 撑大
+export const SEARCH_TEXT_MAX = 800;
+
+// 生成落库的搜索文本：正文去 Markdown 后截断。保存时写入，
+// 列表搜索索引不再每次回读并解析所有文章全文。
+export function buildSearchText(markdown: string): string {
+  const text = markdownToText(markdown);
+  return text.length > SEARCH_TEXT_MAX ? text.slice(0, SEARCH_TEXT_MAX) : text;
+}
+
 // 从 Markdown 正文提取纯文本摘要（无手动摘要时兜底用）
 export function plainExcerpt(markdown: string, maxLength = 120): string {
   const text = markdownToText(markdown);

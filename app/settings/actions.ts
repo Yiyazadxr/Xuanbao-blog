@@ -6,6 +6,7 @@ import { revalidatePath } from "next/cache";
 import { getFreshUser } from "@/lib/auth";
 import { verifyHCaptcha } from "@/lib/hcaptcha";
 import { deleteImage, saveImage } from "@/lib/image-storage";
+import type { AllowedImageType } from "@/lib/image-type";
 import { rateLimit } from "@/lib/rate-limit";
 import { prisma } from "@/lib/prisma";
 import { changePasswordSchema, parseInput, updateNameSchema } from "@/lib/validation";
@@ -13,7 +14,7 @@ import { changePasswordSchema, parseInput, updateNameSchema } from "@/lib/valida
 export type SettingsState = { ok: boolean; error?: string; message?: string };
 
 // 头像允许的类型与上限（头像不需要 GIF，收紧到 2MB）
-const AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const AVATAR_TYPES: readonly AllowedImageType[] = ["image/jpeg", "image/png", "image/webp"];
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 
 // 更新头像（需登录；上传后裁剪为方形显示，删除旧头像图）
@@ -32,7 +33,7 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "请选择头像图片" };
   }
-  if (!AVATAR_TYPES.has(file.type)) {
+  if (!AVATAR_TYPES.includes(file.type as AllowedImageType)) {
     return { ok: false, error: "仅支持 JPEG / PNG / WebP 图片" };
   }
   if (file.size > MAX_AVATAR_SIZE) {
@@ -42,7 +43,7 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
   const buf = Buffer.from(await file.arrayBuffer());
   let url: string;
   try {
-    url = await saveImage({ type: file.type, data: buf }, "avatars");
+    url = await saveImage(buf, "avatars", AVATAR_TYPES);
   } catch (e) {
     console.error("上传头像失败：", e);
     return { ok: false, error: "头像上传失败，请稍后重试" };

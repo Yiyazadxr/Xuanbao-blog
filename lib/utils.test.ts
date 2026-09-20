@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSearchText,
   countWords,
   findTitleMatch,
   formatCount,
@@ -147,6 +148,22 @@ describe("slugify", () => {
 
   it("空标题回落到 post- 前缀", () => {
     expect(slugify("   ")).toMatch(/^post-/);
+  });
+});
+
+describe("buildSearchText", () => {
+  it("去 Markdown 并保留正文文字", () => {
+    expect(buildSearchText("# 标题\n\n正文内容")).toBe("标题 正文内容");
+  });
+
+  it("超过上限时截断到 800 字", () => {
+    const long = "字".repeat(1000);
+    expect(buildSearchText(long).length).toBe(800);
+  });
+
+  it("上限内原样返回", () => {
+    const text = "短短一句话";
+    expect(buildSearchText(text)).toBe(text);
   });
 });
 

@@ -15,6 +15,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { getCurrentUser } from "@/lib/auth";
 import { getBookmarkInfo } from "@/lib/bookmarks";
 import { SITE } from "@/lib/constants";
+import { runAfter } from "@/lib/deferred";
 import { getLikeInfo } from "@/lib/likes";
 import { extractToc } from "@/lib/markdown";
 import { recordRead } from "@/lib/reading";
@@ -79,8 +80,8 @@ export default async function BlogPostPage({
   const post = await getPostBySlug(slug);
   if (!post) notFound();
 
-  // 浏览量异步 +1（不阻塞页面渲染，内部已捕获异常）
-  void incrementViewCount(post.id);
+  // 浏览量异步 +1（响应结束后执行，内部已捕获异常）
+  runAfter(() => incrementViewCount(post.id));
 
   const toc = extractToc(post.content);
   const readTime = readingTime(post.content);
@@ -98,7 +99,7 @@ export default async function BlogPostPage({
   ]);
 
   // 登录用户记录一次阅读（去重，失败不影响渲染）
-  void recordRead(post.id, user?.id, post.wordCount);
+  runAfter(() => recordRead(post.id, user?.id, post.wordCount));
 
   return (
     <>

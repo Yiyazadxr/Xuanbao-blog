@@ -3,50 +3,46 @@ import { del, put } from "@vercel/blob";
 import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
 import crypto from "crypto";
-
-// 允许的图片格式（MIME → 扩展名）
-const ALLOWED_TYPES: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/gif": "gif",
-};
+import {
+  ALL_IMAGE_TYPES,
+  detectImageType,
+  extensionFor,
+  type AllowedImageType,
+} from "@/lib/image-type";
 
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-export function isAllowedImageType(type: string): boolean {
-  return type in ALLOWED_TYPES;
-}
-
 // 生成唯一文件名（不信任用户文件名，防路径穿越/覆盖）
-function uniqueFilename(type: string): string {
-  const ext = ALLOWED_TYPES[type] ?? "bin";
+function uniqueFilename(type: AllowedImageType): string {
   const rand = crypto.randomBytes(12).toString("hex");
-  return `${Date.now().toString(36)}-${rand}.${ext}`;
+  return `${Date.now().toString(36)}-${rand}.${extensionFor(type)}`;
 }
 
 function hasBlobToken(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-// 保存图片，返回可公开访问的 URL（path 为存储目录，如 covers/avatars）
+// 保存图片，返回可公开访问的 URL（dir 为存储目录，如 covers/avatars）。
+// 类型以文件头（magic bytes）为准，不信任客户端 MIME；allowedTypes 限制该目录允许的格式。
 export async function saveImage(
-  file: { type: string; data: Buffer },
-  dir = "covers"
+  data: Buffer,
+  dir = "covers",
+  allowedTypes: readonly AllowedImageType[] = ALL_IMAGE_TYPES
 ): Promise<string> {
-  if (!isAllowedImageType(file.type)) {
-    throw new Error("仅支持 JPEG / PNG / WebP / GIF 图片");
-  }
-  if (file.data.length > MAX_IMAGE_SIZE) {
+  if (data.length > MAX_IMAGE_SIZE) {
     throw new Error("图片大小不能超过 5MB");
   }
+  const type = detectImageType(data);
+  if (!type || !allowedTypes.includes(type)) {
+    throw new Error("仅支持 JPEG / PNG / WebP / GIF 图片");
+  }
 
-  const filename = uniqueFilename(file.type);
+  const filename = uniqueFilename(type);
 
   if (hasBlobToken()) {
-    const { url } = await put(`${dir}/${filename}`, file.data, {
+    const { url } = await put(`${dir}/${filename}`, data, {
       access: "public",
-      contentType: file.type,
+      contentType: type,
     });
     return url;
   }
@@ -54,7 +50,7 @@ export async function saveImage(
   // 本地开发：写入 public/uploads，由 Next 静态服务
   const baseDir = path.join(process.cwd(), "public", "uploads", dir);
   await mkdir(baseDir, { recursive: true });
-  await writeFile(path.join(baseDir, filename), file.data);
+  await writeFile(path.join(baseDir, filename), data);
   return `/uploads/${dir}/${filename}`;
 }
 

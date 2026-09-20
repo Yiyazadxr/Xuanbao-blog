@@ -5,7 +5,7 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import { PrismaClient } from "../lib/generated/prisma/client";
-import { countWords } from "../lib/utils";
+import { buildSearchText, countWords } from "../lib/utils";
 import { DEFAULT_ROLE_PERMISSIONS } from "../lib/permissions";
 
 const pool = new Pool({
@@ -72,6 +72,7 @@ async function main() {
         authorId: admin.id,
         categoryId: tech?.id ?? null,
         wordCount: countWords(content),
+        searchText: buildSearchText(content),
       },
     });
     console.log("✅ 示例文章:", post.title);

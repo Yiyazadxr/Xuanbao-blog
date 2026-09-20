@@ -1,4 +1,5 @@
 // 站内通知数据层：创建通知（支持聚合）、通知管理员、查询与已读标记
+import { runAfter } from "@/lib/deferred";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/roles";
 import {
@@ -66,10 +67,10 @@ async function cleanupForUser(userId: string) {
   }
 }
 
-// 惰性清理：失败不影响主流程
+// 惰性清理：交给请求生命周期收尾执行，失败不影响主流程
 function maybeCleanup(userId: string) {
   if (Math.random() >= CLEANUP_PROBABILITY) return;
-  void cleanupForUser(userId).catch((e) => console.error("清理通知失败：", e));
+  runAfter(() => cleanupForUser(userId));
 }
 
 // 尝试把本次事件并入已有的一条未读聚合通知；无可合并对象时返回 null
