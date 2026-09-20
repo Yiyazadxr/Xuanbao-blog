@@ -6,7 +6,7 @@ import Credentials from "next-auth/providers/credentials";
 import { prisma } from "@/lib/prisma";
 import { type Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions-server";
-import { type Role } from "@/lib/roles";
+import { isRole, type Role } from "@/lib/roles";
 
 // JWT 展示字段（昵称/头像/角色）的回源间隔：定期刷新而非每次请求查库
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
@@ -141,18 +141,20 @@ export const getFreshUser = cache(async () => {
       role: true,
       createdAt: true,
       disabled: true,
+      activatedAt: true,
     },
   });
   // 停用/回收立即生效：JWT 未过期也不能继续操作，
   // 否则后台停用账号后该用户仍可凭旧会话操作到 JWT 自然过期
-  if (!user || user.disabled) return null;
-  return user;
+  const role = user?.role;
+  if (!user || user.disabled || !user.activatedAt || !isRole(role)) return null;
+  return { ...user, role };
 });
 
 // 按具体权限校验：用户拥有该权限时返回用户，否则返回 null
 export async function requirePermission(permission: Permission) {
   const user = await getFreshUser();
   if (!user) return null;
-  const ok = await hasPermission(user.role as Role, permission);
+  const ok = await hasPermission(user.role, permission);
   return ok ? user : null;
 }

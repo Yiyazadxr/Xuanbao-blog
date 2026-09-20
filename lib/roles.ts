@@ -8,6 +8,10 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+export function isRole(value: unknown): value is Role {
+  return typeof value === "string" && (Object.values(ROLES) as string[]).includes(value);
+}
+
 export const ROLE_LABELS: Record<Role, string> = {
   [ROLES.SUPER_ADMIN]: "超级管理员",
   [ROLES.ADMIN]: "管理员",

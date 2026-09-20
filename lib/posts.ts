@@ -151,6 +151,15 @@ export const getCategoryBySlug = cache(async (slug: string) => {
   return prisma.category.findUnique({ where: { slug } });
 });
 
+// 标签/系列 metadata 与页面主体共用，避免同一次请求重复查询 Prisma。
+export const getTagBySlug = cache(async (slug: string) => {
+  return prisma.tag.findUnique({ where: { slug } });
+});
+
+export const getSeriesBySlug = cache(async (slug: string) => {
+  return prisma.series.findUnique({ where: { slug } });
+});
+
 // 同一系列内的上一篇 / 下一篇（按发布时间升序，即系列连载顺序）
 export async function getSeriesAdjacent(seriesId: string, postId: string) {
   const select = { id: true, title: true, slug: true, createdAt: true } as const;
@@ -287,11 +296,11 @@ export async function getArchive() {
 // 暂缓迁移，待单独评估 cacheComponents 全量影响后再做。
 export const getSiteStats = unstable_cache(
   async () => {
-    const [postCount, viewAgg, wordAgg] = await Promise.all([
-      prisma.post.count({ where: PUBLISHED_FILTER }),
-      prisma.post.aggregate({ _sum: { viewCount: true }, where: PUBLISHED_FILTER }),
-      prisma.post.aggregate({ _sum: { wordCount: true }, where: PUBLISHED_FILTER }),
-    ]);
+    const aggregate = await prisma.post.aggregate({
+      where: PUBLISHED_FILTER,
+      _count: { _all: true },
+      _sum: { viewCount: true, wordCount: true },
+    });
 
     const days = Math.max(
       0,
@@ -300,9 +309,9 @@ export const getSiteStats = unstable_cache(
 
     return {
       days,
-      views: viewAgg._sum.viewCount ?? 0,
-      posts: postCount,
-      words: wordAgg._sum.wordCount ?? 0,
+      views: aggregate._sum.viewCount ?? 0,
+      posts: aggregate._count._all,
+      words: aggregate._sum.wordCount ?? 0,
     };
   },
   ["site-stats"],

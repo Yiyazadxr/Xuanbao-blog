@@ -73,8 +73,10 @@ export async function deleteImage(url: string | null | undefined): Promise<void>
         console.error("非法图片路径，拒绝删除：", url);
         return;
       }
-      const target = path.join(process.cwd(), "public", "uploads", rel);
-      if (target.startsWith(path.join(process.cwd(), "public", "uploads"))) {
+      const base = path.resolve(process.cwd(), "public", "uploads");
+      const target = path.resolve(base, rel);
+      const relative = path.relative(base, target);
+      if (relative && !relative.startsWith("..") && !path.isAbsolute(relative)) {
         await unlink(target);
       } else {
         console.error("图片路径越界，拒绝删除：", url);

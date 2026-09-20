@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import {
   NOTIFICATION_CATEGORY_META,
@@ -59,41 +60,48 @@ export function NotificationRow({
         </span>
       </span>
 
-      {onDelete && (
-        <button
-          type="button"
-          onClick={(e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            onDelete(item.id);
-          }}
-          aria-label="删除通知"
-          className={`shrink-0 cursor-pointer rounded-full text-muted/50 transition-colors duration-150 hover:bg-foreground/10 hover:text-red-500 ${
-            compact ? "p-1" : "p-1.5"
-          }`}
-        >
-          <Icon icon="ph:x-bold" width={14} height={14} aria-hidden />
-        </button>
-      )}
     </>
   );
+
+  const deleteButton = onDelete ? (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        onDelete(item.id);
+      }}
+      aria-label="删除通知"
+      className={`shrink-0 cursor-pointer rounded-full text-muted/50 transition-colors duration-150 hover:bg-foreground/10 hover:text-red-500 ${
+        compact ? "p-1" : "p-1.5"
+      }`}
+    >
+      <Icon icon="ph:x-bold" width={14} height={14} aria-hidden />
+    </button>
+  ) : null;
 
   const hoverCls = "transition-colors duration-150 hover:bg-foreground/5";
   const padCls = compact ? "px-4 py-3" : "px-5 py-4";
 
   if (item.link) {
     return (
-      <div className={`${hoverCls}`}>
-        <a
+      <div className={`relative ${hoverCls}`}>
+        <Link
           href={item.link}
-          className={`flex items-start gap-3 ${padCls}`}
+          className={`flex items-start gap-3 ${padCls} ${deleteButton ? (compact ? "pr-12" : "pr-14") : ""}`}
         >
           {body}
-        </a>
+        </Link>
+        {deleteButton && (
+          <span className="absolute right-3 top-1/2 -translate-y-1/2">{deleteButton}</span>
+        )}
       </div>
     );
   }
   return (
-    <div className={`flex items-start gap-3 ${padCls} ${hoverCls}`}>{body}</div>
+    <div className={`flex items-start gap-3 ${padCls} ${hoverCls}`}>
+      {body}
+      {deleteButton}
+    </div>
   );
 }

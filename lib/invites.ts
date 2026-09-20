@@ -5,6 +5,11 @@ import { notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { prisma } from "@/lib/prisma";
 import { generateInviteCode } from "@/lib/random";
+import { ROLES } from "@/lib/roles";
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
+}
 
 // 访客提交账号申请（路径 A：普通申请，无邀请码）→ 入库 + 站内通知管理员
 export async function submitAccountRequest(email: string, message?: string) {
@@ -22,22 +27,29 @@ export async function submitAccountRequest(email: string, message?: string) {
     return { ok: false, error: "该邮箱今日申请次数过多，请稍后再试" };
   }
 
-  // 已注册且已激活（可正常登录）的邮箱不可重复申请；被禁用/待审核后允许重新申请
+  // 正常账号不可重复申请；停用账号允许重新申请，审批时凭据只发送到原邮箱并降为 MEMBER。
   const existingUser = await prisma.user.findUnique({ where: { email: normalized } });
-  if (existingUser && !existingUser.disabled && existingUser.activatedAt) {
+  if (existingUser && !existingUser.disabled) {
     return { ok: false, error: "该邮箱已注册，请直接登录" };
   }
 
   const pending = await prisma.accountRequest.findFirst({
-    where: { email: normalized, status: "PENDING" },
+    where: { email: normalized, status: { in: ["PENDING", "PROCESSING"] } },
   });
   if (pending) {
     return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
   }
 
-  await prisma.accountRequest.create({
-    data: { email: normalized, message: message?.trim() || null },
-  });
+  try {
+    await prisma.accountRequest.create({
+      data: { email: normalized, message: message?.trim() || null, kind: "STANDARD" },
+    });
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
+    }
+    throw error;
+  }
 
   // 站内通知管理员有新的账号申请
   await notifyAdmins({
@@ -65,12 +77,12 @@ export async function submitInviteRequest({
   const normalized = email.trim().toLowerCase();
 
   const existing = await prisma.user.findUnique({ where: { email: normalized } });
-  if (existing && !existing.disabled && existing.activatedAt) {
+  if (existing && !existing.disabled) {
     return { ok: false, error: "该邮箱已注册，请直接登录" };
   }
 
   const pending = await prisma.accountRequest.findFirst({
-    where: { email: normalized, status: "PENDING" },
+    where: { email: normalized, status: { in: ["PENDING", "PROCESSING"] } },
   });
   if (pending) {
     return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
@@ -88,19 +100,15 @@ export async function submitInviteRequest({
   const hashed = await bcrypt.hash(password, 10);
   try {
     await prisma.$transaction(async (tx) => {
-      // 已存在被回收/待审核的同邮箱账号则更新复用，否则新建（避免重复账号）
+      // 停用账号保持不可用直到审核通过；新邮箱才预创建待审核账号。
       const user = existing
-        ? await tx.user.update({
-            where: { id: existing.id },
-            data: { name: name.trim(), password: hashed, disabled: false, activatedAt: null, lastLoginAt: null },
-          })
+        ? existing
         : await tx.user.create({
             data: {
               name: name.trim(),
               email: normalized,
               password: hashed,
-              role: "MEMBER",
-              // 待审核：审核通过后才激活
+              role: ROLES.MEMBER,
               activatedAt: null,
             },
           });
@@ -119,13 +127,23 @@ export async function submitInviteRequest({
       });
 
       await tx.accountRequest.create({
-        // 明文密码加密暂存（AES-256-GCM，AUTH_SECRET 派生密钥），审核通过时解密后发邮件
-        data: { email: normalized, status: "PENDING", password: encryptSecret(password) },
+        // 密码以 AES-256-GCM 加密暂存（密钥由 AUTH_SECRET 派生），审核通过时解密后发邮件。
+        // 邀请码路径没有申请留言，复用 message 保存待审核昵称，激活时再写入账号。
+        data: {
+          email: normalized,
+          message: name.trim(),
+          kind: "INVITE",
+          status: "PENDING",
+          password: encryptSecret(password),
+        },
       });
     });
   } catch (e) {
     if (e instanceof Error && e.message === "INVITE_TAKEN") {
       return { ok: false, error: "邀请码刚刚被使用了" };
+    }
+    if (isUniqueConstraintError(e)) {
+      return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
     }
     throw e;
   }

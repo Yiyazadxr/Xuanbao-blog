@@ -15,6 +15,7 @@ const PAGE_SIZE = 20;
 
 const STATUS_LABEL: Record<string, { text: string; cls: string }> = {
   PENDING: { text: "待处理", cls: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  PROCESSING: { text: "发送中", cls: "bg-blue-500/10 text-blue-600 dark:text-blue-400" },
   APPROVED: { text: "已注册", cls: "bg-emerald-500/10 text-emerald-600 dark:text-emerald-400" },
   REJECTED: { text: "已拒绝", cls: "bg-red-500/10 text-red-500" },
 };
@@ -80,7 +81,9 @@ export default async function AdminInvitesPage({
                       {req.message && ` · ${req.message}`}
                     </p>
                   </div>
-                  {req.status === "PENDING" && <RequestActions requestId={req.id} />}
+                   {(req.status === "PENDING" || req.status === "PROCESSING") && (
+                     <RequestActions requestId={req.id} />
+                   )}
                 </li>
               );
             })}

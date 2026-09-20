@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { websiteOpenGraph } from "@/lib/metadata";
-import { getPosts } from "@/lib/posts";
+import { getPosts, getTagBySlug } from "@/lib/posts";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const tag = await prisma.tag.findUnique({ where: { slug } });
+  const tag = await getTagBySlug(slug);
   if (!tag) return { title: "标签未找到" };
   const description = `浏览标签 #${tag.name} 下的全部文章`;
   return {
@@ -38,7 +38,7 @@ export default async function TagPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const tag = await prisma.tag.findUnique({ where: { slug } });
+  const tag = await getTagBySlug(slug);
   if (!tag) notFound();
 
   const { posts, total } = await getPosts({ tagSlug: slug });

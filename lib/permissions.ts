@@ -23,6 +23,22 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const ALL_PERMISSIONS: Permission[] = Object.values(PERMISSIONS);
 
+// 解析数据库中的权限数组：null 表示配置结构损坏，空数组表示合法的零权限配置。
+export function normalizePermissions(value: unknown): Permission[] | null {
+  if (!Array.isArray(value)) return null;
+  if (value.length === 0) return [];
+  const valid = [
+    ...new Set(
+      value.filter(
+        (permission): permission is Permission =>
+          typeof permission === "string" &&
+          (ALL_PERMISSIONS as readonly string[]).includes(permission)
+      )
+    ),
+  ];
+  return valid.length > 0 ? valid : null;
+}
+
 export const PERMISSION_LABELS: Record<Permission, string> = {
   comment: "发表评论",
   like: "点赞",

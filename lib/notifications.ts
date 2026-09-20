@@ -54,7 +54,7 @@ async function cleanupForUser(userId: string) {
   if (count > MAX_NOTIFICATIONS) {
     const oldest = await prisma.notification.findMany({
       where: { userId },
-      orderBy: { createdAt: "desc" },
+      orderBy: [{ lastMergedAt: "desc" }, { id: "desc" }],
       skip: MAX_NOTIFICATIONS,
       select: { id: true },
     });
@@ -79,14 +79,16 @@ async function mergeIntoAggregate(
   actor: string | null
 ) {
   const since = new Date(Date.now() - AGGREGATE_WINDOW_MS);
+  const retentionCutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
   const existing = await prisma.notification.findFirst({
     where: {
       userId,
       aggregateKey: data.aggregateKey,
       read: false,
-      createdAt: { gt: since },
+      createdAt: { gt: retentionCutoff },
+      lastMergedAt: { gt: since },
     },
-    orderBy: { createdAt: "desc" },
+    orderBy: { lastMergedAt: "desc" },
     select: { id: true, actorNames: true },
   });
   if (!existing) return null;
@@ -106,8 +108,8 @@ async function mergeIntoAggregate(
       ...(actor ? { actorName: actor } : {}),
       title: data.title,
       ...(data.link ? { link: data.link } : {}),
-      // 刷新「最近合并时间」用于顶到列表最前；createdAt 保持首次创建时刻，
-      // 供聚合窗口判断与 7 天清理使用，二者不再受 merge 干扰
+      // 刷新最近合并时间，用于聚合窗口判断和列表排序。
+      // createdAt 保持首次创建时刻，仅供 7 天清理使用。
       lastMergedAt: new Date(),
     },
   });

@@ -56,7 +56,7 @@ export async function generateMetadata({
       title: post.title,
       description,
       images: coverUrl ? [{ url: coverUrl }] : undefined,
-      publishedTime: post.createdAt.toISOString(),
+      publishedTime: (post.publishedAt ?? post.createdAt).toISOString(),
       modifiedTime: post.updatedAt.toISOString(),
       tags: post.tags.map((t) => t.tag.name),
     },
@@ -127,7 +127,9 @@ export default async function BlogPostPage({
           )}
           <div className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-muted">
             <span>{post.author.name}</span>
-            <time dateTime={post.createdAt.toISOString()}>{formatDate(post.createdAt)}</time>
+            <time dateTime={(post.publishedAt ?? post.createdAt).toISOString()}>
+              {formatDate(post.publishedAt ?? post.createdAt)}
+            </time>
             <span>约 {readTime} 分钟阅读</span>
             <span>{post.viewCount} 次浏览</span>
           </div>

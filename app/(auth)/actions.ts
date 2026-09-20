@@ -43,7 +43,6 @@ export async function loginAction(
     // 使 SessionProvider 重新挂载、重新拉取会话
     await signIn("credentials", { email, password: parsed.data.password, redirect: false });
     await rateLimit.reset("login", emailKey);
-    await rateLimit.reset("login-ip", ip);
     return { ok: true, message: "登录成功" };
   } catch (error) {
     if (error instanceof AuthError) {
@@ -76,9 +75,8 @@ export async function applyAction(
   }
 
   const result = await submitAccountRequest(parsed.data.email, parsed.data.message);
-  if (result.ok) await rateLimit.reset("apply", ip);
   return result.ok
-    ? { ok: true, message: "申请已提交！博主审核后会向你提供邀请码" }
+    ? { ok: true, message: "申请已提交，博主审核通过后会将登录凭据发至你的邮箱" }
     : { ok: false, error: result.error };
 }
 
@@ -107,7 +105,6 @@ export async function registerAction(
   }
 
   const result = await submitInviteRequest(parsed.data);
-  if (result.ok) await rateLimit.reset("register", ip);
   return result.ok
     ? { ok: true, message: "申请已提交，博主审核通过后即可登录" }
     : { ok: false, error: result.error };

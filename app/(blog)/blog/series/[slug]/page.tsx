@@ -4,7 +4,7 @@ import { Suspense } from "react";
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { websiteOpenGraph } from "@/lib/metadata";
-import { getPosts } from "@/lib/posts";
+import { getPosts, getSeriesBySlug } from "@/lib/posts";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
@@ -21,7 +21,7 @@ export async function generateMetadata({
   params: Promise<{ slug: string }>;
 }): Promise<Metadata> {
   const { slug } = await params;
-  const s = await prisma.series.findUnique({ where: { slug } });
+  const s = await getSeriesBySlug(slug);
   if (!s) return { title: "系列未找到" };
   const description = s.description || `浏览系列「${s.name}」的全部文章`;
   return {
@@ -38,7 +38,7 @@ export default async function SeriesPage({
   params: Promise<{ slug: string }>;
 }) {
   const { slug } = await params;
-  const series = await prisma.series.findUnique({ where: { slug } });
+  const series = await getSeriesBySlug(slug);
   if (!series) notFound();
 
   const { posts, total } = await getPosts({ seriesSlug: slug });

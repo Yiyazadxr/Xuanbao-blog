@@ -192,15 +192,19 @@ model DailyViewStat {
   updatedAt DateTime @updatedAt
 }
 
-// 账号申请：status 取值 PENDING | APPROVED | REJECTED
-// password 仅邀请码路径（自设密码）在审核通过前暂存明文，用于审核通过邮件再发一遍，通过后清空
+// 账号申请：status 取值 PENDING | PROCESSING | APPROVED | REJECTED
+// password 在审核交付期间暂存加密密文，失败重试复用同一凭据，通过后清空
 model AccountRequest {
   id        String   @id @default(cuid())
   email     String
   message   String?
   password  String?
+  kind      String   @default("STANDARD")
   status    String   @default("PENDING")
   createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
 }
 
 // 邀请码：游客可凭码申请账号（仍走审核），格式 XR-XX-xxxxxxxxxxxx
@@ -247,8 +251,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   // 最近一次聚合（合并新事件）的时刻：用于「顶到列表最前」排序与展示。
-  // 与 createdAt 分离：createdAt 保持首次创建时刻，专用于聚合窗口判断与 7 天清理，
-  // 否则 merge 时刷新 createdAt 会让聚合窗口和清理逻辑同时失效。
+  // 与 createdAt 分离：lastMergedAt 用于聚合窗口和列表排序，createdAt 仅用于 7 天清理。
   lastMergedAt DateTime @default(now())
 
   // 点赞通知聚合：
@@ -262,6 +265,8 @@ model Notification {
   @@index([userId, category, read, createdAt])
   @@index([userId, read, createdAt])
   @@index([userId, aggregateKey, read])
+  @@index([userId, lastMergedAt, id])
+  @@index([userId, aggregateKey, read, lastMergedAt])
 }
 
 // 文章版本快照：每次保存前记录旧状态，支持历史查看与回滚

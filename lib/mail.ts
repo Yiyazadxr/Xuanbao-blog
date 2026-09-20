@@ -1,13 +1,20 @@
-// 邮件发送封装：仅用于注册流程（审核通过通知），未配置 SMTP 时降级为控制台打印
+// 邮件发送封装：仅用于注册流程（审核通过通知）。
 // 返回是否真正通过 SMTP 发送成功（未配置/失败返回 false），供调用方决定是否额外提示管理员
 import nodemailer from "nodemailer";
 import { SITE } from "@/lib/constants";
 
+export function isMailConfigured(): boolean {
+  return Boolean(process.env.SMTP_USER && process.env.SMTP_PASS);
+}
+
 export async function sendMail(to: string, subject: string, text: string): Promise<boolean> {
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
-  if (!SMTP_USER || !SMTP_PASS) {
-    console.log(`\n[邮件降级-控制台] 收件人：${to}\n主题：${subject}\n${text}\n`);
+  if (!isMailConfigured() || !SMTP_USER || !SMTP_PASS) {
+    // 邮件正文包含初始密码，任何环境都不能写入日志。
+    if (process.env.NODE_ENV !== "production") {
+      console.warn(`[邮件未发送] SMTP 未配置，收件人：${to}，主题：${subject}`);
+    }
     return false;
   }
 
