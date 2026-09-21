@@ -53,6 +53,4 @@ next-env.d.ts
 # legacy code archive (kept locally, not tracked)
 _legacy/
 
-# AI.md
-AGENTS.md
-CLAUDE.md
+# 注：AGENTS.md / CLAUDE.md 为项目协作规范，纳入版本管理

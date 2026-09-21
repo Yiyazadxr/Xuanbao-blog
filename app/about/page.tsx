@@ -33,7 +33,7 @@ export default async function AboutPage() {
           className="size-[88px] text-6xl"
         />
         <div>
-          <h1 className="font-display text-4xl font-bold tracking-tight">你好，我是暄宝xr</h1>
+          <h1 className="font-display text-4xl font-bold tracking-tight">你好，我是{SITE.shortName}</h1>
           <p className="mt-2 leading-relaxed text-muted">
             一名正在学习全栈开发的爱好者。这个博客是我从零搭建的，从最初的纯手写
             HTML，走到今天的 Next.js 全栈应用。我在这里记录技术、生活，和一切令我着迷的东西。

@@ -28,7 +28,7 @@ export default function OgImage() {
             gap: "16px",
             fontSize: 40,
             fontWeight: 700,
-            color: "#a78bfa",
+            color: "#2dd4bf",
           }}
         >
           <span
@@ -37,7 +37,7 @@ export default function OgImage() {
               width: 56,
               height: 56,
               borderRadius: "50%",
-              background: "#7c3aed",
+              background: "#0f766e",
               color: "#fff",
               alignItems: "center",
               justifyContent: "center",

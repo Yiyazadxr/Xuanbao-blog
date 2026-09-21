@@ -49,7 +49,7 @@ export default function RootGlobalError({
               padding: "0.75rem 1.5rem",
               fontSize: "0.875rem",
               fontWeight: 600,
-              background: "#7c3aed",
+              background: "#0f766e",
               color: "#fff",
             }}
           >
