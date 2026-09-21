@@ -1,0 +1,127 @@
+NOTICE
+======
+
+Xuanbao.dev (repository: Xuanbao-blog)
+Copyright (c) 2026-present Yiyazadr
+Contact: 412110785@qq.com
+
+This NOTICE describes the licensing scope of this repository, the trademark and
+brand restrictions that apply on top of the source-code license, and the
+third-party components bundled with this project. It is provided for
+informational purposes and does not modify the terms of the MIT License in the
+LICENSE file, except where it states that certain materials are NOT licensed
+under MIT.
+
+--------------------------------------------------------------------------------
+1. Scope of licensing
+--------------------------------------------------------------------------------
+
+This repository contains materials under different licenses:
+
+- Source code (all files except those listed below): MIT License, see LICENSE.
+- Editorial content (blog articles, posts, prose, and images/illustrations
+  created for the site): Creative Commons Attribution-NonCommercial-ShareAlike
+  4.0 International (CC BY-NC-SA 4.0).
+  https://creativecommons.org/licenses/by-nc-sa/4.0/
+- Brand names, logos and brand assets: NOT licensed. See section 2.
+- Third-party components: licensed by their respective authors. See section 4.
+
+If there is any conflict between this NOTICE and the LICENSE file regarding the
+source code, the LICENSE file governs the source code.
+
+--------------------------------------------------------------------------------
+2. Trademark and brand usage
+--------------------------------------------------------------------------------
+
+The MIT License grants rights to the source code only. It does NOT grant any
+right to use the project's names, branding or logos.
+
+The following are trademarks / brand identifiers of the project owner and are
+expressly excluded from the licenses above:
+
+- "暄宝xr"
+- "Xuanbao"
+- "Xuanbao.dev"
+- The site logo, favicon and other brand assets (e.g. app/favicon.ico,
+  app/opengraph-image.tsx and related graphics).
+
+You may NOT:
+
+- use any of the above names or logos as the name, branding, domain name, or
+  logo of your own project, product, or service;
+- use them in any way that suggests sponsorship, endorsement, or affiliation
+  with, or origin from, the original author, unless you have prior written
+  permission.
+
+You MAY (without permission):
+
+- state factually that your work is "based on Xuanbao-blog by Yiyazadr" or
+  otherwise give accurate attribution to the original author;
+- retain the original copyright and license notices as required by the MIT
+  License.
+
+For permission to use the brand names or logos, contact the owner at the address
+above.
+
+--------------------------------------------------------------------------------
+3. Content license and commercial use
+--------------------------------------------------------------------------------
+
+Blog articles and other editorial content are licensed under CC BY-NC-SA 4.0:
+you may share and adapt them for non-commercial purposes, provided you give
+appropriate credit and distribute your contributions under the same license.
+
+Commercial use of the content is NOT permitted without prior permission. To
+request a commercial license, contact: 412110785@qq.com
+
+--------------------------------------------------------------------------------
+4. Third-party components
+--------------------------------------------------------------------------------
+
+This project bundles or depends on the following third-party materials. Each
+remains the property of its respective authors and is governed by its own
+license. Versions and the complete dependency list are recorded in
+package.json and pnpm-lock.yaml.
+
+Fonts (bundled in fonts/):
+- Space Grotesk — Copyright (c) Florian Karsten / The Space Grotesk Project
+  Authors. Licensed under the SIL Open Font License, Version 1.1.
+  https://scripts.sil.org/OFL
+- Geist Mono — Copyright (c) 2023 Vercel. Licensed under the SIL Open Font
+  License, Version 1.1.
+  https://scripts.sil.org/OFL
+
+Icons:
+- Phosphor Icons (consumed via @iconify-json/ph) — MIT License.
+  Copyright (c) Phosphor Icons. https://phosphoricons.com/
+- @iconify/react — MIT License. Copyright (c) Vjacheslav Trushkin.
+  https://iconify.design/
+
+Notable runtime dependencies (partial list; see package.json for the rest):
+- highlight.js — BSD-3-Clause. Copyright (c) 2006, Ivan Sagalaev; Josh Goebel.
+- fuse.js — Apache-2.0. Copyright (c) Kiro Risk.
+- next-auth — ISC. Copyright (c) Balázs Orbán.
+- github-slugger — ISC. Copyright (c) Dan Flettre.
+- bcryptjs — BSD-3-Clause. Copyright (c) Daniel Wirtz.
+- nodemailer — MIT-0. Copyright (c) Andris Reinman.
+- framer-motion, react-markdown, remark-gfm, rehype-highlight, rehype-slug,
+  lenis, zod, next-themes, react-easy-crop, @uiw/react-md-editor and other
+  dependencies — MIT License.
+
+Static assets (public/):
+- next.svg, vercel.svg, window.svg, file.svg, globe.svg originate from the
+  Next.js examples — MIT License. Copyright (c) Vercel, Inc.
+  https://github.com/vercel/next.js
+
+User-generated content:
+- Uploaded images (e.g. avatars, post covers) live under public/uploads/ and
+  are excluded from version control via .gitignore. They are the property of
+  their respective uploaders and are NOT covered by the licenses above.
+
+--------------------------------------------------------------------------------
+5. No warranty
+--------------------------------------------------------------------------------
+
+All materials are provided "AS IS", without warranty of any kind, as set out in
+the MIT License. Third-party components are provided under their own terms and
+warranties (if any) as published by their authors.

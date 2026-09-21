@@ -1,5 +1,8 @@
 # 暄宝xr 的博客
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
+[![Content: CC BY-NC-SA 4.0](https://img.shields.io/badge/Content-CC%20BY--NC--SA%204.0-lightgrey.svg)](https://creativecommons.org/licenses/by-nc-sa/4.0/)
+
 用 Next.js 全栈从零搭建的中文个人博客。深色沉浸式首页、文章系统、邀请码制用户体系、评论与点赞、完整后台管理。
 
 ## 技术栈
@@ -54,3 +57,14 @@ pnpm dev                   # 启动开发服务器 → http://localhost:3000
 2. 移除 `@prisma/adapter-better-sqlite3`，`lib/prisma.ts` 改用 Neon adapter
 3. Vercel 环境变量填入 `.env` 中的全部键值
 4. `lib/constants.ts` 的 `SITE.url` 改为正式域名
+
+## 许可
+
+本项目对代码与内容采用不同的授权方式，完整说明见 [LICENSE](./LICENSE) 与 [NOTICE](./NOTICE)。
+
+- **源代码**：[MIT](./LICENSE) © 2026-present Yiyazadr — 可自由使用、修改、商用与再分发，须保留版权与许可声明。
+- **文章与图片等内容**：[CC BY-NC-SA 4.0](https://creativecommons.org/licenses/by-nc-sa/4.0/) — 署名、非商业、相同方式共享；**商业使用须事先取得授权**。
+- **品牌名称与标识**（「暄宝xr」「Xuanbao」「Xuanbao.dev」及 Logo）：不在开源许可范围内，**不得用作品牌名称或暗示背书**，详见 [NOTICE](./NOTICE)。
+- **第三方资源**：字体（Space Grotesk、Geist Mono，SIL OFL 1.1）、图标（Phosphor，MIT）与各依赖的许可信息见 [NOTICE](./NOTICE)。
+
+商用授权或其他授权事宜请联系：412110785@qq.com
