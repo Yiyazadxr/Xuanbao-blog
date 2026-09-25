@@ -9,6 +9,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePostContent } from "@/lib/post-cache";
 import { snapshotPost } from "@/lib/post-revisions";
+import { PostWriteError, restoreRevision } from "@/lib/post-write";
 import { countWords, buildSearchText, plainExcerpt, slugify } from "@/lib/utils";
 import { batchPostsSchema, parseId, parseInput, postSchema } from "@/lib/validation";
 import type { AdminActionState } from "../action-types";
@@ -40,14 +41,6 @@ export async function savePost(
     if (!series) return { ok: false, error: "系列不存在" };
   }
 
-  const existing = p.id
-    ? await prisma.post.findUnique({
-        where: { id: p.id },
-        include: { tags: { include: { tag: true } } },
-      })
-    : null;
-  if (p.id && !existing) return { ok: false, error: "文章不存在" };
-
   const tagNames = [
     ...new Set(
       p.tags
@@ -56,11 +49,6 @@ export async function savePost(
         .filter(Boolean)
     ),
   ];
-
-  // publishedAt 仅在首次发布时写入。
-  const publishedAt = p.published
-    ? (existing?.publishedAt ?? new Date())
-    : (existing?.publishedAt ?? null);
 
   const data = {
     title: p.title,
@@ -72,7 +60,6 @@ export async function savePost(
     categoryId: p.categoryId || null,
     seriesId: p.seriesId || null,
     published: p.published,
-    publishedAt,
     archived: p.archived,
     pinned: p.pinned,
     featured: p.featured,
@@ -83,6 +70,15 @@ export async function savePost(
 
   try {
     const postId = await prisma.$transaction(async (tx) => {
+      const existing = p.id ? await tx.post.findUnique({
+        where: { id: p.id },
+        include: { tags: { include: { tag: true } } },
+      }) : null;
+      if (p.id && !existing) throw new PostWriteError("文章不存在");
+      const writeData = {
+        ...data,
+        publishedAt: existing?.publishedAt ?? (p.published ? new Date() : null),
+      };
       const tags = await Promise.all(
         tagNames.map((name) =>
           tx.tag.upsert({
@@ -99,10 +95,10 @@ export async function savePost(
         if (existing) {
           await snapshotPost(tx, existing, admin.id);
         }
-        await tx.post.update({ where: { id }, data });
+        await tx.post.update({ where: { id }, data: writeData });
         await tx.postTag.deleteMany({ where: { postId: id } });
       } else {
-        const created = await tx.post.create({ data: { ...data, authorId: admin.id } });
+        const created = await tx.post.create({ data: { ...writeData, authorId: admin.id } });
         id = created.id;
       }
       if (tags.length) {
@@ -111,12 +107,13 @@ export async function savePost(
         });
       }
       return id;
-    });
+    }, { isolationLevel: "Serializable" });
 
     // 旧封面可能被历史版本引用，仅在删除文章时统一清理。
     revalidatePostContent();
     return { ok: true, message: p.id ? "已保存" : "已创建", id: postId };
   } catch (e) {
+    if (e instanceof PostWriteError) return { ok: false, error: e.message };
     console.error("保存文章失败：", e);
     return { ok: false, error: "保存失败，请稍后重试" };
   }
@@ -217,11 +214,10 @@ export async function batchPosts(
       runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
     }
   } else if (op === "publish") {
-    await prisma.post.updateMany({
+    await prisma.$transaction([prisma.post.updateMany({
       where: { id: { in: idList }, publishedAt: null },
       data: { publishedAt: new Date() },
-    });
-    await prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: true } });
+    }), prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: true } })]);
   } else if (op === "unpublish") {
     await prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: false } });
   } else if (op === "archive") {
@@ -271,69 +267,13 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
   const rid = parseId(revisionId);
   if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
 
-  const revision = await prisma.postRevision.findUnique({ where: { id: rid.data } });
-  if (!revision) return { ok: false, error: "版本不存在" };
-
-  const post = await prisma.post.findUnique({
-    where: { id: revision.postId },
-    include: { tags: { include: { tag: true } } },
-  });
-  if (!post) return { ok: false, error: "文章不存在" };
-
-  const conflict = await prisma.post.findFirst({
-    where: { slug: revision.slug, id: { not: post.id } },
-  });
-  if (conflict) return { ok: false, error: `slug「${revision.slug}」已被其他文章占用，无法回滚` };
-
-  let tagNames: string[] = [];
   try {
-    const parsed = JSON.parse(revision.tags);
-    if (Array.isArray(parsed)) tagNames = parsed.filter((t) => typeof t === "string");
-  } catch {
-    tagNames = [];
-  }
-
-  try {
-    await prisma.$transaction(async (tx) => {
-      // 回滚前保存当前状态，使回滚可撤销。
-      await snapshotPost(tx, post, admin.id);
-
-      await tx.post.update({
-        where: { id: post.id },
-        data: {
-          title: revision.title,
-          slug: revision.slug,
-          content: revision.content,
-          excerpt: revision.excerpt?.trim() || plainExcerpt(revision.content ?? "") || null,
-          coverImage: revision.coverImage,
-          categoryId: revision.categoryId,
-          seriesId: revision.seriesId,
-          published: revision.published,
-          pinned: revision.pinned,
-          featured: revision.featured,
-          archived: revision.archived,
-          // 版本不存 wordCount，回滚时按正文重算。
-          wordCount: countWords(revision.content ?? ""),
-          searchText: buildSearchText(revision.content ?? ""),
-        },
-      });
-
-      const tags = await Promise.all(
-        tagNames.map((name) =>
-          tx.tag.upsert({ where: { name }, update: {}, create: { name, slug: slugify(name) } })
-        )
-      );
-      await tx.postTag.deleteMany({ where: { postId: post.id } });
-      if (tags.length) {
-        await tx.postTag.createMany({
-          data: tags.map((t) => ({ postId: post.id, tagId: t.id })),
-        });
-      }
-    });
+    await restoreRevision(rid.data, admin.id);
 
     revalidatePostContent();
     return { ok: true, message: "已回滚到该版本" };
   } catch (e) {
+    if (e instanceof PostWriteError) return { ok: false, error: e.message };
     console.error("回滚失败：", e);
     return { ok: false, error: "回滚失败，请稍后重试" };
   }
