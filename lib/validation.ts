@@ -84,6 +84,7 @@ export const EXCERPT_MAX = 500;
 
 export const postSchema = z.object({
   id: z.string().trim().max(100, "文章 ID 过长").optional(),
+  expectedUpdatedAt: z.iso.datetime().optional(),
   title: z.string().trim().min(1, "标题不能为空").max(200, "标题最长 200 字"),
   slug: z.string().trim().max(200, "链接标识过长").optional().default(""),
   content: z
@@ -113,10 +114,15 @@ export const likeSchema = z.object({
   slug: z.string({ error: "文章标识不合法" }).trim().min(1, "缺少文章标识").max(200, "文章标识过长"),
 });
 
-// 公开评论分页仍校验 postId 和 skip。
+export const commentCursorSchema = z.object({
+  id: z.string().min(1).max(100),
+  createdAt: z.iso.datetime(),
+});
+
+// 游标不依赖对应评论仍存在。
 export const commentPageSchema = z.object({
   postId: z.string({ error: "文章 ID 不合法" }).trim().min(1, "缺少文章 ID").max(100, "文章 ID 过长"),
-  skip: z.number().int().min(0, "分页偏移不合法").max(100_000, "分页偏移不合法"),
+  cursor: commentCursorSchema.nullable(),
 });
 
 export const roleSchema = z.object({

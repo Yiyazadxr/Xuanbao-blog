@@ -13,7 +13,20 @@ const { tx, snapshot, transaction } = vi.hoisted(() => {
 vi.mock("@/lib/prisma", () => ({ prisma: { $transaction: transaction } }));
 vi.mock("@/lib/post-revisions", () => ({ snapshotPost: snapshot }));
 
-import { restoreRevision } from "@/lib/post-write";
+import { restoreRevision, writePost } from "@/lib/post-write";
+import { postSchema } from "@/lib/validation";
+
+describe("旧编辑表单校验", () => {
+  it.each([undefined, "2025-01-01T00:00:00.000Z"])("缺失或过期版本 %s 不允许覆盖", async (expectedUpdatedAt) => {
+    vi.clearAllMocks();
+    tx.post.findUnique.mockResolvedValue({ id: "post", updatedAt: new Date("2026-01-01T00:00:00Z") });
+    const input = postSchema.parse({ id: "post", title: "标题", content: "正文", published: false, featured: false, expectedUpdatedAt });
+    await expect(writePost(input, "admin")).rejects.toThrow("草稿版本已过期");
+    expect(snapshot).not.toHaveBeenCalled();
+    expect(tx.post.update).not.toHaveBeenCalled();
+    expect(tx.tag.upsert).not.toHaveBeenCalled();
+  });
+});
 
 describe("文章版本恢复", () => {
   beforeEach(() => {

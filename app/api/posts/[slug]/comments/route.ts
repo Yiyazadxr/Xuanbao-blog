@@ -31,7 +31,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
   ]);
 
   const payload: CommentsPayload = {
-    comments,
+    ...comments,
     topLevel: counts.topLevel,
     total: counts.total,
     canModerate,

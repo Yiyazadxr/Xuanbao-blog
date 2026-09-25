@@ -27,6 +27,8 @@ type SeriesOption = { id: string; name: string };
 
 type EditorPost = {
   id: string;
+  updatedAt: Date;
+  archived: boolean;
   title: string;
   slug: string;
   content: string;
@@ -61,6 +63,7 @@ export function PostEditor({
   const [pending, startTransition] = useTransition();
 
   const [title, setTitle] = useState(post?.title ?? "");
+  const [expectedUpdatedAt, setExpectedUpdatedAt] = useState(post?.updatedAt.toISOString());
   const [slug, setSlug] = useState(post?.slug ?? "");
   const [slugTouched, setSlugTouched] = useState(Boolean(post));
   const [excerpt, setExcerpt] = useState(post?.excerpt ?? "");
@@ -83,6 +86,12 @@ export function PostEditor({
       const raw = localStorage.getItem(draftKey(post?.id));
       if (!raw) return;
       const d = JSON.parse(raw) as Partial<EditorPost> & { tags?: string };
+      const draftVersion = (JSON.parse(raw) as { expectedUpdatedAt?: string }).expectedUpdatedAt;
+      if (post && !draftVersion) {
+        setError("本地草稿缺少版本信息。已恢复内容，请先复制修改，再清除草稿并重新打开文章核对。");
+        setExpectedUpdatedAt(undefined);
+      }
+      if (draftVersion) setExpectedUpdatedAt(draftVersion);
       if (d.title) setTitle(d.title);
       if (d.slug) {
         setSlug(d.slug);
@@ -116,7 +125,7 @@ export function PostEditor({
       try {
         localStorage.setItem(
           draftKey(post?.id),
-          JSON.stringify({ title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content })
+          JSON.stringify({ title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content, expectedUpdatedAt })
         );
         setLastSavedAt(new Date());
       } catch {
@@ -126,7 +135,7 @@ export function PostEditor({
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content, post?.id]);
+  }, [title, slug, excerpt, coverImage, categoryId, seriesId, tags, pinned, featured, content, post?.id, expectedUpdatedAt]);
 
   function handleTitleChange(value: string) {
     setTitle(value);
@@ -157,6 +166,7 @@ export function PostEditor({
     setError("");
     const payload = {
       id: post?.id,
+      expectedUpdatedAt,
       title,
       slug,
       content,
@@ -168,16 +178,21 @@ export function PostEditor({
       published,
       featured,
       pinned,
-      archived: false,
+      archived: post?.archived ?? false,
     };
     startTransition(async () => {
+      try {
       const result = await savePost(payload);
       if (result.ok) {
-        localStorage.removeItem(draftKey(post?.id));
+        if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+        try { localStorage.removeItem(draftKey(post?.id)); } catch { /* 浏览器可能禁用存储。 */ }
         router.push("/admin/posts");
         router.refresh();
       } else {
         setError(result.error ?? "保存失败");
+      }
+      } catch {
+        setError("保存失败，请稍后重试；当前修改已保留。");
       }
     });
   }
@@ -188,6 +203,18 @@ export function PostEditor({
         <p role="alert" className={errorCls}>
           {error}
         </p>
+      )}
+      {error && post && (
+        <button type="button" disabled={pending} onClick={() => {
+          if (!window.confirm("请先复制需要保留的修改。继续将清除本地草稿并加载最新文章。")) return;
+          if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+          try {
+            localStorage.removeItem(draftKey(post.id));
+            window.location.reload();
+          } catch {
+            setError("无法清除本地草稿，请检查浏览器存储设置。");
+          }
+        }}>清除草稿并加载最新文章</button>
       )}
 
       <div className="grid gap-5 sm:grid-cols-2">

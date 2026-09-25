@@ -167,9 +167,9 @@ describe("错误文案中文化", () => {
     expect(res.error).toBe("文章 ID 过长");
   });
 
-  it("commentPageSchema 分页偏移越界报分页偏移不合法", () => {
-    const res = parseInput(commentPageSchema, { postId: "p", skip: -1 });
-    expect(res.error).toBe("分页偏移不合法");
+  it("commentPageSchema 拒绝无效时间游标", () => {
+    const res = parseInput(commentPageSchema, { postId: "p", cursor: { id: "c", createdAt: "invalid" } });
+    expect(res.error).toBe("参数格式不正确");
   });
 
   it("roleSchema 非法角色报角色不合法", () => {

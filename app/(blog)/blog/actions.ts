@@ -3,7 +3,8 @@
 // 公开互动需登录并具备对应权限。
 import { revalidatePath } from "next/cache";
 import { getFreshUser, requirePermission } from "@/lib/auth";
-import { getApprovedComments, type CommentWithReplies } from "@/lib/comments";
+import { getApprovedComments } from "@/lib/comments";
+import type { CommentCursor, CommentWithReplies } from "@/lib/comment-types";
 import { getMuteInfo } from "@/lib/mute";
 import { createNotification, notifyAdmins } from "@/lib/notifications";
 import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
@@ -167,12 +168,12 @@ export async function toggleBookmark(
   return { ok: true, bookmarked: !existing };
 }
 
-// 评论公开读取，但校验 postId 和 skip；客户端根据 topLevel 判断是否还有更多。
+// 评论公开读取，分页按稳定的时间和 ID 游标继续。
 export async function getMoreComments(
   postId: string,
-  skip: number
-): Promise<{ ok: boolean; error?: string; comments: CommentWithReplies[] }> {
-  const parsed = parseInput(commentPageSchema, { postId, skip });
+  cursor: CommentCursor | null
+): Promise<{ ok: boolean; error?: string; comments: CommentWithReplies[]; nextCursor?: CommentCursor | null }> {
+  const parsed = parseInput(commentPageSchema, { postId, cursor });
   if (!parsed.data) {
     return { ok: false, error: parsed.error ?? "参数不合法", comments: [] };
   }
@@ -191,6 +192,6 @@ export async function getMoreComments(
   });
   if (!post) return { ok: false, error: "文章不存在", comments: [] };
 
-  const comments = await getApprovedComments(parsed.data.postId, { skip: parsed.data.skip });
-  return { ok: true, comments };
+  const page = await getApprovedComments(parsed.data.postId, { cursor: parsed.data.cursor });
+  return { ok: true, ...page };
 }

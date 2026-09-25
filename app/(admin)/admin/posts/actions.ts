@@ -8,9 +8,7 @@ import { deleteImage, saveImage } from "@/lib/image-storage";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePostContent } from "@/lib/post-cache";
-import { snapshotPost } from "@/lib/post-revisions";
-import { PostWriteError, restoreRevision } from "@/lib/post-write";
-import { countWords, buildSearchText, plainExcerpt, slugify } from "@/lib/utils";
+import { batchWritePosts, PostWriteError, restoreRevision, writePost } from "@/lib/post-write";
 import { batchPostsSchema, parseId, parseInput, postSchema } from "@/lib/validation";
 import type { AdminActionState } from "../action-types";
 
@@ -24,90 +22,8 @@ export async function savePost(
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
   const p = parsed.data;
 
-  const slug = slugify(p.slug.trim() || p.title);
-
-  const dup = await prisma.post.findFirst({
-    where: { slug, ...(p.id ? { id: { not: p.id } } : {}) },
-  });
-  if (dup) return { ok: false, error: `slug「${slug}」已被文章「${dup.title}」占用` };
-
-  if (p.categoryId) {
-    const category = await prisma.category.findUnique({ where: { id: p.categoryId } });
-    if (!category) return { ok: false, error: "分类不存在" };
-  }
-
-  if (p.seriesId) {
-    const series = await prisma.series.findUnique({ where: { id: p.seriesId } });
-    if (!series) return { ok: false, error: "系列不存在" };
-  }
-
-  const tagNames = [
-    ...new Set(
-      p.tags
-        .split(/[,，、]/)
-        .map((t) => t.trim())
-        .filter(Boolean)
-    ),
-  ];
-
-  const data = {
-    title: p.title,
-    slug,
-    content: p.content,
-    // 空摘要从正文生成；空结果存为 null。
-    excerpt: p.excerpt?.trim() || plainExcerpt(p.content ?? "") || null,
-    coverImage: p.coverImage || null,
-    categoryId: p.categoryId || null,
-    seriesId: p.seriesId || null,
-    published: p.published,
-    archived: p.archived,
-    pinned: p.pinned,
-    featured: p.featured,
-    wordCount: countWords(p.content ?? ""),
-    // 搜索文本在保存时落库，查询不读取完整正文。
-    searchText: buildSearchText(p.content ?? ""),
-  };
-
   try {
-    const postId = await prisma.$transaction(async (tx) => {
-      const existing = p.id ? await tx.post.findUnique({
-        where: { id: p.id },
-        include: { tags: { include: { tag: true } } },
-      }) : null;
-      if (p.id && !existing) throw new PostWriteError("文章不存在");
-      const writeData = {
-        ...data,
-        publishedAt: existing?.publishedAt ?? (p.published ? new Date() : null),
-      };
-      const tags = await Promise.all(
-        tagNames.map((name) =>
-          tx.tag.upsert({
-            where: { name },
-            update: {},
-            create: { name, slug: slugify(name) },
-          })
-        )
-      );
-
-      let id = p.id;
-      if (id) {
-        // 编辑前保存旧状态，支持回滚。
-        if (existing) {
-          await snapshotPost(tx, existing, admin.id);
-        }
-        await tx.post.update({ where: { id }, data: writeData });
-        await tx.postTag.deleteMany({ where: { postId: id } });
-      } else {
-        const created = await tx.post.create({ data: { ...writeData, authorId: admin.id } });
-        id = created.id;
-      }
-      if (tags.length) {
-        await tx.postTag.createMany({
-          data: tags.map((t) => ({ postId: id!, tagId: t.id })),
-        });
-      }
-      return id;
-    }, { isolationLevel: "Serializable" });
+    const postId = await writePost(p, admin.id);
 
     // 旧封面可能被历史版本引用，仅在删除文章时统一清理。
     revalidatePostContent();
@@ -199,34 +115,13 @@ export async function batchPosts(
 
   const parsed = parseInput(batchPostsSchema, { ids, operation, categoryId });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
-  const { ids: idList, operation: op, categoryId: cid } = parsed.data;
-
-  if (op === "delete") {
-    const posts = await prisma.post.findMany({
-      where: { id: { in: idList } },
-      select: { slug: true, coverImage: true, revisions: { select: { coverImage: true } } },
-    });
-    await prisma.post.deleteMany({ where: { id: { in: idList } } });
-    for (const p of posts) {
-      const covers = [p.coverImage, ...p.revisions.map((r) => r.coverImage)].filter(
-        (c): c is string => Boolean(c)
-      );
-      runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
-    }
-  } else if (op === "publish") {
-    await prisma.$transaction([prisma.post.updateMany({
-      where: { id: { in: idList }, publishedAt: null },
-      data: { publishedAt: new Date() },
-    }), prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: true } })]);
-  } else if (op === "unpublish") {
-    await prisma.post.updateMany({ where: { id: { in: idList } }, data: { published: false } });
-  } else if (op === "archive") {
-    await prisma.post.updateMany({ where: { id: { in: idList } }, data: { archived: true } });
-  } else if (op === "category") {
-    await prisma.post.updateMany({
-      where: { id: { in: idList } },
-      data: { categoryId: cid || null },
-    });
+  try {
+    const covers = await batchWritePosts(parsed.data);
+    if (covers.length) runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
+  } catch (e) {
+    if (e instanceof PostWriteError) return { ok: false, error: e.message };
+    console.error("批量处理文章失败：", e);
+    return { ok: false, error: "批量处理失败，请稍后重试" };
   }
 
   revalidatePostContent();

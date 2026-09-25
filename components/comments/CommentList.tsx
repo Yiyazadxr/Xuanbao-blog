@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { getMoreComments } from "@/app/(blog)/blog/actions";
 import { CommentItem } from "@/components/comments/CommentItem";
-import type { CommentWithReplies } from "@/lib/comment-types";
+import type { CommentCursor, CommentWithReplies } from "@/lib/comment-types";
 
 // 首批评论由 CommentSection 在客户端获取，后续分页按需追加。
 export function CommentList({
   initialComments,
-  topLevel,
+  initialCursor,
   postId,
   slug,
   canModerate,
@@ -16,7 +16,7 @@ export function CommentList({
   onChanged,
 }: {
   initialComments: CommentWithReplies[];
-  topLevel: number;
+  initialCursor: CommentCursor | null;
   postId: string;
   slug: string;
   canModerate: boolean;
@@ -27,14 +27,19 @@ export function CommentList({
   const [loading, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
-  const hasMore = comments.length < topLevel;
+  const [cursor, setCursor] = useState(initialCursor);
+  const hasMore = cursor !== null;
 
   function loadMore() {
+    if (loading || !cursor) return;
     setError(null);
     startTransition(async () => {
       try {
-        const res = await getMoreComments(postId, comments.length);
-        if (res.ok) setComments((prev) => [...prev, ...res.comments]);
+        const res = await getMoreComments(postId, cursor);
+        if (res.ok) {
+          setComments((prev) => [...prev, ...res.comments.filter((item) => !prev.some((old) => old.id === item.id))]);
+          setCursor(res.nextCursor ?? null);
+        }
         else setError(res.error ?? "评论加载失败，请重试");
       } catch {
         setError("评论加载失败，请重试");

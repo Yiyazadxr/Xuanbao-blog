@@ -57,7 +57,7 @@ function Comments({ postId, slug }: { postId: string; slug: string }) {
             <CommentList
               key={version}
               initialComments={data.comments}
-              topLevel={data.topLevel}
+              initialCursor={data.nextCursor}
               postId={postId}
               slug={slug}
               canModerate={data.canModerate}
