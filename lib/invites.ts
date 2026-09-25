@@ -1,4 +1,3 @@
-// 邀请码与账号申请：数据层函数（供 Server Actions 调用）
 import bcrypt from "bcryptjs";
 import { encryptSecret } from "@/lib/crypto";
 import { notifyAdmins } from "@/lib/notifications";
@@ -11,12 +10,10 @@ function isUniqueConstraintError(error: unknown): boolean {
   return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
 }
 
-// 访客提交账号申请（路径 A：普通申请，无邀请码）→ 入库 + 站内通知管理员
 export async function submitAccountRequest(email: string, message?: string) {
   const normalized = email.trim().toLowerCase();
 
-  // 防刷交给调用方按 IP 维度限流
-  // 这里只按「同一邮箱」做上限
+  // IP 限流由调用方处理；此处只限制单个邮箱。
   const recentForEmail = await prisma.accountRequest.count({
     where: {
       email: normalized,
@@ -27,7 +24,7 @@ export async function submitAccountRequest(email: string, message?: string) {
     return { ok: false, error: "该邮箱今日申请次数过多，请稍后再试" };
   }
 
-  // 正常账号不可重复申请；停用账号允许重新申请，审批时凭据只发送到原邮箱并降为 MEMBER。
+  // 停用账号可重新申请；通过后降为 MEMBER，凭据仅发往原邮箱。
   const existingUser = await prisma.user.findUnique({ where: { email: normalized } });
   if (existingUser && !existingUser.disabled) {
     return { ok: false, error: "该邮箱已注册，请直接登录" };
@@ -51,7 +48,6 @@ export async function submitAccountRequest(email: string, message?: string) {
     throw error;
   }
 
-  // 站内通知管理员有新的账号申请
   await notifyAdmins({
     category: NOTIFICATION_CATEGORIES.SYSTEM,
     type: "account_request",
@@ -62,7 +58,6 @@ export async function submitAccountRequest(email: string, message?: string) {
   return { ok: true };
 }
 
-// 凭邀请码提交申请（路径 B：自设密码，建号待审核）→ 消耗邀请码 1 次 + 建待激活账号 + 申请记录
 export async function submitInviteRequest({
   code,
   email,
@@ -100,7 +95,7 @@ export async function submitInviteRequest({
   const hashed = await bcrypt.hash(password, 10);
   try {
     await prisma.$transaction(async (tx) => {
-      // 停用账号保持不可用直到审核通过；新邮箱才预创建待审核账号。
+      // 停用账号在审核通过前保持不可用。
       const user = existing
         ? existing
         : await tx.user.create({
@@ -113,21 +108,21 @@ export async function submitInviteRequest({
             },
           });
 
-      // 原子消耗邀请码次数（条件更新防并发超额）
+      // 条件更新原子消耗次数，防止并发超额。
       const claimed = await tx.inviteCode.updateMany({
         where: { id: invite.id, usedCount: { lt: invite.maxUses } },
         data: { usedCount: { increment: 1 } },
       });
       if (claimed.count === 0) throw new Error("INVITE_TAKEN");
 
-      // 关联该用户到邀请码，便于区分「邀请码路径」与回收期判定
+      // 邀请码关联用于区分 14 天回收期。
       await tx.user.update({
         where: { id: user.id },
         data: { inviteCodeId: invite.id },
       });
 
       await tx.accountRequest.create({
-        // 密码以 AES-256-GCM 加密暂存（密钥由 AUTH_SECRET 派生），审核通过时解密后发邮件。
+        // 密码以 AES-256-GCM 加密暂存，通过后解密发送。
         // 邀请码路径没有申请留言，复用 message 保存待审核昵称，激活时再写入账号。
         data: {
           email: normalized,
@@ -158,7 +153,6 @@ export async function submitInviteRequest({
   return { ok: true };
 }
 
-// 生成邀请码（后台用）：XR-XX-12位，默认 7 天有效、可用 1 次
 export async function createInviteCode(expiresInDays = 7, maxUses = 1) {
   const code = generateInviteCode();
   const expiresAt = new Date(Date.now() + expiresInDays * 24 * 60 * 60 * 1000);

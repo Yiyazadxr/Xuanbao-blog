@@ -1,4 +1,4 @@
-// 图片存储抽象：本地 public/uploads（开发）+ Vercel Blob（生产，需 BLOB_READ_WRITE_TOKEN）
+// 开发环境存入 public/uploads，生产环境使用 Vercel Blob。
 import { del, put } from "@vercel/blob";
 import { mkdir, unlink, writeFile } from "fs/promises";
 import path from "path";
@@ -12,7 +12,7 @@ import {
 
 export const MAX_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
 
-// 生成唯一文件名（不信任用户文件名，防路径穿越/覆盖）
+// 不使用用户文件名，防止路径穿越和覆盖。
 function uniqueFilename(type: AllowedImageType): string {
   const rand = crypto.randomBytes(12).toString("hex");
   return `${Date.now().toString(36)}-${rand}.${extensionFor(type)}`;
@@ -22,8 +22,7 @@ function hasBlobToken(): boolean {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN);
 }
 
-// 保存图片，返回可公开访问的 URL（dir 为存储目录，如 covers/avatars）。
-// 类型以文件头（magic bytes）为准，不信任客户端 MIME；allowedTypes 限制该目录允许的格式。
+// 图片类型以文件头为准；allowedTypes 限制目录可用格式。
 export async function saveImage(
   data: Buffer,
   dir = "covers",
@@ -47,14 +46,13 @@ export async function saveImage(
     return url;
   }
 
-  // 本地开发：写入 public/uploads，由 Next 静态服务
   const baseDir = path.join(process.cwd(), "public", "uploads", dir);
   await mkdir(baseDir, { recursive: true });
   await writeFile(path.join(baseDir, filename), data);
   return `/uploads/${dir}/${filename}`;
 }
 
-// 删除图片（Blob URL 或本地 /uploads/ 路径）；失败静默，不阻断主流程
+// 删除失败不阻断主流程。
 export async function deleteImage(url: string | null | undefined): Promise<void> {
   if (!url) return;
   try {
@@ -63,7 +61,7 @@ export async function deleteImage(url: string | null | undefined): Promise<void>
       return;
     }
     if (url.startsWith("/uploads/")) {
-      // 防路径穿越：仅取 /uploads/ 后的相对路径并 normalize，若仍含 .. 向上跳转则拒绝删除
+      // normalize 后仍向上跳转则拒绝删除。
       const rel = path.posix.normalize(url.slice("/uploads/".length));
       if (rel === "" || rel.startsWith("..") || path.posix.isAbsolute(rel)) {
         console.error("非法图片路径，拒绝删除：", url);

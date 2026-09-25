@@ -1,11 +1,10 @@
-// 对称加密工具：用于保护需要暂存、事后又能取回的敏感数据（如邀请码路径的自设明文密码）。
+// 用于暂存后续需要取回的敏感数据。
 // 密钥由 AUTH_SECRET 派生，AES-256-GCM 认证加密；密文格式 base64(iv) + ":" + base64(authTag+ciphertext)。
-// 仅服务端使用（依赖 process.env.AUTH_SECRET，客户端不可 import）。
+// 仅服务端使用。
 import { createCipheriv, createDecipheriv, createHash, randomBytes } from "crypto";
 
 const ALGO = "aes-256-gcm";
 
-// 从 AUTH_SECRET 派生 32 字节密钥
 function deriveKey(): Buffer {
   const secret = process.env.AUTH_SECRET;
   if (!secret) {
@@ -14,7 +13,6 @@ function deriveKey(): Buffer {
   return createHash("sha256").update(secret).digest();
 }
 
-// 加密：返回 "iv:authTag+ciphertext" 的 base64 字符串
 export function encryptSecret(plaintext: string): string {
   const key = deriveKey();
   const iv = randomBytes(12);
@@ -24,7 +22,7 @@ export function encryptSecret(plaintext: string): string {
   return `${iv.toString("base64")}:${Buffer.concat([authTag, encrypted]).toString("base64")}`;
 }
 
-// 解密；失败（密钥变更/数据损坏）抛错，调用方需捕获
+// 密钥变更或数据损坏时抛错。
 export function decryptSecret(payload: string): string {
   const key = deriveKey();
   const [ivB64, dataB64] = payload.split(":");

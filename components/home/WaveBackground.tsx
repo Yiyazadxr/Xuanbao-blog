@@ -60,7 +60,7 @@ function valueNoise(x: number, seed: number) {
   return hash(i, seed) * (1 - u) + hash(i + 1, seed) * u;
 }
 
-/** 分形叠加，低频定大势、高频补碎石感 */
+/** 分形叠加：多频率噪声加权求和 */
 function fbm(x: number, seed: number) {
   return (
     valueNoise(x, seed) * 0.55 +
@@ -69,7 +69,7 @@ function fbm(x: number, seed: number) {
   );
 }
 
-/** 山脊剖面 0~1：噪声取绝对值翻转出尖峰，混合后更接近真山 */
+/** 山脊剖面 0~1：噪声取绝对值翻转出尖峰，再与基础噪声混合 */
 function profile(x: number, seed: number, freq: number) {
   const n = fbm(x * freq, seed);
   const ridged = 1 - Math.abs(n * 2 - 1);
@@ -163,7 +163,7 @@ export function WaveBackground() {
         for (let i = 0; i <= count; i++) {
           const x = -BLEED + (span * i) / count;
           const h = profile((x - halfW) / unit, L.seed, L.freq);
-          // 沿山脊缓行的低频波，像雾贴着山梁走，幅度极小
+          // 叠加沿山脊的低频垂直扰动，幅度极小
           const mist = Math.sin(elapsed * 0.13 + (x / width) * 1.7 + L.phase) * height * 0.006;
           const y = baseYpx - h * ampPx + offY + mist;
           sx[i] = x + offX;
@@ -186,7 +186,7 @@ export function WaveBackground() {
             sy[i + 1]
           );
         }
-        // 山脊一线微光，模拟水墨勾边
+        // 山脊描边
         ctx.strokeStyle = rgba(Math.min(1, L.alpha * 1.5));
         ctx.lineWidth = 1;
         ctx.stroke();

@@ -13,7 +13,6 @@ export const dynamic = "force-dynamic";
 
 const CARD_CLS = "rounded-2xl border border-border bg-surface p-5";
 
-// 统计看板：概览计数 + 趋势 + 热门文章 + 分类分布
 export default async function AdminPage({
   searchParams,
 }: {
@@ -24,7 +23,7 @@ export default async function AdminPage({
   const data = await getDashboardData(days);
   const { totals, delta } = data;
 
-  // 环比：上一周期为 0 时没有可比基数，回落 null（卡片显示「持平」）
+  // 上一周期为 0 时无可比基数。
   const pctOf = (d: { current: number; previous: number }) =>
     d.previous === 0 ? null : ((d.current - d.previous) / d.previous) * 100;
 
@@ -59,7 +58,6 @@ export default async function AdminPage({
         </div>
       </div>
 
-      {/* 概览卡片 */}
       <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard
           icon="ph:eye-bold"
@@ -107,7 +105,6 @@ export default async function AdminPage({
         />
       </div>
 
-      {/* 趋势 */}
       <section className={`mt-4 ${CARD_CLS}`}>
         <div className="flex items-baseline justify-between gap-3">
           <h2 className="font-display text-lg font-semibold">趋势</h2>
@@ -121,7 +118,6 @@ export default async function AdminPage({
         </p>
       </section>
 
-      {/* 热门文章 + 分类分布 */}
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <section className={CARD_CLS}>
           <h2 className="font-display text-lg font-semibold">热门文章</h2>

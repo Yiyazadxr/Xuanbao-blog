@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { getSearchIndex } from "@/lib/posts";
 
-// 搜索索引按需接口：客户端首次搜索时才拉取，避免把全站正文文本打进 /blog 的 RSC payload。
-// createdAt 不参与搜索，这里只保留检索需要的字段以减小体积。
+// 搜索索引按需加载，且仅返回检索字段，避免扩大 /blog 的 RSC payload。
 export const revalidate = 60;
 
 export async function GET() {

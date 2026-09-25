@@ -1,17 +1,16 @@
 "use server";
 
-// 显示偏好 Server Actions：跨设备同步到账号（字体缩放 + 页面间距 + 界面密度 + 自定义导航栏/页脚 + 视觉动效）
+// 显示偏好可跨设备同步到账号。
 import { getFreshUser } from "@/lib/auth";
 import { type Density, isDensity } from "@/lib/display";
 import { prisma } from "@/lib/prisma";
 import { displayPreferencesSchema, parseInput } from "@/lib/validation";
 
 function toDensity(value: string | null | undefined): Density {
-  // 复用 lib/display 的白名单守卫，消除分类枚举双份维护
+  // 分类白名单来自 lib/display。
   return isDensity(value) ? value : "normal";
 }
 
-// 读取账号已同步的显示偏好（未设置返回 null）
 export async function getDisplayPreferences(): Promise<{
   fontScale: number;
   spacingScale: number;
@@ -50,7 +49,6 @@ export async function getDisplayPreferences(): Promise<{
   };
 }
 
-// 保存显示偏好到账号（同步开关开启时调用）
 export async function saveDisplayPreferences(
   fontScale: number,
   spacingScale: number,
@@ -93,7 +91,6 @@ export async function saveDisplayPreferences(
   return { ok: true };
 }
 
-// 清除账号显示偏好（关闭同步时调用，回到纯本地）
 export async function clearDisplayPreferences(): Promise<{ ok: boolean; error?: string }> {
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };

@@ -12,8 +12,7 @@ type Engagement = {
   isLoggedIn: boolean;
 };
 
-// 点赞/收藏/分享栏：文章页 ISR 化后，个性化状态由客户端挂载时按需拉取。
-// 加载期间渲染等尺寸的占位按钮，避免布局跳动。
+// ISR 页面在客户端获取个性化状态；占位按钮保持布局尺寸。
 export function EngagementBar({
   postId,
   slug,

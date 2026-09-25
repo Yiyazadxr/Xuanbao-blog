@@ -1,6 +1,4 @@
-// 回填文章摘要：为 excerpt 为空的文章按正文生成纯文本摘要
-// 背景：文章列表查询已不再回读 content 全文，摘要与字数改为落库（excerpt / wordCount），
-// 存量数据中未填摘要的文章需要补一次，否则列表页摘要为空。
+// 为存量文章回填 excerpt 和缺失的 wordCount。
 // 运行：npx tsx scripts/backfill-excerpt.ts
 import "dotenv/config";
 import { plainExcerpt, countWords } from "../lib/utils";
@@ -9,8 +7,7 @@ import { prisma } from "../lib/prisma";
 const BATCH_SIZE = 100;
 
 async function main() {
-  // 一次性取出所有待回填文章，再分批更新：避免依赖「处理后不再匹配 where」，
-  // 否则空正文/纯图片文章经 plainExcerpt 仍返回空串，会永远匹配 where 导致死循环
+  // 一次取出后分批更新，避免空正文或纯图片文章持续匹配 where。
   const targets = await prisma.post.findMany({
     where: { OR: [{ excerpt: null }, { excerpt: "" }] },
     select: { id: true, title: true, content: true, wordCount: true },
@@ -30,9 +27,9 @@ async function main() {
         prisma.post.update({
           where: { id: p.id },
           data: {
-            // 空结果归为 null，与列表查询 `row.excerpt ?? ""` 展示口径一致
+            // 空结果存为 null，与列表展示口径一致。
             excerpt: plainExcerpt(p.content ?? "") || null,
-            // 早期文章可能也没算过字数，顺带补齐
+            // 同时补齐缺失的字数。
             wordCount: p.wordCount ?? countWords(p.content ?? ""),
           },
         })

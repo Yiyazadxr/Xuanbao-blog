@@ -1,4 +1,3 @@
-// 文章数据查询层：所有文章相关的数据库读写集中在这里
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
 import { SITE } from "@/lib/constants";
@@ -9,7 +8,7 @@ import { readingTimeFromWordCount } from "@/lib/utils";
 // 公开可见的文章过滤条件：已发布且未归档（草稿/归档均不进入前台）
 export const PUBLISHED_FILTER = { published: true, archived: false } as const;
 
-// 列表项类型：不含正文，readingTime 与摘要已在服务端算好（供卡片/客户端分页使用）
+// 列表项不包含正文，摘要和阅读时长由服务端生成。
 export type PostListItem = {
   id: string;
   slug: string;
@@ -34,9 +33,7 @@ type ListPostRow = {
   tags: { tag: { id: string; name: string; slug: string } }[];
 };
 
-// 把数据库行映射为轻量列表项。
-// 摘要与字数在保存文章时已落库（excerpt / wordCount），列表查询不再回读 content 全文，
-// 避免把所有文章正文拉进服务端内存只为现场算摘要。
+// 摘要和字数已落库，列表查询不读取正文。
 export function toListItem(row: ListPostRow): PostListItem {
   return {
     id: row.id,
@@ -51,7 +48,7 @@ export function toListItem(row: ListPostRow): PostListItem {
   };
 }
 
-// 列表查询字段：不取 content 全文（正文已在保存时折算为 excerpt + wordCount）
+// 列表查询不读取 content。
 export const listSelect = {
   id: true,
   slug: true,
@@ -64,8 +61,7 @@ export const listSelect = {
   tags: { select: { tag: { select: { id: true, name: true, slug: true } } } },
 } as const;
 
-// 文章列表（全部公开文章，客户端分页；置顶优先）
-// take 可选：首页等只需前 N 篇时在查询层直接裁剪，避免全量查询后内存切片
+// 公开文章置顶优先；take 在查询层限制数量。
 export async function getPosts({
   categorySlug,
   tagSlug,
@@ -106,9 +102,7 @@ export async function getFeaturedPosts() {
   return rows.map(toListItem);
 }
 
-// 搜索索引：全部公开文章的精简字段（供客户端 Fuse.js 模糊搜索）。
-// text 为保存时落库的 searchText（去 Markdown 后截断），查询不再回读 content 全文；
-// 存量未回填的文章退回摘要，保证仍可被标题/摘要命中。
+// 搜索使用落库的 searchText；缺失时回落到摘要。
 export async function getSearchIndex() {
   const rows = await prisma.post.findMany({
     where: PUBLISHED_FILTER,
@@ -127,7 +121,7 @@ export async function getSearchIndex() {
 export type SearchIndexItem = Awaited<ReturnType<typeof getSearchIndex>>[number];
 
 // 单篇文章详情
-// 用 React cache 包裹：详情页 generateMetadata 与 Page 同一请求内只查一次库
+// React cache 在单次请求内复用详情查询。
 export const getPostBySlug = cache(async (slug: string) => {
   return prisma.post.findFirst({
     where: { slug, ...PUBLISHED_FILTER },
@@ -141,7 +135,7 @@ export const getPostBySlug = cache(async (slug: string) => {
 });
 
 // 分类详情（按 slug）
-// 用 React cache 包裹：分类页 generateMetadata 与 Page 同一请求内只查一次库
+// React cache 在单次请求内复用分类查询。
 export const getCategoryBySlug = cache(async (slug: string) => {
   return prisma.category.findUnique({ where: { slug } });
 });

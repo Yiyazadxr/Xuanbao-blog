@@ -1,4 +1,4 @@
-// 种子数据：默认分类、示例文章、博主 ADMIN 账号
+// 种子数据：默认分类、示例文章、博主 SUPER_ADMIN 账号
 // 运行方式：npx prisma db seed（配置见 prisma.config.ts）
 import "dotenv/config";
 import bcrypt from "bcryptjs";
@@ -16,17 +16,17 @@ const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 async function main() {
-  // 环境变量校验：未配置时给出明确报错而非 TypeError
+  // 缺少环境变量时抛出明确错误。
   const adminEmail = process.env.ADMIN_EMAIL?.trim().toLowerCase();
   const adminPassword = process.env.ADMIN_PASSWORD;
   if (!adminEmail || !adminPassword) {
     throw new Error("请在 .env 中配置 ADMIN_EMAIL 和 ADMIN_PASSWORD 后再运行 seed");
   }
 
-  // 1. 博主 SUPER_ADMIN 账号（邮箱/密码从 .env 读取；昵称可在个人资料里修改）
+  // 博主 SUPER_ADMIN 账号；凭据来自 .env。
   const admin = await prisma.user.upsert({
     where: { email: adminEmail },
-    // 已存在则确保处于已激活状态（历史数据/迁移后可能 activatedAt 为 null）
+    // 种子账号始终保持激活。
     update: { activatedAt: new Date(), disabled: false },
     create: {
       name: "暄宝xr",
@@ -39,7 +39,6 @@ async function main() {
 
   console.log("✅ 博主管理员账号:", admin.email);
 
-  // 2. 默认分类
   const categories = [
     { name: "生活", slug: "life" },
     { name: "技术", slug: "tech" },
@@ -56,7 +55,7 @@ async function main() {
   }
   console.log("✅ 默认分类:", categories.map((c) => c.name).join(", "));
 
-  // 3. 示例文章（仅首次创建）
+  // 示例文章仅首次创建。
   const existing = await prisma.post.findFirst({ where: { slug: "hello-world" } });
   if (!existing) {
     const tech = await prisma.category.findUnique({ where: { slug: "tech" } });
@@ -80,7 +79,7 @@ async function main() {
     console.log("ℹ️ 示例文章已存在，跳过");
   }
 
-  // 4. 默认角色权限配置（复用 lib/permissions 常量，保证种子数据与运行时校验一致）
+  // 角色权限与运行时共用 lib/permissions 常量。
   const rolePermissions = [
     { role: "ADMIN", permissions: DEFAULT_ROLE_PERMISSIONS.ADMIN },
     { role: "MEMBER", permissions: DEFAULT_ROLE_PERMISSIONS.MEMBER },

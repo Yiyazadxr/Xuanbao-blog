@@ -1,6 +1,4 @@
-// 通用工具函数
 
-// 千分位计数（统计看板/页脚等处统一口径，两端同源）
 export function formatCount(value: number): string {
   return Math.max(0, Math.round(value)).toLocaleString("zh-CN");
 }
@@ -27,9 +25,7 @@ export function formatRelativeTime(date: Date | string): string {
 }
 
 // 统计中文字符数 + 英文/数字词数（去除 Markdown 符号/标点）。
-// countWords 与 readingTime 共用此计数，保证口径一致（复用而非重写）。
-// 用 Unicode 脚本属性替代字面量区间
-// 扩展 B~G 区汉字、日文假名、韩文谚文全部漏计（且会被整段粘成一个词）
+// Unicode 脚本属性覆盖扩展汉字、假名和谚文。
 const CJK_RE =
   /[\p{Script=Han}\p{Script=Hiragana}\p{Script=Katakana}\p{Script=Hangul}]/gu;
 
@@ -49,14 +45,12 @@ export function countWords(content: string): number {
   return cjk + words;
 }
 
-// 阅读时长估算：按纯文字字数统一折算（中文约 400 字/分钟，英文词并入字数同口径）。
-// 列表页不回读正文只能用落库的 wordCount，详情页也从同一函数折算，保证两端读数一致。
+// 阅读时长按每分钟 400 字折算；列表和详情共用落库字数口径。
 export function readingTimeFromWordCount(wordCount: number | null | undefined): number {
   if (!wordCount || wordCount <= 0) return 1;
   return Math.max(1, Math.round(wordCount / 400));
 }
 
-// 阅读时长（从正文折算）：与 readingTimeFromWordCount 同源，避免口径分裂
 export function readingTime(content: string): number {
   return readingTimeFromWordCount(countWords(content));
 }
@@ -72,11 +66,10 @@ export function markdownToText(markdown: string): string {
     .trim();
 }
 
-// 搜索索引正文上限：覆盖片段提取与常见关键词命中，同时避免长正文把 RSC payload 撑大
+// 搜索文本设上限，避免扩大 RSC payload。
 export const SEARCH_TEXT_MAX = 800;
 
-// 生成落库的搜索文本：正文去 Markdown 后截断。保存时写入，
-// 列表搜索索引不再每次回读并解析所有文章全文。
+// 搜索文本在保存时去除 Markdown 并截断。
 export function buildSearchText(markdown: string): string {
   const text = markdownToText(markdown);
   return text.length > SEARCH_TEXT_MAX ? text.slice(0, SEARCH_TEXT_MAX) : text;

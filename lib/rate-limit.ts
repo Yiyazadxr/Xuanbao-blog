@@ -1,5 +1,4 @@
-// 数据库限流（固定窗口计数）：多实例/Serverless 部署下共享同一计数，
-// 生产环境配合 Postgres（Neon）使用，避免内存限流在重启/多实例间失效。
+// 数据库固定窗口限流；多实例共享计数。
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
 
@@ -9,12 +8,9 @@ function keyName(prefix: string, value: string) {
 
 export type RateLimitVerdict = { blocked: boolean; retryAfterSec: number };
 
-// 注意：以下原生 SQL 不经过 Prisma Client，@updatedAt 不会自动填充，
-// 必须显式写入 "updatedAt" 列（列定义 NOT NULL 且无数据库默认值，漏写会抛 23502）。
+// 原生 SQL 必须显式写入无默认值的 updatedAt。
 export const rateLimit = {
-  // 当前是否已被限流（计数超过阈值）。窗口过期则视为未限流。
-  // 仅作提示性前置检查，不计数。
-  // 判定口径与 checkAndHit 保持一致：count > limit 才算超限（前 limit 次放行）。
+  // 仅检查，不计数；前 limit 次放行。
   async isBlocked(
     prefix: string,
     value: string,
@@ -30,9 +26,7 @@ export const rateLimit = {
     return { blocked: false, retryAfterSec: 0 };
   },
 
-  // 单条 SQL 完成窗口重置/自增并 RETURNING 最新计数，
-  // 消除 isBlocked → hit 两步之间的 TOCTOU 竞态（并发请求不再集体绕过阈值）。
-  // 语义：前 limit 次放行，第 limit + 1 次起被拒（与旧的「先 isBlocked 后 hit」一致）。
+  // 单条 SQL 原子重置或自增；第 limit + 1 次起拒绝。
   async checkAndHit(
     prefix: string,
     value: string,
@@ -42,8 +36,7 @@ export const rateLimit = {
     const key = keyName(prefix, value);
     const nowDate = new Date();
     const nextReset = new Date(nowDate.getTime() + windowMs);
-    // 用 Prisma 序列化 Date（统一 UTC）而非 ::timestamp 强转，
-    // 避免 naive/aware 时区歧义导致偏移（Neon 跨时区部署也一致）
+    // 由 Prisma 序列化 UTC Date，避免 timestamp 时区歧义。
     const rows = await prisma.$queryRaw<{ count: number; resetAt: Date }[]>`
       INSERT INTO "RateLimit" ("key", "count", "resetAt", "updatedAt")
       VALUES (${key}, 1, ${nextReset}, ${nowDate})
@@ -60,7 +53,7 @@ export const rateLimit = {
       RETURNING "count", "resetAt"
     `;
     const row = rows[0];
-    // 理论上必有返回；极端情况下（如驱动差异）保守放行，避免限流层故障阻断业务
+    // 无返回值时放行，避免限流故障阻断业务。
     if (!row) return { blocked: false, retryAfterSec: 0 };
     if (row.count > limit) {
       return {
@@ -71,8 +64,7 @@ export const rateLimit = {
     return { blocked: false, retryAfterSec: 0 };
   },
 
-  // 仅记录：用于「只在失败分支计费」的场景
-  // 需要同时判定是否被限流时，用下方 checkAndHitOnFailure 组合语义或直接用 checkAndHit
+  // 仅记录，供失败时计数。
   async hit(prefix: string, value: string, windowMs: number): Promise<void> {
     const key = keyName(prefix, value);
     const nowDate = new Date();
@@ -93,14 +85,12 @@ export const rateLimit = {
     `;
   },
 
-  // 清除（成功时调用）
   async reset(prefix: string, value: string): Promise<void> {
     await prisma.rateLimit.deleteMany({ where: { key: keyName(prefix, value) } });
   },
 };
 
-// 从请求头解析客户端 IP（Vercel/反向代理下取 x-forwarded-for 第一跳）。
-// 原先各 action 文件各自实现，现收敛为单一来源，保证口径一致。
+// 反向代理下取 x-forwarded-for 第一跳。
 export async function getClientIp(): Promise<string> {
   const h = await headers();
   const fwd = h.get("x-forwarded-for");

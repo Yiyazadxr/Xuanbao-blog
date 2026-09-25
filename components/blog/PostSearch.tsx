@@ -4,7 +4,6 @@ import { Icon } from "@/components/ui/Icon";
 import { useEffect, useRef, useState } from "react";
 import { pushHistory, readHistory, writeHistory } from "@/lib/search-history";
 
-// 搜索框（受控）：输入交给父组件做列表过滤，自身只负责历史记录的读写与展示
 export function PostSearch({
   value,
   onChange,
@@ -16,7 +15,7 @@ export function PostSearch({
   const [history, setHistory] = useState<string[]>([]);
   const boxRef = useRef<HTMLDivElement>(null);
 
-  // 首帧回填搜索历史：只执行一次，属「同步外部系统后的收尾」，故允许 effect 内 setState
+  // 从 localStorage 恢复历史，因此允许 effect 内同步 setState。
   /* eslint-disable react-hooks/set-state-in-effect */
   useEffect(() => {
     setHistory(readHistory());
@@ -36,14 +35,12 @@ export function PostSearch({
     writeHistory([]);
   }
 
-  // 点击历史词：回填到输入框（提到历史最前）并触发搜索
   function selectHistory(term: string) {
     addHistory(term);
     onChange(term);
     setOpen(false);
   }
 
-  // 点击外部 / Escape 关闭历史下拉
   useEffect(() => {
     if (!open) return;
     const onClick = (e: MouseEvent) => {

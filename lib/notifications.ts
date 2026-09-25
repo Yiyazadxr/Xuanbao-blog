@@ -1,4 +1,3 @@
-// 站内通知数据层：创建通知（支持聚合）、通知管理员、查询与已读标记
 import { runAfter } from "@/lib/deferred";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/roles";
@@ -25,14 +24,13 @@ export type NotificationData = {
 
 const MAX_NOTIFICATIONS = 200;
 const RETENTION_DAYS = 7;
-// 聚合窗口：只有窗口内的未读通知才会被合并，避免几个月前的未读项被一直追加
+// 仅合并窗口内的未读通知。
 const AGGREGATE_WINDOW_MS = 24 * 60 * 60 * 1000;
-// 昵称快照最多保留的个数（超出丢弃最旧的）
 const MAX_ACTOR_NAMES = 20;
-// 清理触发概率：清理是惰性维护，无需每次写入都跑
+// 清理按概率惰性触发。
 const CLEANUP_PROBABILITY = 0.05;
 
-// 解析昵称数组（字段为 JSON 字符串；损坏时安全降级为空数组）
+// 损坏的昵称 JSON 降级为空数组。
 function parseActorNames(raw: string | null): string[] {
   if (!raw) return [];
   try {
@@ -45,7 +43,7 @@ function parseActorNames(raw: string | null): string[] {
   }
 }
 
-// 清理指定用户的通知：删除超过 7 天的，超过 200 条则删除最旧的
+// 删除超过 7 天或 200 条上限之外的通知。
 async function cleanupForUser(userId: string) {
   const cutoff = new Date(Date.now() - RETENTION_DAYS * 24 * 60 * 60 * 1000);
   await prisma.notification.deleteMany({
@@ -67,13 +65,12 @@ async function cleanupForUser(userId: string) {
   }
 }
 
-// 惰性清理：交给请求生命周期收尾执行，失败不影响主流程
+// 清理失败不影响主流程。
 function maybeCleanup(userId: string) {
   if (Math.random() >= CLEANUP_PROBABILITY) return;
   runAfter(() => cleanupForUser(userId));
 }
 
-// 尝试把本次事件并入已有的一条未读聚合通知；无可合并对象时返回 null
 async function mergeIntoAggregate(
   userId: string,
   data: NotificationData,
@@ -94,7 +91,7 @@ async function mergeIntoAggregate(
   });
   if (!existing) return null;
 
-  // 同一人重复触发不虚增人数，只把昵称提到最前
+  // 同一触发者只更新昵称顺序，不增加人数。
   const names = parseActorNames(existing.actorNames);
   const deduped = actor
     ? [actor, ...names.filter((n) => n !== actor)].slice(0, MAX_ACTOR_NAMES)
@@ -105,24 +102,21 @@ async function mergeIntoAggregate(
     data: {
       count: { increment: 1 },
       actorNames: deduped.length > 0 ? JSON.stringify(deduped) : null,
-      // actorName 保持为「最近一位触发者」；无昵称的系统通知不清空原值
+      // 无昵称的系统事件不清空 actorName。
       ...(actor ? { actorName: actor } : {}),
       title: data.title,
       ...(data.link ? { link: data.link } : {}),
-      // 刷新最近合并时间，用于聚合窗口判断和列表排序。
-      // createdAt 保持首次创建时刻，仅供 7 天清理使用。
+      // lastMergedAt 用于聚合和排序；createdAt 仅用于清理。
       lastMergedAt: new Date(),
     },
   });
 }
 
-// 写入一条通知（可聚合）。返回创建的记录（合并时返回被更新的那条）
 async function upsertNotification(userId: string, data: NotificationData) {
   const actor = data.actorName?.trim() || null;
 
   if (data.aggregateKey) {
-    // 极端并发下可能同时判定为「无可合并对象」而各建一条；无唯一约束兜底，
-    // 但后果仅是同一事件出现两条通知（不影响正确性），故不做分布式锁
+    // 并发时可能产生两条等价通知；不影响业务正确性，不加分布式锁。
     const merged = await mergeIntoAggregate(userId, data, actor);
     if (merged) return merged;
   }
@@ -144,23 +138,20 @@ async function upsertNotification(userId: string, data: NotificationData) {
   return created;
 }
 
-// 给指定用户创建一条通知
 export async function createNotification(userId: string, data: NotificationData) {
   return upsertNotification(userId, data);
 }
 
-// 通知所有管理员（ADMIN / SUPER_ADMIN）
 export async function notifyAdmins(data: NotificationData) {
   const admins = await prisma.user.findMany({
     where: { role: { in: [ROLES.ADMIN, ROLES.SUPER_ADMIN] } },
     select: { id: true },
   });
   if (admins.length === 0) return;
-  // 逐个写入以支持按管理员各自聚合（聚合键按 userId 隔离），管理员数量极少，开销可忽略
+  // 聚合键按管理员隔离，因此逐个写入。
   await Promise.all(admins.map((a) => upsertNotification(a.id, data)));
 }
 
-// 序列化通知条目（与 lib/notification-types.ts 的 NotificationItem 契约一致）
 function serialize(n: {
   id: string;
   category: string;
@@ -187,7 +178,6 @@ function serialize(n: {
   };
 }
 
-// 获取用户某分类的通知（按最近活动时间倒序），支持游标分页（cursor 为上次最后一条的 id）
 export async function getUserNotifications(
   userId: string,
   category: NotificationCategory | "all",
@@ -225,7 +215,6 @@ export async function getUserNotifications(
   };
 }
 
-// 各分类未读计数
 export async function getUnreadSummary(userId: string): Promise<NotificationUnreadSummary> {
   const grouped = await prisma.notification.groupBy({
     by: ["category"],

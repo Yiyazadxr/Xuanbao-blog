@@ -17,7 +17,7 @@ export function Hero() {
   // 登录后显示用户昵称，未登录显示朋友
   const displayName = session?.user?.name ?? "朋友";
 
-  // lerp 鼠标视差：两个 blob 光斑缓慢跟随鼠标，追速 0.06 慵懒不贴手
+  // lerp 平滑鼠标视差，插值系数 0.06
   const blobARef = useRef<HTMLDivElement>(null);
   const blobBRef = useRef<HTMLDivElement>(null);
   const target = useRef({ x: 0, y: 0 });

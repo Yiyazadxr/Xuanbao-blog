@@ -1,10 +1,9 @@
-// 评论数据查询层
 import { prisma } from "@/lib/prisma";
 
-// 每页顶层评论数（回复随其顶层评论一起加载）
+// 分页按顶层评论计数，回复随父评论加载。
 export const COMMENTS_PER_PAGE = 10;
 
-// 某篇文章的已审核评论（顶层 + 一层回复），支持分页
+// 仅返回已审核的顶层评论和一层回复。
 export async function getApprovedComments(
   postId: string,
   { skip = 0, take = COMMENTS_PER_PAGE }: { skip?: number; take?: number } = {}
@@ -25,7 +24,7 @@ export async function getApprovedComments(
   });
 }
 
-// 评论计数：顶层评论数 + 回复总数（分页时仍展示真实总数）
+// 总数包含顶层评论和回复，不受分页影响。
 export async function getCommentCounts(postId: string) {
   const [topLevel, replies] = await Promise.all([
     prisma.comment.count({ where: { postId, isApproved: true, parentId: null } }),

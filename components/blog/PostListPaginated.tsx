@@ -7,8 +7,7 @@ import type { PostListItem } from "@/lib/posts";
 
 const PAGE_SIZE = 9;
 
-// 客户端分页的文章列表：数据由服务端一次性给出（ISR 缓存），分页只在客户端切片，
-// 页面 URL 的 ?page= 仅用于分享/回退定位，不触发服务端重新渲染
+// ISR 数据在客户端分页；?page= 仅用于分享和历史定位。
 export function PostListPaginated({
   posts,
   basePath,
@@ -19,7 +18,7 @@ export function PostListPaginated({
   const searchParams = useSearchParams();
   const requested = Math.max(1, Number(searchParams.get("page")) || 1);
   const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
-  // 越界页码收敛到最后一页，避免渲染空网格却仍显示「第 999 页」
+  // 越界页码收敛到最后一页。
   const page = Math.min(requested, totalPages);
   const current = posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 

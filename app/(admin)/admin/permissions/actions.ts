@@ -1,6 +1,6 @@
 "use server";
 
-// 权限管理 Server Actions（仅超级管理员可配置权限组）
+// 仅 SUPER_ADMIN 可配置权限。
 import { revalidatePath } from "next/cache";
 import { getFreshUser } from "@/lib/auth";
 import { ALL_PERMISSIONS } from "@/lib/permissions";
@@ -10,7 +10,7 @@ import { parseInput, permissionSchema } from "@/lib/validation";
 
 export type PermissionActionState = { ok: boolean; error?: string; message?: string };
 
-// 保存某角色权限（仅 ADMIN/MEMBER 可配置；超级管理员固定全开）
+// 仅配置 ADMIN 和 MEMBER；SUPER_ADMIN 固定全开。
 export async function saveRolePermissions(
   role: string,
   permissions: string[]
@@ -24,7 +24,7 @@ export async function saveRolePermissions(
     return { ok: false, error: "该角色不可配置" };
   }
 
-  // 过滤掉未知权限值并去重，只保留合法项
+  // 丢弃未知权限并去重。
   const valid = [...new Set(parsed.data.permissions.filter((p) => (ALL_PERMISSIONS as string[]).includes(p)))];
   await prisma.rolePermission.upsert({
     where: { role: parsed.data.role },

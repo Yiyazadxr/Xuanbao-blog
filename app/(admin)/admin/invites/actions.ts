@@ -1,6 +1,6 @@
 "use server";
 
-// 邀请码与申请审核 Server Actions：通过/拒绝申请、生成/删除邀请码（按权限校验）
+// 邀请码和申请审核按权限校验。
 import { revalidatePath } from "next/cache";
 import bcrypt from "bcryptjs";
 import { requirePermission } from "@/lib/auth";
@@ -16,13 +16,13 @@ import type { AdminActionState } from "../action-types";
 
 const PROCESSING_LEASE_MS = 15 * 60 * 1000;
 
-// 通过账号申请：直接建号（普通申请发随机密码邮件）/ 激活（邀请码申请发自设密码邮件）
+// 普通申请生成随机密码；邀请码申请使用自设密码。
 export async function approveRequest(requestId: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
   if (!admin) return { ok: false, error: "无权限" };
   const rid = parseId(requestId);
   if (!rid.data) return { ok: false, error: rid.error ?? "参数不合法" };
-  const ridId = rid.data; // 守卫后非空：事务回调内 TS 不做属性收窄，先固化为局部常量
+  const ridId = rid.data; // 事务回调不保留外层属性收窄。
   const request = await prisma.accountRequest.findUnique({ where: { id: ridId } });
   if (!request) return { ok: false, error: "申请不存在" };
   const leaseCutoff = new Date(Date.now() - PROCESSING_LEASE_MS);
@@ -37,9 +37,9 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   }
 
   const email = request.email;
-  // 邀请码路径提交时已建待审核账号；普通路径在首次审批时生成密码。
+  // 邀请码申请已预建账号；普通申请在首次审批时建号。
   const isInvitePath = request.kind === "INVITE";
-  // 确定密码与回收期：邀请码路径用自设密码（解密暂存的密文）、14 天；普通申请随机密码、7 天
+  // 邀请申请使用自设密码和 14 天期限；普通申请使用随机密码和 7 天期限。
   const graceDays = isInvitePath ? 14 : 7;
   let password: string;
   if (request.password) {
@@ -63,7 +63,7 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
     return { ok: false, error: "待审核账号状态异常，请删除申请后重新提交" };
   }
 
-  // 原子抢占审批并持久化本次凭据；中断后可复用同一密码重试，不会发出失效密码。
+  // 原子抢占审批并持久化凭据，中断重试仍使用同一密码。
   const claimStartedAt = new Date();
   const claimed = await prisma.accountRequest.updateMany({
     where: {
@@ -156,7 +156,6 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   };
 }
 
-// 拒绝申请
 export async function rejectRequest(requestId: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.REVIEW_REQUESTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -185,7 +184,7 @@ export async function rejectRequest(requestId: string): Promise<AdminActionState
       data: { status: "REJECTED", password: null },
     });
     if (claimed.count !== 1) return false;
-    // 邀请码路径提交时已建待审核账号，拒绝时删除该未激活账号，避免占用邮箱
+    // 拒绝邀请码申请时删除预建账号，释放邮箱。
     await tx.user.deleteMany({
       where: { email: request.email, role: ROLES.MEMBER, activatedAt: null },
     });
@@ -197,7 +196,6 @@ export async function rejectRequest(requestId: string): Promise<AdminActionState
   return { ok: true, message: "已拒绝" };
 }
 
-// 生成通用邀请码（不绑定邮箱，支持有效期与使用次数）
 export async function createFreeInvite(payload: unknown): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
   if (!admin) return { ok: false, error: "无权限" };
@@ -212,7 +210,6 @@ export async function createFreeInvite(payload: unknown): Promise<AdminActionSta
   };
 }
 
-// 删除未使用的邀请码
 export async function deleteInvite(id: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_INVITES);
   if (!admin) return { ok: false, error: "无权限" };

@@ -11,7 +11,6 @@ import { formatDate } from "@/lib/utils";
 export const metadata: Metadata = { title: "用户管理" };
 export const dynamic = "force-dynamic";
 
-// 用户管理：拥有 manage_users 权限者可见，管理成员 ↔ 管理员角色、删除用户
 export default async function AdminUsersPage({
   searchParams,
 }: {
@@ -43,8 +42,7 @@ export default async function AdminUsersPage({
     },
   });
 
-  // 服务端渲染页（SSR），每次请求时取一次当前时间用于判断禁言是否到期，
-  // 非客户端重渲染，故允许 Date.now()。
+  // 服务端请求期间取当前时间，不参与客户端重渲染。
   // eslint-disable-next-line react-hooks/purity
   const now = Date.now();
 
@@ -55,7 +53,6 @@ export default async function AdminUsersPage({
         角色层级：超级管理员 &gt; 管理员 &gt; 成员。管理员可管理文章、评论与邀请码，成员可评论点赞。
       </p>
 
-      {/* 搜索 */}
       <form action="/admin/users" method="get" className="mt-6 flex max-w-sm gap-2">
         <input
           type="search"

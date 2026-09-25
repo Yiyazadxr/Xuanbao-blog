@@ -22,10 +22,9 @@ import {
 } from "@/lib/posts";
 import { formatDate, readingTime } from "@/lib/utils";
 
-// ISR：公开文章页走静态缓存，浏览量/点赞/收藏/评论等个性化数据由客户端挂载后按需拉取
+// 公开文章使用 ISR；个性化数据在客户端按需获取。
 export const revalidate = 60;
 
-// 动态 SEO：标题 + 摘要 + OpenGraph/Twitter 分享信息
 export async function generateMetadata({
   params,
 }: {
@@ -65,7 +64,6 @@ export async function generateMetadata({
   };
 }
 
-// 文章详情页：正文 + TOC + 进度条 + 上下篇
 export default async function BlogPostPage({
   params,
 }: {
@@ -91,10 +89,9 @@ export default async function BlogPostPage({
     <>
       <ReadingProgress />
       <MobileToc toc={toc} />
-      {/* 浏览量 +1 / 阅读记录上报（客户端挂载时触发） */}
+      {/* 浏览与阅读记录在客户端上报。 */}
       <ViewTracker postId={post.id} slug={post.slug} wordCount={post.wordCount} />
       <article className="mx-auto max-w-4xl">
-        {/* 文章头部 */}
         <Reveal>
         <header className="mb-12">
           {post.category && (
@@ -139,17 +136,15 @@ export default async function BlogPostPage({
         </header>
         </Reveal>
 
-        {/* 正文 + 侧栏 TOC */}
         <div className="flex gap-12 xl:gap-16">
           <div className="min-w-0 flex-1">
             <Reveal delay={0.1}>
               <PostContent content={post.content} />
             </Reveal>
 
-            {/* 点赞 + 收藏 + 分享（个性化状态客户端挂载后拉取） */}
+            {/* 个性化状态在客户端获取。 */}
             <EngagementBar postId={post.id} slug={post.slug} title={post.title} />
 
-            {/* 系列导航：同一系列内的上下篇 */}
             {post.series && (
               <div className="mt-12 rounded-2xl border border-border bg-surface p-5">
                 <Link
@@ -192,7 +187,6 @@ export default async function BlogPostPage({
 
             <RelatedPosts posts={related} />
 
-            {/* 评论区 */}
             <CommentSection postId={post.id} slug={post.slug} />
           </div>
           <aside className="hidden w-56 flex-shrink-0 xl:block">

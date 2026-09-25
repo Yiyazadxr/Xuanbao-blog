@@ -1,7 +1,7 @@
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-// 系列页骨架：结构对齐 series/[slug]/page.tsx（标题 + 描述 + 计数 + 9 张卡片）
+// 骨架结构与系列页一致，避免布局跳动。
 export default function SeriesLoading() {
   return (
     <div aria-busy="true">

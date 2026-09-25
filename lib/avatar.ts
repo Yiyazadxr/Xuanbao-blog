@@ -1,7 +1,6 @@
-// 头像逻辑：有头像图显示图片，无头像用「随机纯色底 + 昵称首字」。
-// 颜色由用户 id/名字稳定 hash 选中，同一用户永远同一色（不随刷新变化）。
+// 无头像时显示稳定底色和昵称首字。
 
-// 中性高级色板（muted，白字/深字均清晰，避免刺眼高饱和）
+// 低饱和色板
 const AVATAR_COLORS = [
   "#0f766e", // teal
   "#2563eb", // blue
@@ -15,7 +14,7 @@ const AVATAR_COLORS = [
   "#9333ea", // purple
 ] as const;
 
-// 简单稳定 hash（FNV-1a 风格），确保同输入同输出
+// FNV-1a 风格稳定哈希
 function hashString(input: string): number {
   let hash = 2166136261;
   for (let i = 0; i < input.length; i++) {
@@ -25,7 +24,6 @@ function hashString(input: string): number {
   return hash >>> 0;
 }
 
-// 根据任意稳定标识（id 或名字）选中一个底色
 export function getAvatarColor(seed: string): string {
   if (!seed) return AVATAR_COLORS[0];
   return AVATAR_COLORS[hashString(seed) % AVATAR_COLORS.length];

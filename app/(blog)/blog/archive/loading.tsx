@@ -2,7 +2,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 
 const titleWidths = ["w-2/3", "w-1/2", "w-3/5", "w-2/5"];
 
-// 归档页骨架：结构对齐 archive/page.tsx（标题 + 副标题 + 时间线分组）
+// 骨架结构与归档页一致，避免布局跳动。
 export default function ArchiveLoading() {
   return (
     <div aria-busy="true">

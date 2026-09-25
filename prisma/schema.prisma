@@ -1,5 +1,4 @@
-// 暄宝xr 的博客 — 数据模型
-// 生产环境使用 PostgreSQL（Neon），本地开发也建议连同一数据库
+// PostgreSQL 数据模型；生产环境使用 Neon。
 
 generator client {
   provider = "prisma-client"
@@ -20,13 +19,13 @@ model User {
   role      String   @default("MEMBER")
   // 账号激活时间（审核通过时间）；null 表示待审核（邀请码路径提交时建号待激活）
   activatedAt DateTime?
-  // 被回收/禁用（7 天未登录）
+  // 激活后未首次登录则禁用：普通申请 7 天，邀请码申请 14 天。
   disabled  Boolean  @default(false)
   // 禁言：mutedDuring 为截止时间（定时禁言）；mutedPermanent 为永久禁言；mutedReason 为原因
   mutedDuring    DateTime?
   mutedPermanent Boolean  @default(false)
   mutedReason    String?
-  // 首次登录时间（用于 7 天回收判定）
+  // 首次登录时间，用于账号回收判定。
   lastLoginAt DateTime?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -183,9 +182,7 @@ model ReadingLog {
   @@index([userId, createdAt])
 }
 
-// 每日浏览量：文章的 viewCount 是累计值（只有「总共多少」、没有「哪天多少」），
-// 这里按天记一笔增量，补上时间维度，供后台统计看板画趋势图。
-// 评论/点赞/注册本身带 createdAt，趋势可直接按天推算，无需入表。
+// 每日浏览量为趋势提供时间维度；评论、点赞和注册按 createdAt 推算。
 // date 为东八区日键 YYYY-MM-DD（避免 UTC 切日导致北京时间 08:00 才翻页）
 model DailyViewStat {
   date      String   @id
@@ -251,8 +248,7 @@ model Notification {
   read      Boolean  @default(false)
   createdAt DateTime @default(now())
 
-  // 最近一次聚合（合并新事件）的时刻：用于「顶到列表最前」排序与展示。
-  // 与 createdAt 分离：lastMergedAt 用于聚合窗口和列表排序，createdAt 仅用于 7 天清理。
+  // lastMergedAt 用于聚合窗口和排序；createdAt 仅用于 7 天清理。
   lastMergedAt DateTime @default(now())
 
   // 点赞通知聚合：

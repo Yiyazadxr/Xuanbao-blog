@@ -1,4 +1,4 @@
-// 回填文章 wordCount：为已存在但 wordCount 为 null 的文章计算纯文字字数
+// 为存量文章回填缺失的 wordCount。
 // 运行：npx tsx scripts/backfill-wordcount.ts
 import "dotenv/config";
 import { countWords } from "../lib/utils";

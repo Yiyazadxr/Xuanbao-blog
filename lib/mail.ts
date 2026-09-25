@@ -1,5 +1,4 @@
-// 邮件发送封装：仅用于注册流程（审核通过通知）。
-// 返回是否真正通过 SMTP 发送成功（未配置/失败返回 false），供调用方决定是否额外提示管理员
+// 邮件仅用于注册审核；未配置或发送失败时返回 false。
 import nodemailer from "nodemailer";
 import { SITE } from "@/lib/constants";
 
@@ -11,7 +10,7 @@ export async function sendMail(to: string, subject: string, text: string): Promi
   const { SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS } = process.env;
 
   if (!isMailConfigured() || !SMTP_USER || !SMTP_PASS) {
-    // 邮件正文包含初始密码，任何环境都不能写入日志。
+    // 正文含初始密码，禁止写入日志。
     if (process.env.NODE_ENV !== "production") {
       console.warn(`[邮件未发送] SMTP 未配置，收件人：${to}，主题：${subject}`);
     }
@@ -34,7 +33,7 @@ export async function sendMail(to: string, subject: string, text: string): Promi
   return true;
 }
 
-// 审核通过邮件（含账号 + 密码）：普通申请发随机密码，邀请码申请发自设密码
+// 普通申请发送随机密码，邀请码申请发送自设密码。
 export function buildApprovalEmail({
   email,
   password,

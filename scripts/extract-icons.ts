@@ -1,12 +1,10 @@
-// 提取项目实际用到的 Phosphor 图标到 lib/generated/ph-icons.json
+// 提取使用中的 Phosphor 图标到 lib/generated/ph-icons.json。
 // 运行：npx tsx scripts/extract-icons.ts
-// 新增图标时：把图标名加进 USED_ICONS，重新运行本脚本即可
 import fs from "fs";
 import path from "path";
 import phIcons from "@iconify-json/ph/icons.json";
 
-// 实际用到的图标名（与 lib/icons.ts 对应的组件一致）。
-// 注意：新增图标时必须同步加进本列表，否则重跑脚本会从 ph-icons.json 中删除它。
+// 新图标必须加入此列表，否则重跑脚本会将其从输出中删除。
 const USED_ICONS = [
   "app-window-bold",
   "arrow-left-bold",
@@ -92,8 +90,7 @@ if (missing.length > 0) {
 
 const outPath = path.join(process.cwd(), "lib", "generated", "ph-icons.json");
 fs.mkdirSync(path.dirname(outPath), { recursive: true });
-// 保留集合级 width/height(Phosphor 为 256×256)，供 addCollection 正确推导 viewBox，
-// 否则逐图标 addIcon 丢失尺寸信息会被默认 16 viewBox 裁剪导致图标不可见
+// 保留集合级 width/height，防止默认 16 viewBox 裁剪图标。
 fs.writeFileSync(
   outPath,
   JSON.stringify({ prefix: set.prefix, width: set.width, height: set.height, icons })

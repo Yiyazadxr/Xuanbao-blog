@@ -214,7 +214,6 @@ export function NotificationCenter({
         })}
       </div>
 
-      {/* 工具栏 */}
       <div className="mt-4 flex items-center justify-between border-b border-border pb-3">
         <span className="text-sm text-muted">{categoryUnread(tab)} 条未读</span>
         {unread.total > 0 && (
@@ -229,7 +228,6 @@ export function NotificationCenter({
         )}
       </div>
 
-      {/* 列表 */}
       <div className="mt-2 divide-y divide-border">
         {currentItems.length === 0 ? (
           <div className="flex flex-col items-center gap-3 py-20 text-center">
@@ -255,7 +253,6 @@ export function NotificationCenter({
         )}
       </div>
 
-      {/* 加载更多 */}
       {nextCursor[tab] && (
         <div className="mt-6 flex justify-center">
           <button

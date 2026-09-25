@@ -14,7 +14,6 @@ type Revision = {
   createdAt: Date;
 };
 
-// 版本历史列表：展示历史版本（标题 + 内容摘要 + 状态 + 时间）并支持回滚
 export function RevisionList({ revisions }: { revisions: Revision[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();

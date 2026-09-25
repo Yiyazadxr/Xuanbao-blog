@@ -4,8 +4,6 @@ import { m } from "framer-motion";
 import { EASE_DRAMATIC } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 
-// 逐字遮罩揭开（仿 GSAP SplitText，学自 sondaven.com）：
-// 每个字符包在 overflow-hidden 的遮罩里，从下方 110% 位置揭开升起
 export function MaskedText({
   text,
   delay = 0,
@@ -50,7 +48,6 @@ export function MaskedText({
   );
 }
 
-// 整行遮罩揭开：整行一起从遮罩下方升起。
 // 用于渐变文字（bg-clip-text 的元素内部不能再嵌套 transform 动画的子元素，否则 Chromium 下渐变不随字重绘）
 export function MaskedLine({
   children,

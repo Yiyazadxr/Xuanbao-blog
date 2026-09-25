@@ -13,7 +13,7 @@ import { WaveBackground } from "@/components/home/WaveBackground";
 import { SITE } from "@/lib/constants";
 import { DISPLAY_PREHYDRATE_SCRIPT } from "@/lib/display";
 
-// 展示字体：仅拉丁字符（标题里的英文/数字），中文回落系统字体栈
+// 展示字体仅覆盖拉丁字符，中文回落到系统字体。
 const spaceGrotesk = localFont({
   src: "../fonts/space-grotesk-latin.woff2",
   variable: "--font-space-grotesk",
@@ -59,14 +59,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // suppressHydrationWarning：next-themes 会在客户端往 <html> 写入主题 class
+    // next-themes 会在水合时更新 <html> 的主题 class。
     <html
       lang="zh-CN"
       suppressHydrationWarning
       className={`${spaceGrotesk.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="flex min-h-dvh flex-col">
-        {/* 预水合：在 React 挂载前应用显示偏好（字体缩放/密度），避免 FOUC */}
+        {/* 水合前应用显示偏好，避免 FOUC。 */}
         <script dangerouslySetInnerHTML={{ __html: DISPLAY_PREHYDRATE_SCRIPT }} />
         <a
           href="#main-content"

@@ -14,7 +14,6 @@ export const metadata: Metadata = {
   openGraph: websiteOpenGraph("关于作者", aboutDescription, "/about"),
 };
 
-// 关于作者：简介 + 技能 + 时间线
 export default async function AboutPage() {
   const blogger = await prisma.user.findFirst({
     where: { role: ROLES.SUPER_ADMIN },
@@ -22,9 +21,8 @@ export default async function AboutPage() {
   });
 
   return (
-    // 不透明底，遮挡水墨背景；顶部留白跟随密度体系（--content-pt）
+    // 不透明背景遮住水墨；顶部间距由 --content-pt 控制。
     <div className="mx-auto mt-[var(--content-pt)] w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
-      {/* 简介 */}
       <div className="flex flex-col items-start gap-6 sm:flex-row sm:items-center">
         <Avatar
           image={blogger?.image}
@@ -41,7 +39,6 @@ export default async function AboutPage() {
         </div>
       </div>
 
-      {/* 技能 */}
       <h2 className="mt-16 text-2xl font-bold tracking-tight">持续学习</h2>
       <div className="mt-5 flex flex-wrap gap-2">
         {SKILLS.map((skill) => (
@@ -54,7 +51,6 @@ export default async function AboutPage() {
         ))}
       </div>
 
-      {/* 时间线 */}
       <h2 className="mt-16 text-2xl font-bold tracking-tight">时间线</h2>
       <ol className="mt-6 space-y-8 border-l-2 border-border pl-6">
         {TIMELINE.map((item) => (
@@ -67,7 +63,6 @@ export default async function AboutPage() {
         ))}
       </ol>
 
-      {/* 联系 */}
       <p className="mt-16 rounded-2xl border border-border bg-surface p-6 text-sm leading-relaxed text-muted">
         想和我交流？去{" "}
         <Link href="/social" className="text-accent hover:underline">

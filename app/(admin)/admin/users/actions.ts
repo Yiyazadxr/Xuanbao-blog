@@ -1,6 +1,6 @@
 "use server";
 
-// 用户管理 Server Actions（按 manage_users / mute_users 权限校验）
+// 角色和删除操作要求 manage_users；禁言操作要求 mute_users。
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
@@ -12,7 +12,7 @@ import { muteSchema, parseInput, roleSchema } from "@/lib/validation";
 
 export type UserActionState = { ok: boolean; error?: string; message?: string };
 
-// 修改用户角色：仅支持 MEMBER ↔ ADMIN 之间切换（SUPER_ADMIN 保留，不通过界面授予）
+// 仅允许 MEMBER 与 ADMIN 互换；界面不能授予 SUPER_ADMIN。
 export async function updateUserRole(
   userId: string,
   role: string
@@ -34,7 +34,7 @@ export async function updateUserRole(
   return { ok: true, message: targetRole === "ADMIN" ? "已设为管理员" : "已设为成员" };
 }
 
-// 删除用户：评论/点赞级联删除，邀请码解除绑定；有文章的用户不可删
+// 有文章的用户不可删除；评论和点赞级联删除，邀请码解除绑定。
 export async function deleteUser(userId: string): Promise<UserActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_USERS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -59,7 +59,7 @@ export async function deleteUser(userId: string): Promise<UserActionState> {
   return { ok: true, message: "已删除用户" };
 }
 
-// 禁言用户（按 mute_users 权限校验）：days>0 定时，days=0 永久
+// days=0 永久禁言，正数为定时禁言。
 export async function muteUser(
   userId: string,
   days: number,
@@ -100,7 +100,6 @@ export async function muteUser(
   return { ok: true, message: permanent ? "已永久禁言" : `已禁言 ${parsed.data.days} 天` };
 }
 
-// 解除禁言（按 mute_users 权限校验）
 export async function unmuteUser(userId: string): Promise<UserActionState> {
   const admin = await requirePermission(PERMISSIONS.MUTE_USERS);
   if (!admin) return { ok: false, error: "无权限" };

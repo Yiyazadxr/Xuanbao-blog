@@ -6,18 +6,14 @@ import { TREND_SERIES, type TrendSeriesKey } from "@/lib/chart";
 import type { TrendPoint } from "@/lib/stats";
 import { formatCount } from "@/lib/utils";
 
-// 趋势图（纯 SVG + HTML 覆盖层，零图表库依赖）
-// 自适应做法：SVG 用固定 viewBox + preserveAspectRatio="none" 横向拉伸填满容器，
-// 线宽靠 vectorEffect="non-scaling-stroke" 抵消拉伸；文字与圆点用 HTML 覆盖层渲染
-// （避免被非等比缩放拉变形），因此无需 ResizeObserver 测量宽度。
+// SVG 横向缩放；线宽用 non-scaling-stroke，文字和圆点由 HTML 覆盖层保持比例。
 const VIEW_W = 1000;
 const VIEW_H = 300;
 const PAD_T = 16;
 const PAD_B = 10;
 const PLOT_H = VIEW_H - PAD_T - PAD_B;
 
-// 纵轴刻度取「整数」：先按 3 段反推步长并归并到 1/2/5×10^n，
-// 保证 0 / step / 2step / 3step 四个刻度都是整数，不出现 2.5 这类读数
+// 步长归并到 1/2/5×10^n，确保四个刻度均为整数。
 function niceScale(peak: number): { max: number; ticks: number[] } {
   if (peak <= 0) return { max: 3, ticks: [0, 1, 2, 3] };
   const raw = peak / 3;
@@ -29,7 +25,7 @@ function niceScale(peak: number): { max: number; ticks: number[] } {
   return { max: step * 3, ticks: [0, step, step * 2, step * 3] };
 }
 
-// Catmull-Rom → 三次贝塞尔：把折线磨圆，比直线段更耐看（张力 0.2，过大易过冲）
+// Catmull-Rom 转三次贝塞尔；张力 0.2，过大会过冲。
 function smoothPath(points: { x: number; y: number }[]): string {
   if (points.length === 0) return "";
   const first = points[0];
@@ -50,13 +46,13 @@ function smoothPath(points: { x: number; y: number }[]): string {
   return d;
 }
 
-// 日键（YYYY-MM-DD）→ M/D，直接切字符串，避免 new Date 带来的时区解析差异
+// 直接解析日键，避免 Date 的时区差异。
 function dayLabel(date: string): string {
   const [, m, d] = date.split("-");
   return `${Number(m)}/${Number(d)}`;
 }
 
-// X 轴标签下标：首、尾 + 中间三等分点（去重后升序）
+// X 轴显示首尾和两个三等分点。
 function xTickIndexes(count: number): number[] {
   if (count <= 0) return [];
   if (count <= 5) return Array.from({ length: count }, (_, i) => i);
@@ -99,7 +95,7 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
   return (
     <figure className="m-0">
       <div className="flex gap-3">
-        {/* 纵轴刻度（HTML 渲染避免被 SVG 非等比缩放拉变形；按 y 坐标百分比定位，与网格线严格对齐） */}
+        {/* HTML 刻度按 SVG y 坐标定位，避免非等比缩放文字。 */}
         <div className="relative h-56 w-10 shrink-0">
           {ticks.map((t) => (
             <span
@@ -133,7 +129,6 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
                 ))}
               </defs>
 
-              {/* 横向网格：与纵轴刻度一一对应 */}
               {ticks.map((t) => (
                 <line
                   key={t}
@@ -169,7 +164,6 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
               })}
             </svg>
 
-            {/* 悬停覆盖层：竖线 + 各系列圆点 + 数值气泡 */}
             {hovered && (
               <>
                 <div
@@ -214,7 +208,6 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
             )}
           </div>
 
-          {/* 横轴日期 */}
           <div className="relative mt-2 h-4 text-[11px] leading-none text-muted">
             {xTickIndexes(data.length).map((i) => (
               <span
@@ -231,7 +224,6 @@ export function TrendChart({ data }: { data: TrendPoint[] }) {
         </div>
       </div>
 
-      {/* 图例：点击可切换系列显示 */}
       <div className="mt-4 flex flex-wrap gap-2">
         {TREND_SERIES.map((s) => {
           const off = hidden.includes(s.key);

@@ -3,8 +3,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { incrementViewCount } from "@/lib/posts";
 import { recordRead } from "@/lib/reading";
 
-// 浏览埋点：文章页 ISR 化后由客户端挂载时上报一次（同一 SPA 会话内去重）。
-// 浏览量 +1 与阅读记录（登录用户）都在这里完成，失败不影响页面。
+// ISR 页面在客户端上报浏览；同一 SPA 会话去重，失败不影响页面。
 export async function POST(req: Request) {
   const body: unknown = await req.json().catch(() => null);
   const postId =

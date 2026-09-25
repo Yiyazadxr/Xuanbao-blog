@@ -2,8 +2,7 @@
 
 import { useEffect } from "react";
 
-// 浏览埋点：文章页 ISR 化后，浏览量 +1 / 阅读记录改由客户端挂载时上报。
-// 模块级 Set 避免 StrictMode 双挂载与同一会话内反复进出造成的重复计数。
+// ISR 页面在客户端上报；模块级 Set 避免 StrictMode 和会话内重复计数。
 const reported = new Set<string>();
 
 export function ViewTracker({

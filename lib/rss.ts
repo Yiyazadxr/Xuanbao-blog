@@ -1,14 +1,12 @@
-// RSS 2.0 订阅源构建器（全局 + 分类/标签/系列复用）
-// 分页遵循 RFC 5005：通过 atom:link rel="self/next/previous" 暴露分页，供阅读器自动翻页
+// RSS 2.0 分页使用 RFC 5005 的 self、next 和 previous 链接。
 import type { Prisma } from "@/lib/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { SITE } from "@/lib/constants";
 import { plainExcerpt } from "@/lib/utils";
 
-// 每页文章数（RSS 阅读器普遍偏好较短的单文件，20 是常见上限）
 export const RSS_PAGE_SIZE = 20;
 
-// 分页上限：防止 ?page=999999 导致巨额 offset 空扫
+// 页码设上限，防止巨额 offset 空扫。
 export const RSS_MAX_PAGE = 1000;
 
 export type RssPost = {
@@ -31,7 +29,6 @@ export function escapeXml(text: string): string {
     .replaceAll("'", "&apos;");
 }
 
-// 按 where 查询一页文章（含分类/标签/作者），供各 feed 路由复用
 export async function fetchRssPosts({
   where,
   page,
@@ -74,14 +71,13 @@ export async function fetchRssPosts({
   return { posts, total };
 }
 
-// 解析 ?page=N，非法/缺失回落到第 1 页，并钳到上限
+// 非法页码回落到第 1 页，并钳制到上限。
 export function parsePage(searchParams: URLSearchParams): number {
   const raw = Number(searchParams.get("page"));
   if (!Number.isFinite(raw) || raw < 1) return 1;
   return Math.min(Math.floor(raw), RSS_MAX_PAGE);
 }
 
-// 构建一条 RSS 2.0 响应。feedPath 为 feed.xml 下的相对路径（"" 全局 / "category/slug" …）
 export function buildRssFeed(opts: {
   title: string;
   description: string;
@@ -96,7 +92,7 @@ export function buildRssFeed(opts: {
   const selfUrl = page > 1 ? `${base}?page=${page}` : base;
   const totalPages = Math.max(1, Math.ceil(total / RSS_PAGE_SIZE));
 
-  // channel 的 <link> 指向对应前台页面（全局→/blog，分类→/blog/category/slug …）
+  // channel link 指向对应的公开页面。
   const [kind, slug] = feedPath ? feedPath.split("/") : ["", ""];
   const channelLink = feedPath ? `${SITE.url}/blog/${kind}/${slug}` : `${SITE.url}/blog`;
 
@@ -120,7 +116,6 @@ export function buildRssFeed(opts: {
     })
     .join("\n");
 
-  // 分页导航（RFC 5005）：self / next / previous
   const navLinks: string[] = [`    <atom:link rel="self" href="${escapeXml(selfUrl)}" />`];
   if (page < totalPages) {
     navLinks.push(`    <atom:link rel="next" href="${escapeXml(`${base}?page=${page + 1}`)}" />`);
@@ -151,7 +146,7 @@ ${items}
   return new Response(xml, {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
-      // 不缓存：分页与新发布文章需即时可见
+      // 不缓存，确保分页和新文章即时可见。
       "Cache-Control": "public, max-age=0, s-maxage=0, must-revalidate",
     },
   });

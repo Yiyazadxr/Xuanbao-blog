@@ -1,6 +1,6 @@
 "use server";
 
-// 分类/标签管理 Server Actions（按 manage_posts 权限校验）
+// 分类、标签和系列操作要求 manage_posts。
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
@@ -73,7 +73,7 @@ export async function deleteCategory(id: string): Promise<TaxonomyActionState> {
   const existing = await prisma.category.findUnique({ where: { id: cid.data } });
   if (!existing) return { ok: false, error: "分类不存在" };
 
-  // 文章的分类字段为可空，删除后相关文章自动变为「无分类」
+  // 删除分类后相关文章变为无分类。
   await prisma.category.delete({ where: { id: cid.data } });
   revalidatePath("/admin/taxonomy");
   revalidatePath("/");
@@ -134,7 +134,7 @@ export async function deleteTag(id: string): Promise<TaxonomyActionState> {
   const existing = await prisma.tag.findUnique({ where: { id: tid.data } });
   if (!existing) return { ok: false, error: "标签不存在" };
 
-  // 标签与文章为多对多，删除后自动解除关联（中间表级联删除）
+  // 删除标签时级联删除文章关联。
   await prisma.tag.delete({ where: { id: tid.data } });
   revalidatePath("/admin/taxonomy");
   revalidatePath("/blog");
@@ -204,7 +204,7 @@ export async function deleteSeries(id: string): Promise<TaxonomyActionState> {
   const existing = await prisma.series.findUnique({ where: { id: sid.data } });
   if (!existing) return { ok: false, error: "系列不存在" };
 
-  // 系列与文章为可选关联，删除后相关文章自动变为「无系列」（SetNull）
+  // 删除系列后相关文章通过 SetNull 变为无系列。
   await prisma.series.delete({ where: { id: sid.data } });
   revalidatePath("/admin/taxonomy");
   revalidatePath("/blog");

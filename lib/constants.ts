@@ -1,18 +1,16 @@
-// 站点全局配置常量
-// 博主简称单独提出：欢迎语/描述等多处复用，改名只需改这一处（避免各处硬编码不一致）
+// 站点共享配置。
 const SHORT_NAME = "暄宝xr";
 
 export const SITE = {
   name: "Xuanbao.dev",
   shortName: SHORT_NAME,
   description: `欢迎来到${SHORT_NAME}的个人博客。`,
-  // 生产环境通过 NEXT_PUBLIC_SITE_URL 注入正式域名，用于 sitemap/RSS/元数据
+  // sitemap、RSS 和元数据使用此公开域名。
   url: process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
-  // 建站日：用于页脚「运行 N 天」等叙事（2026-07-17）
+  // 建站日期，用于页脚运行天数。
   launchedAt: "2026-07-17",
 };
 
-// 联系方式（集中管理，避免散落硬编码）。
 // 邮箱与 QQ 号仅在客户端组件中拼接渲染，不出现在 SSR HTML（见 EmailCard / QQCard）
 export const CONTACT = {
   email: "412110785@qq.com",
@@ -29,10 +27,10 @@ export const NAV_LINKS = [
   { label: "关于作者", href: "/about" },
 ] as const;
 
-/* ===== 以下为内容配置：改这里即可更新对应页面 ===== */
+/* 页面内容配置 */
 
 // 社交链接（social 页 + 关于页使用）
-// 注意：QQ 号 / 邮箱不在此列，改为客户端组件 QQCard / EmailCard 反爬取渲染
+// QQ 和邮箱由客户端组件渲染，不进入 SSR HTML。
 export const SOCIAL_LINKS = [
   {
     name: "GitHub",

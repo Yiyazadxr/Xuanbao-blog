@@ -2,9 +2,7 @@
 
 import { useSyncExternalStore } from "react";
 
-// 手动「减少动效」开关（localStorage 驱动，响应式）。
-// 此前全站忽略系统 reduced-motion；现改为可手动控制：
-// 开启后全站入场/滚动动画跳过。SSR 快照恒 false，水合安全。
+// 手动减少动效开关；SSR 快照恒为 false，避免水合差异。
 const KEY = "xr-reduce-motion";
 
 const listeners = new Set<() => void>();

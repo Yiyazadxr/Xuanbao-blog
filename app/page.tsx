@@ -2,10 +2,9 @@ import { Hero } from "@/components/home/Hero";
 import { HomeSections } from "@/components/home/HomeSections";
 import { Preloader } from "@/components/home/Preloader";
 
-// 首页 ISR：60 秒后台重新生成，后台操作也会主动 revalidate
+// 首页使用 60 秒 ISR，后台操作会主动刷新缓存。
 export const revalidate = 60;
 
-// 首页：幕布 + Hero + 精选/最新
 export default function HomePage() {
   return (
     <>

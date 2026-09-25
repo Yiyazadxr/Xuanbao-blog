@@ -1,6 +1,6 @@
 "use server";
 
-// 评论审核 Server Actions：通过 / 删除（按权限校验；删除允许评论作者自助删除自己的评论）
+// 审核要求 manage_comments；作者可删除自己的评论。
 import { revalidatePath } from "next/cache";
 import { getFreshUser, requirePermission } from "@/lib/auth";
 import { createNotification } from "@/lib/notifications";
@@ -12,7 +12,6 @@ import type { Role } from "@/lib/roles";
 import { parseId } from "@/lib/validation";
 import type { AdminActionState } from "../action-types";
 
-// 审核通过评论
 export async function approveComment(id: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.APPROVE_COMMENTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -28,18 +27,16 @@ export async function approveComment(id: string): Promise<AdminActionState> {
   });
   if (!comment) return { ok: false, error: "评论不存在" };
   await prisma.comment.update({ where: { id: cid.data }, data: { isApproved: true } });
-  // 站内通知评论作者
   if (comment.authorId !== admin.id) {
     await createNotification(comment.authorId, {
       category: NOTIFICATION_CATEGORIES.SYSTEM,
       type: "comment_approved",
       title: "你的评论已通过审核",
       link: `/blog/${comment.post.slug}`,
-      // 同一文章下多条评论通过合并为一条
+      // 同一文章的审核结果合并通知。
       aggregateKey: `comment_approved:${comment.postId}`,
     });
   }
-  // 通知文章作者有人评论了你的文章
   if (
     comment.post.authorId !== comment.authorId &&
     comment.post.authorId !== admin.id
@@ -50,11 +47,10 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       actorName: comment.author.name,
       title: `评论了你的文章《${comment.post.title}》`,
       link: `/blog/${comment.post.slug}`,
-      // 同一文章的评论合并
+      // 同一文章的评论合并通知。
       aggregateKey: `comment:${comment.postId}`,
     });
   }
-  // 若为回复，通知被回复的用户
   if (
     comment.parent &&
     comment.parent.authorId !== comment.authorId &&
@@ -66,7 +62,7 @@ export async function approveComment(id: string): Promise<AdminActionState> {
       actorName: comment.author.name,
       title: "回复了你的评论",
       link: `/blog/${comment.post.slug}`,
-      // 同一文章下的回复合并
+      // 同一文章的回复合并通知。
       aggregateKey: `reply:${comment.postId}`,
     });
   }
@@ -75,7 +71,6 @@ export async function approveComment(id: string): Promise<AdminActionState> {
   return { ok: true, message: "已通过" };
 }
 
-// 删除评论
 export async function deleteComment(id: string): Promise<AdminActionState> {
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "无权限" };

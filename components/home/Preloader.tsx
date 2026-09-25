@@ -4,8 +4,7 @@ import { m } from "framer-motion";
 import { useEffect, useState } from "react";
 import { EASE_DRAMATIC } from "@/lib/motion";
 
-// 进站加载动画：简洁克制（大厂风），站名 + 细读条，随后上滑揭幕
-// 每个会话只播一次（sessionStorage），reduced-motion 直接跳过
+// 每个会话播放一次；reduced-motion 下跳过。
 export function Preloader() {
   const [phase, setPhase] = useState<"loading" | "exiting" | "done">("loading");
   const [progress, setProgress] = useState(0);
@@ -53,7 +52,6 @@ export function Preloader() {
       <span className="text-base font-semibold tracking-tight text-foreground">
         Xuanbao<span className="text-accent">.</span>dev
       </span>
-      {/* 细读条 */}
       <span className="mt-4 block h-px w-32 overflow-hidden bg-foreground/10">
         <span
           className="block h-full bg-accent transition-[width] duration-150 ease-out"

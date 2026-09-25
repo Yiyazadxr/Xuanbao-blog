@@ -3,8 +3,6 @@ import Link from "next/link";
 import type { PostListItem } from "@/lib/posts";
 import { findTitleMatch, formatDate } from "@/lib/utils";
 
-// 文章卡片：列表页/首页复用
-// searchQuery 命中标题时高亮关键词；snippet 命中正文时替换摘要展示关键词前后片段
 export function PostCard({
   post,
   searchQuery,
@@ -20,8 +18,7 @@ export function PostCard({
   const titleMatch = searchQuery ? findTitleMatch(post.title, searchQuery) : null;
   return (
     <article className="group relative flex h-full flex-col rounded-2xl border border-border bg-surface p-6 transition-all duration-200 hover:-translate-y-1 hover:border-accent/30 hover:shadow-lg hover:shadow-foreground/5">
-      {/* 封面区固定 h-40：无封面时保留等高占位，卡片高度统一，
-          列表切换页与骨架屏交接时不再发生高度跳动 */}
+      {/* 固定封面高度，避免分页和骨架切换时布局跳动。 */}
       <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden rounded-t-2xl">
         {post.coverImage ? (
           <>
@@ -63,7 +60,7 @@ export function PostCard({
       </div>
 
       <h3 className="mt-4 text-lg font-bold leading-snug tracking-tight">
-        {/* 整卡可点：伪元素铺满卡片 */}
+        {/* 伪元素扩展链接点击区域。 */}
         <Link
           href={`/blog/${post.slug}`}
           className="after:absolute after:inset-0 after:rounded-2xl group-hover:text-accent transition-colors duration-200 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent"

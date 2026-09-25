@@ -1,6 +1,5 @@
 "use server";
 
-// 站内通知 Server Actions（供前端通知铃铛与通知中心调用）
 import { getFreshUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import {
@@ -20,7 +19,6 @@ export type NotificationsResult = {
   unread: NotificationUnreadSummary;
 };
 
-// 获取当前用户的通知列表（可按分类过滤，游标分页），同时返回未读汇总
 export async function getNotifications(
   category: NotificationCategory | "all" = "all",
   cursor?: string
@@ -33,7 +31,7 @@ export async function getNotifications(
   };
   if (!user) return empty;
 
-  // 校验入参（分类枚举 + 游标长度），恢复三段式约定
+  // 分类和游标均按共享 schema 校验。
   const parsed = parseInput(notificationsQuerySchema, { category, cursor });
   if (!parsed.data) return empty;
 
@@ -44,7 +42,7 @@ export async function getNotifications(
   return { items, nextCursor, unread };
 }
 
-// 单条标记已读（仅限本人）
+// 仅可修改本人的通知。
 export async function markNotificationRead(id: string) {
   const user = await getFreshUser();
   if (!user) return;
@@ -56,7 +54,6 @@ export async function markNotificationRead(id: string) {
   });
 }
 
-// 全部标记已读
 export async function markAllNotificationsRead() {
   const user = await getFreshUser();
   if (!user) return;
@@ -66,7 +63,6 @@ export async function markAllNotificationsRead() {
   });
 }
 
-// 某分类全部标记已读
 export async function markCategoryRead(category: NotificationCategory) {
   const user = await getFreshUser();
   if (!user) return;
@@ -78,14 +74,13 @@ export async function markCategoryRead(category: NotificationCategory) {
   });
 }
 
-// 清空已读通知
 export async function clearReadNotifications() {
   const user = await getFreshUser();
   if (!user) return;
   await prisma.notification.deleteMany({ where: { userId: user.id, read: true } });
 }
 
-// 删除单条通知（仅限本人）
+// 仅可删除本人的通知。
 export async function deleteNotification(id: string) {
   const user = await getFreshUser();
   if (!user) return;

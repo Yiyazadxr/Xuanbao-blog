@@ -1,6 +1,6 @@
 "use server";
 
-// 个人资料设置 Server Actions（需登录；改昵称/改密码独立页，均加 hCaptcha + 限流）
+// 资料设置需登录；昵称和密码操作使用 hCaptcha 与限流。
 import bcrypt from "bcryptjs";
 import { revalidatePath } from "next/cache";
 import { getFreshUser } from "@/lib/auth";
@@ -13,11 +13,10 @@ import { changePasswordSchema, parseInput, updateNameSchema } from "@/lib/valida
 
 export type SettingsState = { ok: boolean; error?: string; message?: string };
 
-// 头像允许的类型与上限（头像不需要 GIF，收紧到 2MB）
+// 头像不允许 GIF，上限 2MB。
 const AVATAR_TYPES: readonly AllowedImageType[] = ["image/jpeg", "image/png", "image/webp"];
 const MAX_AVATAR_SIZE = 2 * 1024 * 1024;
 
-// 更新头像（需登录；上传后裁剪为方形显示，删除旧头像图）
 export async function updateAvatar(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   const user = await getFreshUser();
   if (!user) return { ok: false, error: "请先登录" };
@@ -49,7 +48,7 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
     return { ok: false, error: "头像上传失败，请稍后重试" };
   }
 
-  // 更新数据库并删除旧头像（上传成功后才删，失败不误删）
+  // 数据库更新成功后再删除旧头像。
   const old = user.image;
   await prisma.user.update({ where: { id: user.id }, data: { image: url } });
   if (old && old !== url) {
@@ -60,9 +59,8 @@ export async function updateAvatar(_prev: SettingsState, formData: FormData): Pr
   return { ok: true, message: "头像已更新" };
 }
 
-// 删除头像（需登录；无头像时删除，移除 image 并清理旧图）
 export async function deleteAvatar(
-  // 占位参数：useActionState 契约要求 (prevState, formData)；无需使用
+  // useActionState 契约要求保留 prevState 和 formData。
   _prev: SettingsState,
   _formData?: FormData
 ): Promise<SettingsState> {
@@ -78,7 +76,6 @@ export async function deleteAvatar(
   return { ok: true, message: "头像已删除" };
 }
 
-// 更新昵称（hCaptcha + 按用户限流）
 export async function updateProfile(
   _prev: SettingsState,
   formData: FormData
@@ -102,7 +99,6 @@ export async function updateProfile(
   return { ok: true, message: "昵称已保存" };
 }
 
-// 修改密码（hCaptcha + 按用户限流 + 校验当前密码）
 export async function changePassword(
   _prev: SettingsState,
   formData: FormData
@@ -113,7 +109,7 @@ export async function changePassword(
   if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
     return { ok: false, error: "人机验证未通过，请重新验证" };
   }
-  // 前置检查（不计数）：已被限流时直接返回，避免无谓的 bcrypt 计算
+  // 前置检查不计数，超限时跳过 bcrypt。
   const pre = await rateLimit.isBlocked("settings-password", user.id, 10);
   if (pre.blocked) return { ok: false, error: `操作过于频繁，请 ${pre.retryAfterSec} 秒后再试` };
 
@@ -136,7 +132,7 @@ export async function changePassword(
   if (!full) return { ok: false, error: "用户不存在" };
   const valid = await bcrypt.compare(currentPassword, full.password);
   if (!valid) {
-    // 仅失败计入尝试（原子计数 + 判定），并发失败请求不会绕过阈值
+    // 仅失败时原子计数，并发请求不能绕过阈值。
     const failed = await rateLimit.checkAndHit("settings-password", user.id, 10, 60 * 60 * 1000);
     return {
       ok: false,

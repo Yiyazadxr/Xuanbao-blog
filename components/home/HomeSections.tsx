@@ -21,12 +21,9 @@ export async function HomeSections() {
 
   return (
     <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 pb-24 sm:px-6 lg:flex-row">
-      {/* 左侧信息栏（sticky，桌面端显示）；移动端为顶部简介卡 */}
       <HomeSidebar owner={owner} categories={categories} tags={tags} />
 
-      {/* 右侧文章流 */}
       <div className="min-w-0 flex-1 space-y-20">
-        {/* 精选文章 */}
         {featured.length > 0 && (
           <section aria-labelledby="featured-heading">
             <Reveal>
@@ -45,10 +42,8 @@ export async function HomeSections() {
           </section>
         )}
 
-        {/* 最新文章 */}
         {latestPosts.length > 0 && (
-          <section aria-labelledby="latest-heading">
-            <Reveal>
+          <section aria-labelledby="latest-heading">            <Reveal>
               <div className="flex items-end justify-between">
                 <h2 id="latest-heading" className="font-display text-2xl font-bold tracking-tight sm:text-3xl">
                   最新文章

@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { toggleLike } from "@/app/(blog)/blog/actions";
 
-// 点赞按钮：乐观更新，未登录时提示去登录
 export function LikeButton({
   postId,
   slug,
@@ -33,7 +32,6 @@ export function LikeButton({
       return;
     }
     startTransition(async () => {
-      // 先乐观更新
       applyOptimistic({
         liked: !optimistic.liked,
         count: optimistic.count + (optimistic.liked ? -1 : 1),

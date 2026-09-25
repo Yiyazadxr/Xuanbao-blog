@@ -1,5 +1,4 @@
-// 权限目录（纯常量，可被客户端组件安全引用）：
-// 新增权限只需在此加一项 + 加入对应分组 + 更新默认值，零迁移成本
+// 权限纯常量可供客户端引用；新增权限需同步分组和默认值。
 import { ROLES, type Role } from "@/lib/roles";
 
 export const PERMISSIONS = {
@@ -23,7 +22,7 @@ export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
 
 export const ALL_PERMISSIONS: Permission[] = Object.values(PERMISSIONS);
 
-// 解析数据库中的权限数组：null 表示配置结构损坏，空数组表示合法的零权限配置。
+// null 表示配置损坏；空数组表示合法的零权限。
 export function normalizePermissions(value: unknown): Permission[] | null {
   if (!Array.isArray(value)) return null;
   if (value.length === 0) return [];
@@ -51,7 +50,6 @@ export const PERMISSION_LABELS: Record<Permission, string> = {
   mute_users: "禁言用户：禁言、解除禁言",
 };
 
-// 权限分组（权限管理页按此展示，后续扩容可在此加分组）
 export const PERMISSION_GROUPS: {
   label: string;
   description: string;
@@ -84,7 +82,7 @@ export const PERMISSION_GROUPS: {
   },
 ];
 
-// 默认权限（角色未在数据库配置时回落用；超级管理员固定全开不受影响）
+// 未配置角色回落到默认权限；SUPER_ADMIN 固定全开。
 export const DEFAULT_ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   [ROLES.SUPER_ADMIN]: ALL_PERMISSIONS,
   [ROLES.ADMIN]: [

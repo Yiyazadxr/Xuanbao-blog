@@ -1,5 +1,4 @@
-// 角色体系：超级管理员 > 管理员 > 成员 > 游客（未登录，无角色记录）
-// 角色值存于 User.role（Postgres 原生支持 ENUM，但用字符串约定可避免迁移成本且更灵活）
+// 角色层级：SUPER_ADMIN > ADMIN > MEMBER；游客无角色记录。
 export const ROLES = {
   SUPER_ADMIN: "SUPER_ADMIN",
   ADMIN: "ADMIN",
@@ -25,12 +24,11 @@ export const ROLE_BADGE_CLS: Record<Role, string> = {
   [ROLES.MEMBER]: "bg-foreground/5 text-muted",
 };
 
-// 是否可进入后台（管理内容：文章/评论/邀请码）
+// ADMIN 和 SUPER_ADMIN 可进入后台。
 export function canAccessAdmin(role?: string | null): boolean {
   return role === ROLES.SUPER_ADMIN || role === ROLES.ADMIN;
 }
 
-// 是否超级管理员（可管理用户角色）
 export function isSuperAdmin(role?: string | null): boolean {
   return role === ROLES.SUPER_ADMIN;
 }

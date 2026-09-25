@@ -1,6 +1,6 @@
 import { ImageResponse } from "next/og";
 
-// 全站默认 OG 分享图（1200×630）：satori 内置字体仅覆盖拉丁字符，故用英文文案
+// satori 内置字体仅覆盖拉丁字符，因此使用英文文案。
 export const alt = "Xuanbao.dev";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";

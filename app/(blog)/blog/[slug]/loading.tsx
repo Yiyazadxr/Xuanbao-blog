@@ -1,7 +1,6 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 
-// 文章详情页骨架：结构对齐 [slug]/page.tsx（max-w-4xl + 16/9 封面 + TOC 侧栏），
-// 详情页是 force-dynamic，首屏等待期间由它占位，避免空白与切换跳动
+// ISR 文章页的加载骨架与详情布局等高，避免导航时空白或布局跳动。
 export default function BlogPostLoading() {
   return (
     <article className="mx-auto max-w-4xl" aria-busy="true">

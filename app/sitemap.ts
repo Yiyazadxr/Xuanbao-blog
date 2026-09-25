@@ -2,10 +2,9 @@ import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
-// 每次请求实时生成，保证新发布的文章立即出现在站点地图里
+// 实时生成，使新发布文章立即进入站点地图。
 export const dynamic = "force-dynamic";
 
-// 站点地图：静态页 + 全部已发布文章 + 分类/系列/标签
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [posts, categories, series, tags] = await Promise.all([
     prisma.post.findMany({

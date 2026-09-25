@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { toggleBookmark } from "@/app/(blog)/blog/actions";
 
-// 收藏按钮：乐观更新，未登录时提示去登录
 export function BookmarkButton({
   postId,
   initialBookmarked,

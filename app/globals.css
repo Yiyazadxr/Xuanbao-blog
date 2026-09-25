@@ -1,22 +1,20 @@
 @import "tailwindcss";
-/* 代码块高亮主题（亮暗主题下都用深色代码块，阅读舒适） */
+/* 亮暗模式共用深色代码高亮主题。 */
 @import "highlight.js/styles/github-dark.css";
-/* 文章正文排版（prose 类） */
 @plugin "@tailwindcss/typography";
 
-/* next-themes 的 class 策略：.dark 挂在 <html> 上 */
+/* next-themes 将 .dark 挂在 <html>。 */
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* ===== 主题色板（全站唯一取色处，想换主色改这里）===== */
+/* 主题色板 */
 :root {
   --background: #fafaf9;
   --foreground: #1c1917;
   --muted: #78716c;
-  --surface: #ffffff; /* 卡片/面板底色（Phase 2 文章卡片使用） */
+  --surface: #ffffff; /* 卡片和面板底色 */
   --border: #e7e5e4;
   --accent: #0f766e;
   --accent-foreground: #ffffff;
-  /* 背景光斑：亮色模式用更柔和的光斑 */
   --glow-1: rgba(15, 118, 110, 0.12);
   --glow-2: rgba(34, 211, 238, 0.1);
   /* 远山水墨强度（WaveBackground 各层透明度倍率，设置页可调） */
@@ -33,7 +31,6 @@
   --border: rgba(255, 255, 255, 0.08);
   --accent: #2dd4bf;
   --accent-foreground: #042f2e;
-  /* 背景光斑：暗色模式用更亮的光斑，避免过于暗淡 */
   --glow-1: rgba(45, 212, 191, 0.16);
   --glow-2: rgba(34, 211, 238, 0.12);
 }
@@ -56,10 +53,8 @@
   --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Code", monospace;
 }
 
-/* 流体排版（学自 shelby.ashfall.studio）：
-   桌面端根字号随视口等比缩放（1440px 时恰为 16px），全站 rem 单位随之呼吸；
-   clamp 锁住上下限防极端；移动端固定 16px 保证可读性与 iOS 不缩放。
-   --font-scale 由用户显示偏好设置（80%~120%），默认 1 */
+/* 桌面根字号随视口缩放并限制范围；移动端固定 16px，避免 iOS 缩放。
+   --font-scale 为用户设置的 80%~120% 字号倍率。 */
 html {
   font-size: calc(clamp(15px, 1.1111vw, 19px) * var(--font-scale, 1));
 }
@@ -76,7 +71,7 @@ html {
   --header-h: 64px; /* 标准 */
   --footer-py: 40px; /* 标准 */
   --spacing-scale: 1; /* 页面间距倍率，由显示设置滑块控制 */
-  /* 内容区上下呼吸空间：顶部 = 导航栏高度 + 间距；底部 = 间距 */
+  /* 顶部包含导航栏高度。 */
   --content-pt: calc(var(--header-h) + 48px * var(--spacing-scale, 1));
   --content-pb: calc(48px * var(--spacing-scale, 1));
 }
@@ -98,8 +93,7 @@ body {
   transition: background-color 0.5s var(--ease-custom), color 0.5s var(--ease-custom);
 }
 
-/* 日夜间切换时，让内层主题色卡片/容器与 body 同步平滑过渡，避免内外撕裂。
-   只圈定真正承载主题色的语义类，不用 [class*="bg-"] 通配（覆盖面过大、滚动时有拖影） */
+/* 仅过渡主题色语义类；通配背景类会扩大重绘范围并产生滚动拖影。 */
 body,
 .bg-background,
 .bg-surface,
@@ -116,7 +110,7 @@ body,
   color: var(--accent-foreground);
 }
 
-/* ===== 首页 Hero 专用：渐变光斑浮动动画（仅 transform/opacity）===== */
+/* Hero 光斑动画仅修改 transform 和 opacity。 */
 @keyframes blob-float-a {
   0%,
   100% {
@@ -220,7 +214,7 @@ body,
   }
 }
 
-/* 噪点纹理叠层（SVG feTurbulence，内联 data URI，零请求） */
+/* 内联 SVG 噪点纹理。 */
 .bg-noise {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.5'/%3E%3C/svg%3E");
 }
@@ -244,7 +238,7 @@ body,
   max-width: 100%;
   overflow-x: auto;
 }
-/* 正文内嵌图片（react-markdown 渲染为原生 img）懒加载 + 圆角收边 */
+/* react-markdown 输出的正文图片。 */
 .prose img {
   border-radius: 0.75rem;
 }

@@ -1,6 +1,6 @@
 "use server";
 
-// 评论与点赞 Server Actions（公开侧，需登录且拥有对应权限）
+// 公开互动需登录并具备对应权限。
 import { revalidatePath } from "next/cache";
 import { getFreshUser, requirePermission } from "@/lib/auth";
 import { getApprovedComments, type CommentWithReplies } from "@/lib/comments";
@@ -15,12 +15,12 @@ import { commentPageSchema, commentSchema, likeSchema, parseId, parseInput } fro
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
 
-// 提交评论（审核制：默认不可见）
+// 评论默认进入审核状态。
 export async function submitComment(payload: unknown): Promise<CommentActionState> {
   const user = await requirePermission(PERMISSIONS.COMMENT);
   if (!user) return { ok: false, error: "请先登录再评论" };
 
-  // 禁言拦截：被禁言用户不能发表评论/回复（超管除外）
+  // SUPER_ADMIN 不受禁言限制。
   if (user.role !== ROLES.SUPER_ADMIN) {
     const mute = await getMuteInfo(user.id);
     if (mute.muted) {
@@ -39,8 +39,7 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
 
   const isSuperAdmin = user.role === ROLES.SUPER_ADMIN;
 
-  // 普通用户限流：30 秒内只能发一条（防刷评论淹没审核后台）；超管不受限。
-  // 统一走 DB 限流器（与登录/注册同款），消除自造"查最后一条评论时间"的双轨逻辑
+  // 普通用户每 30 秒一条；SUPER_ADMIN 不限流。
   if (!isSuperAdmin) {
     const check = await rateLimit.checkAndHit("comment", user.id, 1, 30 * 1000);
     if (check.blocked) {
@@ -69,7 +68,7 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
     },
   });
 
-  // 超管评论直接显示，无需审核通知
+  // SUPER_ADMIN 评论直接公开。
   if (!isSuperAdmin) {
     await notifyAdmins({
       category: NOTIFICATION_CATEGORIES.COMMENT,
@@ -89,7 +88,6 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
   };
 }
 
-// 点赞 / 取消点赞
 export async function toggleLike(
   postId: string,
   slug: string
@@ -101,7 +99,7 @@ export async function toggleLike(
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
   const { postId: pid } = parsed.data;
 
-  // 限流：防高频点赞刷 DB 写与通知；超管不受限
+  // 点赞限流防止高频写入；SUPER_ADMIN 不限流。
   if (user.role !== ROLES.SUPER_ADMIN) {
     const check = await rateLimit.checkAndHit("like", user.id, 30, 60 * 1000);
     if (check.blocked) {
@@ -109,7 +107,7 @@ export async function toggleLike(
     }
   }
 
-  // 校验文章存在（防伪造 postId 触发外键错误 / 给不存在的文章点赞）
+  // 先校验文章，避免伪造 postId 触发外键错误。
   const post = await prisma.post.findFirst({
     where: { id: pid, published: true, archived: false },
     select: { id: true, title: true, slug: true, authorId: true },
@@ -141,7 +139,7 @@ export async function toggleLike(
   return { ok: true, liked: !existing, count };
 }
 
-// 收藏 / 取消收藏（仅登录，个人收藏无需单独权限）
+// 收藏仅要求登录，不设独立权限。
 export async function toggleBookmark(
   postId: string
 ): Promise<CommentActionState & { bookmarked?: boolean }> {
@@ -151,7 +149,7 @@ export async function toggleBookmark(
   const parsed = parseId(postId);
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
-  // 校验文章存在且公开，防伪造 postId 触发外键错误
+  // 仅允许收藏公开文章。
   const post = await prisma.post.findFirst({
     where: { id: parsed.data, published: true, archived: false },
     select: { id: true },
@@ -169,8 +167,7 @@ export async function toggleBookmark(
   return { ok: true, bookmarked: !existing };
 }
 
-// 加载更多评论（公开读，游客也可查看；校验 postId/skip 防滥用，不做权限拦截）。
-// 是否还有更多由客户端用 topLevel 判断，这里不再重复 count 查询
+// 评论公开读取，但校验 postId 和 skip；客户端根据 topLevel 判断是否还有更多。
 export async function getMoreComments(
   postId: string,
   skip: number
@@ -180,14 +177,14 @@ export async function getMoreComments(
     return { ok: false, error: parsed.error ?? "参数不合法", comments: [] };
   }
 
-  // 限流：游客可调用，按 IP 限制拉取频率，防滥用
+  // 游客请求按 IP 限流。
   const ip = await getClientIp();
   const ipCheck = await rateLimit.checkAndHit("comments-fetch", ip, 30, 60 * 1000);
   if (ipCheck.blocked) {
     return { ok: false, error: `操作过于频繁，请 ${ipCheck.retryAfterSec} 秒后再试`, comments: [] };
   }
 
-  // 校验文章存在且公开，避免对不存在/未公开文章发起无意义查询
+  // 仅查询公开文章。
   const post = await prisma.post.findFirst({
     where: { id: parsed.data.postId, published: true, archived: false },
     select: { id: true },

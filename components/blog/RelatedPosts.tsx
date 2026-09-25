@@ -4,7 +4,6 @@ import { Icon } from "@/components/ui/Icon";
 import type { PostListItem } from "@/lib/posts";
 import { formatDate } from "@/lib/utils";
 
-// 相关阅读：文末紧凑推荐列表（同分类/同标签），引导读者继续深挖
 export function RelatedPosts({ posts }: { posts: PostListItem[] }) {
   if (posts.length === 0) return null;
 

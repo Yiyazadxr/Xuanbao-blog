@@ -5,7 +5,7 @@ import { getMoreComments } from "@/app/(blog)/blog/actions";
 import { CommentItem } from "@/components/comments/CommentItem";
 import type { CommentWithReplies } from "@/lib/comments";
 
-// 评论列表（客户端）：服务端渲染第一页，后续「加载更多」按需追加，避免一次拉取全部评论
+// 首批评论由 CommentSection 在客户端获取，后续分页按需追加。
 export function CommentList({
   initialComments,
   topLevel,

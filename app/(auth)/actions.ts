@@ -1,8 +1,6 @@
 "use server";
 
-// 登录/注册相关 Server Actions
-// CSRF 说明：Next.js Server Action 默认校验 Origin/Host（同源），跨站请求会被拒绝，
-// 因此这里无需额外手写 CSRF token；本文件的重点是与 Auth.js 配合的登录/注册与防暴力破解限流。
+// Server Action 由 Next.js 校验 Origin/Host，无需额外 CSRF token。
 import { AuthError } from "next-auth";
 import { signIn } from "@/lib/auth";
 import { verifyHCaptcha } from "@/lib/hcaptcha";
@@ -12,7 +10,7 @@ import { applySchema, loginSchema, parseInput, registerSchema } from "@/lib/vali
 
 export type ActionState = { ok: boolean; error?: string; message?: string };
 
-// 邮箱密码登录（防暴力破解：按邮箱 + 按 IP 双重限流）
+// 登录按邮箱和 IP 双重限流。
 export async function loginAction(
   _prev: ActionState,
   formData: FormData
@@ -27,8 +25,7 @@ export async function loginAction(
   const ip = await getClientIp();
   const emailKey = `${email}:${ip}`;
 
-  // 先扣额度再执行登录（原子计数 + 判定）：超出阈值时连 bcrypt 都不执行，
-  // 且并发请求不会因「先判后计」竞态而集体绕过阈值
+  // 原子计数后再登录，超限时跳过 bcrypt。
   const emailCheck = await rateLimit.checkAndHit("login", emailKey, 5, 15 * 60 * 1000);
   if (emailCheck.blocked) {
     return { ok: false, error: `尝试次数过多，请 ${emailCheck.retryAfterSec} 秒后再试` };
@@ -39,8 +36,7 @@ export async function loginAction(
   }
 
   try {
-    // redirect: false —— 成功后不抛 NEXT_REDIRECT，由客户端做整页跳转，
-    // 使 SessionProvider 重新挂载、重新拉取会话
+    // 客户端整页跳转以重新挂载 SessionProvider。
     await signIn("credentials", { email, password: parsed.data.password, redirect: false });
     await rateLimit.reset("login", emailKey);
     return { ok: true, message: "登录成功" };
@@ -52,7 +48,7 @@ export async function loginAction(
   }
 }
 
-// 提交账号申请（按 IP 限流 + submitAccountRequest 内部按邮箱限流，避免全局配额被单点占满）
+// 账号申请按 IP 和邮箱分别限流。
 export async function applyAction(
   _prev: ActionState,
   formData: FormData
@@ -63,7 +59,7 @@ export async function applyAction(
   });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
-  // hCaptcha 人机验证（未配置密钥时降级放行）
+  // 未配置 hCaptcha 密钥时放行。
   if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
     return { ok: false, error: "人机验证未通过，请重新验证" };
   }
@@ -80,7 +76,7 @@ export async function applyAction(
     : { ok: false, error: result.error };
 }
 
-// 凭邀请码申请账号（按 IP 限流，防脚本批量注册）：自设密码 + 建号待审核
+// 邀请码申请按 IP 限流，并预建待审核账号。
 export async function registerAction(
   _prev: ActionState,
   formData: FormData
@@ -93,7 +89,7 @@ export async function registerAction(
   });
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
 
-  // hCaptcha 人机验证（未配置密钥时降级放行）
+  // 未配置 hCaptcha 密钥时放行。
   if (!(await verifyHCaptcha(String(formData.get("captcha") ?? "")))) {
     return { ok: false, error: "人机验证未通过，请重新验证" };
   }

@@ -1,4 +1,4 @@
-// 注册流程自测脚本（运行后自动清理测试数据）
+// 注册流程自测；运行后自动清理测试数据。
 // 运行：npx tsx scripts/test-invites.ts
 import "dotenv/config";
 import { decryptSecret } from "../lib/crypto";
@@ -26,19 +26,15 @@ function assert(name: string, cond: boolean) {
 async function main() {
   await cleanup();
 
-  // 1. 提交普通申请
   const apply = await submitAccountRequest(TEST_EMAIL, "自测申请");
   assert("普通申请提交成功", apply.ok === true);
 
-  // 2. 重复申请被拒
   const applyDup = await submitAccountRequest(TEST_EMAIL);
   assert("重复申请被拒", applyDup.ok === false);
 
-  // 3. 生成邀请码（新格式 XR-XX-12位）
   const invite = await createInviteCode(7, 1);
   assert("邀请码格式 XR-XX-12位", /^XR-[A-Z]{2}-[A-Za-z0-9]{12}$/.test(invite.code));
 
-  // 4. 无效邀请码被拒
   const badCode = await submitInviteRequest({
     code: "XR-INVALID0",
     email: TEST_EMAIL2,
@@ -47,7 +43,6 @@ async function main() {
   });
   assert("无效邀请码被拒", badCode.ok === false);
 
-  // 5. 凭邀请码申请（建号待激活）
   const ok = await submitInviteRequest({
     code: invite.code,
     email: TEST_EMAIL2,
@@ -56,13 +51,12 @@ async function main() {
   });
   assert("邀请码申请成功", ok.ok === true);
 
-  // 6. 建号后 activatedAt 为 null（待审核）、inviteCodeId 已关联、次数已消耗
+  // 邀请申请会预建待审核账号、关联邀请码并消耗次数。
   const user = await prisma.user.findUnique({ where: { email: TEST_EMAIL2 } });
   assert("邀请码路径建号待激活", user?.activatedAt === null && user?.inviteCodeId === invite.id);
   const inviteAfter = await prisma.inviteCode.findUnique({ where: { id: invite.id } });
   assert("邀请码已消耗 1 次", inviteAfter?.usedCount === 1);
 
-  // 7. 邀请码次数用尽被拒
   const reuse = await submitInviteRequest({
     code: invite.code,
     email: "another@example.com",
@@ -71,7 +65,7 @@ async function main() {
   });
   assert("次数用尽被拒", reuse.ok === false);
 
-  // 8. 申请记录暂存的是密文（非明文），且可解密还原（审核通过邮件要用）
+  // 申请密码仅以可解密密文暂存，供审核通过邮件使用。
   const req = await prisma.accountRequest.findFirst({ where: { email: TEST_EMAIL2, status: "PENDING" } });
   assert("申请记录不存明文密码", req?.password !== "password123" && Boolean(req?.password));
   assert("密文可解密还原", req?.password ? decryptSecret(req.password) === "password123" : false);

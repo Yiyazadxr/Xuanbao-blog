@@ -1,4 +1,3 @@
-// 点赞数据查询层
 import { prisma } from "@/lib/prisma";
 
 // 文章点赞数 + 当前用户是否已赞

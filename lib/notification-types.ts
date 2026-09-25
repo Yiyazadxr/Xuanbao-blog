@@ -1,4 +1,4 @@
-// 通知分类与类型（纯常量，客户端/服务端共用同一来源，禁止各写一份造成割裂）
+// 通知分类与类型由客户端和服务端共用。
 // category 决定通知中心的 Tab 分组；type 为细分事件（用于图标与文案）
 
 export const NOTIFICATION_CATEGORIES = {
@@ -10,7 +10,6 @@ export const NOTIFICATION_CATEGORIES = {
 export type NotificationCategory =
   (typeof NOTIFICATION_CATEGORIES)[keyof typeof NOTIFICATION_CATEGORIES];
 
-// 分类 Tab 元信息：标签 + Phosphor 图标（铃铛与通知中心共用）
 export const NOTIFICATION_CATEGORY_META: Record<
   NotificationCategory,
   { label: string; icon: string; color: string }
@@ -38,7 +37,7 @@ export const NOTIFICATION_CATEGORY_ORDER: NotificationCategory[] = [
   NOTIFICATION_CATEGORIES.COMMENT,
 ];
 
-// 服务端查询返回的可序列化通知条目（铃铛与通知中心共用同一结构）
+// 可序列化通知条目。
 export type NotificationItem = {
   id: string;
   category: NotificationCategory;
@@ -55,7 +54,7 @@ export type NotificationItem = {
   lastMergedAt: string;
 };
 
-// 聚合文案（铃铛与通知中心共用同一来源，禁止各写一份造成割裂）
+// 铃铛和通知中心共用聚合文案。
 // 规则：单个触发者显示其昵称；多个触发者显示首位昵称 + 总人数
 export type NotificationText = {
   actorText: string | null;
@@ -72,7 +71,7 @@ export function formatNotificationText(item: NotificationItem): NotificationText
   } else if (names.length === 1) {
     actorText = names[0];
   } else if (item.actorName) {
-    // 兼容聚合改造前的历史数据（只有 actorName）
+    // 兼容仅含 actorName 的旧通知。
     actorText = item.actorName;
   }
   return {

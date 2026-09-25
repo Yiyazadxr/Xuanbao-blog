@@ -1,6 +1,4 @@
-// 回填文章搜索文本：为 searchText 为空的文章按正文生成去 Markdown 的纯文本
-// 背景：搜索索引已改为读取落库的 searchText（保存时计算），不再回读 content 全文，
-// 存量文章需要补一次，否则搜索只能命中标题/摘要。
+// 为存量文章回填 searchText，否则搜索只能命中标题和摘要。
 // 运行：npx tsx scripts/backfill-search-text.ts
 import "dotenv/config";
 import { prisma } from "../lib/prisma";
@@ -9,7 +7,7 @@ import { buildSearchText } from "../lib/utils";
 const BATCH_SIZE = 100;
 
 async function main() {
-  // 一次性取出待回填文章再分批更新，避免依赖「处理后不再匹配 where」造成死循环
+  // 一次取出后分批更新，避免空结果持续匹配 where。
   const targets = await prisma.post.findMany({
     where: { searchText: null },
     select: { id: true, title: true, content: true },

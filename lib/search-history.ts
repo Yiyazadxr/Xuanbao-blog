@@ -1,8 +1,7 @@
-// 搜索历史：localStorage 存储 + 去重逻辑（去重、提到最前、截断）
+// 搜索历史存入 localStorage，按最近使用去重并截断。
 export const SEARCH_HISTORY_KEY = "xr-search-history";
 export const SEARCH_HISTORY_MAX = 8;
 
-// 把一条搜索词压入历史：最前（最新）、去重、截断到 max 条
 export function pushHistory(prev: string[], term: string, max = SEARCH_HISTORY_MAX): string[] {
   const t = term.trim();
   if (!t) return prev;
@@ -26,6 +25,6 @@ export function writeHistory(list: string[]) {
   try {
     localStorage.setItem(SEARCH_HISTORY_KEY, JSON.stringify(list));
   } catch {
-    // 存储失败忽略
+    // localStorage 失败不影响搜索。
   }
 }

@@ -1,6 +1,6 @@
 "use server";
 
-// 文章管理 Server Actions：CRUD / 批量操作 / 版本回滚 / 封面图上传（按 manage_posts 权限校验）
+// 文章操作要求 manage_posts 权限。
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
@@ -15,7 +15,6 @@ import type { AdminActionState } from "../action-types";
 // 每篇文章保留的版本数上限
 const MAX_REVISIONS = 50;
 
-// 构造版本快照数据
 function revisionData(
   post: {
     id: string;
@@ -52,7 +51,6 @@ function revisionData(
   };
 }
 
-// 清理超出上限的旧版本
 async function pruneRevisions(postId: string) {
   const oldest = await prisma.postRevision.findMany({
     where: { postId },
@@ -67,7 +65,6 @@ async function pruneRevisions(postId: string) {
   }
 }
 
-// 新建/更新文章（id 为空则新建）
 export async function savePost(
   payload: unknown
 ): Promise<AdminActionState & { id?: string }> {
@@ -80,19 +77,16 @@ export async function savePost(
 
   const slug = slugify(p.slug.trim() || p.title);
 
-  // slug 唯一性检查
   const dup = await prisma.post.findFirst({
     where: { slug, ...(p.id ? { id: { not: p.id } } : {}) },
   });
   if (dup) return { ok: false, error: `slug「${slug}」已被文章「${dup.title}」占用` };
 
-  // 校验分类存在
   if (p.categoryId) {
     const category = await prisma.category.findUnique({ where: { id: p.categoryId } });
     if (!category) return { ok: false, error: "分类不存在" };
   }
 
-  // 校验系列存在
   if (p.seriesId) {
     const series = await prisma.series.findUnique({ where: { id: p.seriesId } });
     if (!series) return { ok: false, error: "系列不存在" };
@@ -106,7 +100,6 @@ export async function savePost(
     : null;
   if (p.id && !existing) return { ok: false, error: "文章不存在" };
 
-  // 解析标签：逗号/顿号分隔，去重
   const tagNames = [
     ...new Set(
       p.tags
@@ -116,7 +109,7 @@ export async function savePost(
     ),
   ];
 
-  // 首次发布时记录发布时间，之后保留
+  // publishedAt 仅在首次发布时写入。
   const publishedAt = p.published
     ? (existing?.publishedAt ?? new Date())
     : (existing?.publishedAt ?? null);
@@ -125,8 +118,7 @@ export async function savePost(
     title: p.title,
     slug,
     content: p.content,
-    // 摘要为空时用正文纯文本兜底并落库：列表查询已不再回读 content 正文
-    // 空结果归为 null，与列表查询 `row.excerpt ?? ""` 展示口径一致
+    // 空摘要从正文生成；空结果存为 null。
     excerpt: p.excerpt?.trim() || plainExcerpt(p.content ?? "") || null,
     coverImage: p.coverImage || null,
     categoryId: p.categoryId || null,
@@ -136,15 +128,13 @@ export async function savePost(
     archived: p.archived,
     pinned: p.pinned,
     featured: p.featured,
-    // 纯文字字数：保存时计算，页脚只做 sum
     wordCount: countWords(p.content ?? ""),
-    // 搜索索引正文：保存时落库，搜索查询不再回读 content 全文
+    // 搜索文本在保存时落库，查询不读取完整正文。
     searchText: buildSearchText(p.content ?? ""),
   };
 
   try {
     const postId = await prisma.$transaction(async (tx) => {
-      // 标签 upsert
       const tags = await Promise.all(
         tagNames.map((name) =>
           tx.tag.upsert({
@@ -157,7 +147,7 @@ export async function savePost(
 
       let id = p.id;
       if (id) {
-        // 编辑前先快照旧状态为版本
+        // 编辑前保存旧状态，支持回滚。
         if (existing) {
           await tx.postRevision.create({ data: revisionData(existing, admin.id) });
         }
@@ -175,8 +165,7 @@ export async function savePost(
       return id;
     });
 
-    // 注意：不在此删除被替换的旧封面——历史版本可能仍引用它，
-    // 删除会导致回滚到旧版本时封面失效；封面统一在删除文章时清理
+    // 旧封面可能被历史版本引用，仅在删除文章时统一清理。
     await pruneRevisions(postId);
 
     revalidatePath("/");
@@ -190,7 +179,6 @@ export async function savePost(
   }
 }
 
-// 删除文章
 export async function deletePost(id: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -201,7 +189,7 @@ export async function deletePost(id: string): Promise<AdminActionState> {
     include: { revisions: { select: { coverImage: true } } },
   });
   if (!post) return { ok: false, error: "文章不存在" };
-  // 删除文章连同其所有封面（当前封面 + 各历史版本引用过的封面）
+  // 同时删除当前和历史版本引用的封面。
   const covers = [post.coverImage, ...post.revisions.map((r) => r.coverImage)].filter(
     (c): c is string => Boolean(c)
   );
@@ -214,7 +202,6 @@ export async function deletePost(id: string): Promise<AdminActionState> {
   return { ok: true, message: "已删除" };
 }
 
-// 切换发布状态（首次发布记录发布时间）
 export async function togglePublish(id: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -237,7 +224,6 @@ export async function togglePublish(id: string): Promise<AdminActionState> {
   return { ok: true, message: published ? "已发布" : "已转为草稿" };
 }
 
-// 切换置顶
 export async function togglePin(id: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -253,7 +239,7 @@ export async function togglePin(id: string): Promise<AdminActionState> {
   return { ok: true, message: post.pinned ? "已取消置顶" : "已置顶" };
 }
 
-// 切换归档（归档后不进入前台列表/SEO）
+// 归档文章不进入公开列表和 SEO。
 export async function toggleArchive(id: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -269,14 +255,12 @@ export async function toggleArchive(id: string): Promise<AdminActionState> {
   return { ok: true, message: post.archived ? "已取消归档" : "已归档" };
 }
 
-// 删除文章后跳回列表
 export async function deletePostAndRedirect(id: string) {
   const result = await deletePost(id);
   if (result.ok) redirect("/admin/posts");
   return result;
 }
 
-// 批量操作：发布 / 转草稿 / 归档 / 改分类 / 删除
 export async function batchPosts(
   ids: unknown,
   operation: string,
@@ -303,7 +287,6 @@ export async function batchPosts(
       revalidatePath(`/blog/${p.slug}`);
     }
   } else if (op === "publish") {
-    // 首次发布补齐发布时间
     await prisma.post.updateMany({
       where: { id: { in: idList }, publishedAt: null },
       data: { publishedAt: new Date() },
@@ -320,7 +303,7 @@ export async function batchPosts(
     });
   }
 
-  // 详情页是 ISR 缓存：批量改动（发布/转草稿/归档）会影响详情页可见性，逐篇刷新
+  // 批量状态变更后逐篇刷新 ISR 详情缓存。
   if (op !== "delete") {
     const affected = await prisma.post.findMany({
       where: { id: { in: idList } },
@@ -335,11 +318,9 @@ export async function batchPosts(
   return { ok: true, message: "已批量处理" };
 }
 
-// 上传失败时仅向客户端暴露这些已知中文文案，其余错误统一通用文案，
-// 避免 @vercel/blob 等底层错误泄漏 bucket 名/内部 URL
+// 仅暴露已知上传错误，避免泄漏存储服务内部信息。
 const IMAGE_ERROR_MESSAGES = ["仅支持 JPEG / PNG / WebP / GIF 图片", "图片大小不能超过 5MB"];
 
-// 上传封面图
 export async function uploadImage(
   formData: FormData
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
@@ -365,7 +346,6 @@ export async function uploadImage(
   }
 }
 
-// 回滚文章到某个历史版本
 export async function restorePostRevision(revisionId: string): Promise<AdminActionState> {
   const admin = await requirePermission(PERMISSIONS.MANAGE_POSTS);
   if (!admin) return { ok: false, error: "无权限" };
@@ -381,7 +361,6 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
   });
   if (!post) return { ok: false, error: "文章不存在" };
 
-  // slug 唯一性检查
   const conflict = await prisma.post.findFirst({
     where: { slug: revision.slug, id: { not: post.id } },
   });
@@ -397,7 +376,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
 
   try {
     await prisma.$transaction(async (tx) => {
-      // 先快照当前状态，使回滚可再次撤销
+      // 回滚前保存当前状态，使回滚可撤销。
       await tx.postRevision.create({ data: revisionData(post, admin.id) });
 
       await tx.post.update({
@@ -414,7 +393,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
           pinned: revision.pinned,
           featured: revision.featured,
           archived: revision.archived,
-          // 回滚后字数随正文变化，重新计算（版本快照不存 wordCount，用 content 现算）
+          // 版本不存 wordCount，回滚时按正文重算。
           wordCount: countWords(revision.content ?? ""),
           searchText: buildSearchText(revision.content ?? ""),
         },

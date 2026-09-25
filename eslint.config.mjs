@@ -14,14 +14,13 @@ const eslintConfig = defineConfig([
       ],
     },
   },
-  // Override default ignores of eslint-config-next.
   globalIgnores([
-    // Default ignores of eslint-config-next:
+    // eslint-config-next 默认忽略项
     ".next/**",
     "out/**",
     "build/**",
     "next-env.d.ts",
-    // 项目自定义忽略：旧代码归档与 Prisma 生成代码
+    // 归档和 Prisma 生成代码
     "_legacy/**",
     "lib/generated/**",
   ]),

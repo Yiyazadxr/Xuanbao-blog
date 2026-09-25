@@ -1,7 +1,6 @@
 import { Skeleton } from "@/components/ui/Skeleton";
 
-// 与 PostCard 结构 1:1（封面区固定 h-40），保证骨架卡片与真实卡片等高，
-// 数据到位后只是"填色"，不发生布局位移
+// 与 PostCard 等高，避免内容加载时布局位移。
 export function PostCardSkeleton() {
   return (
     <div className="flex h-full flex-col rounded-2xl border border-border bg-surface p-6">
@@ -24,7 +23,7 @@ export function PostCardSkeleton() {
   );
 }
 
-// 列表骨架：默认 9 张，与 PostListPaginated 的 PAGE_SIZE 一致，翻页时高度也能对上
+// 默认数量与 PostListPaginated.PAGE_SIZE 一致。
 export function PostGridSkeleton({ count = 9 }: { count?: number }) {
   return (
     <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">

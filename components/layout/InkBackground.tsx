@@ -9,7 +9,7 @@ import { useEffect, useRef, useState } from "react";
 
 /** 网格单元边长，越小越细腻但开销越大 */
 const CELL_SIZE = 12;
-/** 离屏放大倍率，采样到 2 倍再拉伸更自然 */
+/** 离屏放大倍率，先按 2 倍采样再拉伸 */
 const RENDER_SCALE = 2;
 /** 设备像素比上限，墨迹本身是柔化的，无需高分屏全量渲染 */
 const MAX_DPR = 1.5;
@@ -25,7 +25,7 @@ const IDLE_MS = 4000;
 /** 墨迹淡尽阈值，必须按峰值判断，用平均值会在墨迹仍可见时提前停止 */
 const INK_EPS = 3;
 
-/** 墨量转不透明度的查找表，指数越大则笔心越实、边缘越飞白 */
+/** 墨量到不透明度的查找表，指数控制非线性映射：越大则中心越实、边缘越淡 */
 const LUT_SIZE = 512;
 const LUT_SCALE = (LUT_SIZE - 1) / INK_MAX_DENSITY;
 const ALPHA_LUT = new Float32Array(LUT_SIZE);
@@ -200,15 +200,13 @@ export function InkBackground() {
       ctx.clearRect(0, 0, cw, ch);
       ctx.imageSmoothingEnabled = true;
       ctx.imageSmoothingQuality = "high";
-      // 外层淡光晕：大幅放大、低透明，让墨迹边缘羽化出一次淡淡的扩散圈
+      // 三层叠加：外层放大、低透明形成边缘扩散；内层次之；原尺寸层保持笔触形状
       const padSoft = Math.round(cw * 0.012);
       ctx.globalAlpha = 0.18;
       ctx.drawImage(oc, -padSoft, -padSoft, cw + padSoft * 2, ch + padSoft * 2);
-      // 内层晕染：放大度适中，保持笔触可辨又有层次
       const pad = Math.round(cw * 0.006);
       ctx.globalAlpha = 0.3;
       ctx.drawImage(oc, -pad, -pad, cw + pad * 2, ch + pad * 2);
-      // 墨心层，保持笔触形状
       ctx.globalAlpha = 1;
       ctx.drawImage(oc, 0, 0, cw, ch);
 
@@ -272,10 +270,10 @@ export function InkBackground() {
         vy *= k;
       }
 
-      // 沿轨迹补点，快速划动也不会断墨
+      // 沿轨迹补点，快速划动也不断墨
       const stepPx = SPLAT_RADIUS * 0.5 * cellW;
       const steps = Math.min(16, Math.max(1, Math.ceil(dist / stepPx)));
-      // 除数越小越容易出墨，太大会变成只有甩鼠标才有墨
+      // 位移越小出墨越少，避免静置出墨；系数控制低速灵敏度
       const ink = INK_STRENGTH * Math.min(1, dist / 3);
       for (let i = 1; i <= steps; i++) {
         const t = i / steps;

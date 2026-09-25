@@ -1,7 +1,7 @@
 import path from "node:path";
 import { defineConfig } from "vitest/config";
 
-// Vitest 配置：Node 环境跑纯函数单测，@ 别名对齐 tsconfig paths
+// Node 测试环境；@ 别名与 tsconfig paths 一致。
 export default defineConfig({
   resolve: {
     alias: {

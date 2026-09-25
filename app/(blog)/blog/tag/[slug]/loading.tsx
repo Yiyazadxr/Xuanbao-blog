@@ -1,7 +1,7 @@
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-// 标签页骨架：结构对齐 tag/[slug]/page.tsx（标题 + 计数 + 9 张卡片）
+// 骨架结构与标签页一致，避免布局跳动。
 export default function TagLoading() {
   return (
     <div aria-busy="true">

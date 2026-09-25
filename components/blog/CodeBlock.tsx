@@ -4,9 +4,7 @@ import { isValidElement, useRef, type ClassAttributes, type HTMLAttributes } fro
 import type { ExtraProps } from "react-markdown";
 import { useCopyFeedback } from "@/lib/use-copy-feedback";
 
-// 代码块增强：在 rehype-highlight 输出的 <pre><code> 上叠加标签和复制
-// 作为 react-markdown 的 components.pre 自定义渲染器，仅代码块走此路径（行内 code 不受影响）。
-// 复制走 navigator.clipboard，回退 execCommand；成功后按钮短暂变对勾反馈。
+// Clipboard API 不可用时回退到 execCommand。
 export function CodeBlock({
   children,
   className,
@@ -16,14 +14,12 @@ export function CodeBlock({
   const preRef = useRef<HTMLPreElement>(null);
   const { status, show } = useCopyFeedback();
 
-  // 从子 <code> 的 className 提取语言
   let language = "";
   if (isValidElement(children)) {
     const cls = (children.props as { className?: string })?.className ?? "";
     const m = /language-([\w-]+)/.exec(cls);
     if (m) language = m[1];
   }
-  // 合并 hljs 与 react-markdown 透传的 className
   const preCls = ["hljs", className].filter(Boolean).join(" ") || undefined;
   const copied = status === "copied";
   const failed = status === "failed";
@@ -35,7 +31,7 @@ export function CodeBlock({
       await navigator.clipboard.writeText(text);
       ok = true;
     } catch {
-      // 回退：旧浏览器 / 无权限时用 execCommand 选区复制
+      // 兼容旧浏览器和无剪贴板权限的环境。
       const range = document.createRange();
       const sel = window.getSelection();
       if (preRef.current && sel) {
@@ -51,7 +47,7 @@ export function CodeBlock({
 
   return (
     <div className="group relative" role="figure">
-      {/* 顶栏：语言标签 + 复制按钮；桌面仅悬浮显隐，移动端常显（无 hover） */}
+      {/* 触摸设备没有 hover，复制按钮保持可见。 */}
       <div className="pointer-events-none absolute right-2 top-2 z-10 flex items-center gap-2 opacity-100 transition-opacity duration-150 md:opacity-0 md:group-hover:opacity-100 md:focus-within:opacity-100">
         {language && (
           <span className="rounded bg-black/30 px-1.5 py-0.5 text-[0.65rem] font-medium uppercase tracking-wide text-zinc-400">
@@ -103,4 +99,3 @@ export function CodeBlock({
     </div>
   );
 }
-

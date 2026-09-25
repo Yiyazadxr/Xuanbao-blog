@@ -1,7 +1,7 @@
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { Skeleton } from "@/components/ui/Skeleton";
 
-// 文章列表页骨架：结构对齐 blog/page.tsx（标题 + 搜索框 + 分类入口 + 9 张卡片）
+// 骨架结构与文章列表一致，避免布局跳动。
 export default function BlogLoading() {
   return (
     <div aria-busy="true">
