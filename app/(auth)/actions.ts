@@ -22,27 +22,13 @@ export async function loginAction(
   if (!parsed.data) return { ok: false, error: parsed.error ?? "参数不合法" };
   const { email } = parsed.data;
 
-  const ip = await getClientIp();
-  const emailKey = `${email}:${ip}`;
-
-  // 原子计数后再登录，超限时跳过 bcrypt。
-  const emailCheck = await rateLimit.checkAndHit("login", emailKey, 5, 15 * 60 * 1000);
-  if (emailCheck.blocked) {
-    return { ok: false, error: `尝试次数过多，请 ${emailCheck.retryAfterSec} 秒后再试` };
-  }
-  const ipCheck = await rateLimit.checkAndHit("login-ip", ip, 20, 15 * 60 * 1000);
-  if (ipCheck.blocked) {
-    return { ok: false, error: "尝试次数过多，请稍后再试" };
-  }
-
   try {
     // 客户端整页跳转以重新挂载 SessionProvider。
     await signIn("credentials", { email, password: parsed.data.password, redirect: false });
-    await rateLimit.reset("login", emailKey);
     return { ok: true, message: "登录成功" };
   } catch (error) {
     if (error instanceof AuthError) {
-      return { ok: false, error: "邮箱或密码不正确" };
+      return { ok: false, error: "登录失败，请检查邮箱和密码；尝试过多时请稍后再试" };
     }
     throw error;
   }

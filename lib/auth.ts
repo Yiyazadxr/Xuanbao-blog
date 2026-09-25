@@ -7,6 +7,8 @@ import { prisma } from "@/lib/prisma";
 import { type Permission } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions-server";
 import { isRole, type Role } from "@/lib/roles";
+import { getClientIp, rateLimit } from "@/lib/rate-limit";
+import { loginSchema } from "@/lib/validation";
 
 // JWT 展示字段定期回源，避免每次请求查库。
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
@@ -23,9 +25,16 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         password: { label: "密码", type: "password" },
       },
       async authorize(credentials) {
-        const email = String(credentials?.email ?? "").trim().toLowerCase();
-        const password = String(credentials?.password ?? "");
-        if (!email || !password) return null;
+        const parsed = loginSchema.safeParse(credentials);
+        if (!parsed.success) return null;
+        const { email, password } = parsed.data;
+        const ip = await getClientIp();
+        const emailKey = `${email}:${ip}`;
+        // 放在认证入口，页面 Action 与 Auth.js 回调均受限流约束。
+        const ipCheck = await rateLimit.checkAndHit("login-ip", ip, 20, 15 * 60 * 1000);
+        if (ipCheck.blocked) return null;
+        const emailCheck = await rateLimit.checkAndHit("login", emailKey, 5, 15 * 60 * 1000);
+        if (emailCheck.blocked) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
         if (!user) return null;
@@ -46,6 +55,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return null;
+        await rateLimit.reset("login", emailKey);
 
         // 首次登录时间用于后续回收判定。
         if (!user.lastLoginAt) {

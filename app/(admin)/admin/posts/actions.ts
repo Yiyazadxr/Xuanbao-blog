@@ -1,69 +1,17 @@
 "use server";
 
 // 文章操作要求 manage_posts 权限。
-import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePermission } from "@/lib/auth";
 import { runAfter } from "@/lib/deferred";
 import { deleteImage, saveImage } from "@/lib/image-storage";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
+import { revalidatePostContent } from "@/lib/post-cache";
+import { snapshotPost } from "@/lib/post-revisions";
 import { countWords, buildSearchText, plainExcerpt, slugify } from "@/lib/utils";
 import { batchPostsSchema, parseId, parseInput, postSchema } from "@/lib/validation";
 import type { AdminActionState } from "../action-types";
-
-// 每篇文章保留的版本数上限
-const MAX_REVISIONS = 50;
-
-function revisionData(
-  post: {
-    id: string;
-    title: string;
-    slug: string;
-    content: string;
-    excerpt: string | null;
-    coverImage: string | null;
-    categoryId: string | null;
-    seriesId: string | null;
-    published: boolean;
-    pinned: boolean;
-    featured: boolean;
-    archived: boolean;
-    tags: { tag: { name: string } }[];
-  },
-  authorId: string
-) {
-  return {
-    postId: post.id,
-    title: post.title,
-    slug: post.slug,
-    content: post.content,
-    excerpt: post.excerpt,
-    coverImage: post.coverImage,
-    categoryId: post.categoryId,
-    seriesId: post.seriesId,
-    tags: JSON.stringify(post.tags.map((t) => t.tag.name)),
-    published: post.published,
-    pinned: post.pinned,
-    featured: post.featured,
-    archived: post.archived,
-    authorId,
-  };
-}
-
-async function pruneRevisions(postId: string) {
-  const oldest = await prisma.postRevision.findMany({
-    where: { postId },
-    orderBy: { createdAt: "desc" },
-    skip: MAX_REVISIONS,
-    select: { id: true },
-  });
-  if (oldest.length > 0) {
-    await prisma.postRevision.deleteMany({
-      where: { id: { in: oldest.map((r) => r.id) } },
-    });
-  }
-}
 
 export async function savePost(
   payload: unknown
@@ -149,7 +97,7 @@ export async function savePost(
       if (id) {
         // 编辑前保存旧状态，支持回滚。
         if (existing) {
-          await tx.postRevision.create({ data: revisionData(existing, admin.id) });
+          await snapshotPost(tx, existing, admin.id);
         }
         await tx.post.update({ where: { id }, data });
         await tx.postTag.deleteMany({ where: { postId: id } });
@@ -166,12 +114,7 @@ export async function savePost(
     });
 
     // 旧封面可能被历史版本引用，仅在删除文章时统一清理。
-    await pruneRevisions(postId);
-
-    revalidatePath("/");
-    revalidatePath("/blog");
-    revalidatePath(`/blog/${p.slug}`);
-    revalidatePath("/admin/posts");
+    revalidatePostContent();
     return { ok: true, message: p.id ? "已保存" : "已创建", id: postId };
   } catch (e) {
     console.error("保存文章失败：", e);
@@ -195,10 +138,7 @@ export async function deletePost(id: string): Promise<AdminActionState> {
   );
   await prisma.post.delete({ where: { id: pid.data } });
   runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
-  revalidatePath("/");
-  revalidatePath("/blog");
-  revalidatePath(`/blog/${post.slug}`);
-  revalidatePath("/admin/posts");
+  revalidatePostContent();
   return { ok: true, message: "已删除" };
 }
 
@@ -217,10 +157,7 @@ export async function togglePublish(id: string): Promise<AdminActionState> {
       publishedAt: published && !post.publishedAt ? new Date() : post.publishedAt,
     },
   });
-  revalidatePath("/");
-  revalidatePath("/blog");
-  revalidatePath(`/blog/${post.slug}`);
-  revalidatePath("/admin/posts");
+  revalidatePostContent();
   return { ok: true, message: published ? "已发布" : "已转为草稿" };
 }
 
@@ -232,10 +169,7 @@ export async function togglePin(id: string): Promise<AdminActionState> {
   const post = await prisma.post.findUnique({ where: { id: pid.data } });
   if (!post) return { ok: false, error: "文章不存在" };
   await prisma.post.update({ where: { id: pid.data }, data: { pinned: !post.pinned } });
-  revalidatePath("/");
-  revalidatePath("/blog");
-  revalidatePath(`/blog/${post.slug}`);
-  revalidatePath("/admin/posts");
+  revalidatePostContent();
   return { ok: true, message: post.pinned ? "已取消置顶" : "已置顶" };
 }
 
@@ -248,10 +182,7 @@ export async function toggleArchive(id: string): Promise<AdminActionState> {
   const post = await prisma.post.findUnique({ where: { id: pid.data } });
   if (!post) return { ok: false, error: "文章不存在" };
   await prisma.post.update({ where: { id: pid.data }, data: { archived: !post.archived } });
-  revalidatePath("/");
-  revalidatePath("/blog");
-  revalidatePath(`/blog/${post.slug}`);
-  revalidatePath("/admin/posts");
+  revalidatePostContent();
   return { ok: true, message: post.archived ? "已取消归档" : "已归档" };
 }
 
@@ -284,7 +215,6 @@ export async function batchPosts(
         (c): c is string => Boolean(c)
       );
       runAfter(() => Promise.all(covers.map((cover) => deleteImage(cover))));
-      revalidatePath(`/blog/${p.slug}`);
     }
   } else if (op === "publish") {
     await prisma.post.updateMany({
@@ -303,18 +233,7 @@ export async function batchPosts(
     });
   }
 
-  // 批量状态变更后逐篇刷新 ISR 详情缓存。
-  if (op !== "delete") {
-    const affected = await prisma.post.findMany({
-      where: { id: { in: idList } },
-      select: { slug: true },
-    });
-    for (const p of affected) revalidatePath(`/blog/${p.slug}`);
-  }
-
-  revalidatePath("/");
-  revalidatePath("/blog");
-  revalidatePath("/admin/posts");
+  revalidatePostContent();
   return { ok: true, message: "已批量处理" };
 }
 
@@ -377,7 +296,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
   try {
     await prisma.$transaction(async (tx) => {
       // 回滚前保存当前状态，使回滚可撤销。
-      await tx.postRevision.create({ data: revisionData(post, admin.id) });
+      await snapshotPost(tx, post, admin.id);
 
       await tx.post.update({
         where: { id: post.id },
@@ -412,10 +331,7 @@ export async function restorePostRevision(revisionId: string): Promise<AdminActi
       }
     });
 
-    await pruneRevisions(post.id);
-    revalidatePath("/");
-    revalidatePath("/blog");
-    revalidatePath("/admin/posts");
+    revalidatePostContent();
     return { ok: true, message: "已回滚到该版本" };
   } catch (e) {
     console.error("回滚失败：", e);

@@ -47,13 +47,17 @@ export function CommentForm({
     e.preventDefault();
     setFeedback(null);
     startTransition(async () => {
-      const result = await submitComment({ postId, slug, content, parentId });
-      if (result.ok) {
-        setContent("");
-        setFeedback({ ok: true, text: result.message ?? "已提交" });
-        onDone?.();
-      } else {
-        setFeedback({ ok: false, text: result.error ?? "提交失败" });
+      try {
+        const result = await submitComment({ postId, slug, content, parentId });
+        if (result.ok) {
+          setContent("");
+          setFeedback({ ok: true, text: result.message ?? "已提交" });
+          onDone?.();
+        } else {
+          setFeedback({ ok: false, text: result.error ?? "提交失败" });
+        }
+      } catch {
+        setFeedback({ ok: false, text: "提交失败，内容已保留，请稍后重试" });
       }
     });
   }

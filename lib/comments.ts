@@ -1,4 +1,13 @@
 import { prisma } from "@/lib/prisma";
+import type { CommentData, CommentWithReplies } from "@/lib/comment-types";
+export type { CommentWithReplies } from "@/lib/comment-types";
+
+function toCommentData(comment: {
+  id: string; content: string; createdAt: Date;
+  author: CommentData["author"];
+}): CommentData {
+  return { id: comment.id, content: comment.content, createdAt: comment.createdAt.toISOString(), author: comment.author };
+}
 
 // 分页按顶层评论计数，回复随父评论加载。
 export const COMMENTS_PER_PAGE = 10;
@@ -8,7 +17,7 @@ export async function getApprovedComments(
   postId: string,
   { skip = 0, take = COMMENTS_PER_PAGE }: { skip?: number; take?: number } = {}
 ) {
-  return prisma.comment.findMany({
+  const comments = await prisma.comment.findMany({
     where: { postId, isApproved: true, parentId: null },
     orderBy: { createdAt: "desc" },
     skip,
@@ -22,6 +31,10 @@ export async function getApprovedComments(
       },
     },
   });
+  return comments.map((comment): CommentWithReplies => ({
+    ...toCommentData(comment),
+    replies: comment.replies.map(toCommentData),
+  }));
 }
 
 // 总数包含顶层评论和回复，不受分页影响。
@@ -32,5 +45,3 @@ export async function getCommentCounts(postId: string) {
   ]);
   return { topLevel, total: topLevel + replies };
 }
-
-export type CommentWithReplies = Awaited<ReturnType<typeof getApprovedComments>>[number];

@@ -25,6 +25,11 @@ import { formatDate, readingTime } from "@/lib/utils";
 // 公开文章使用 ISR；个性化数据在客户端按需获取。
 export const revalidate = 60;
 
+// 首次访问时生成并缓存，不让构建耗时随文章总量增长。
+export function generateStaticParams() {
+  return [];
+}
+
 export async function generateMetadata({
   params,
 }: {

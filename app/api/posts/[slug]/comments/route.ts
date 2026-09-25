@@ -6,6 +6,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions-server";
 import { prisma } from "@/lib/prisma";
 import { ROLES, type Role } from "@/lib/roles";
+import type { CommentsPayload } from "@/lib/comment-types";
 
 // ISR 详情页在客户端加载个性化评论状态；日期序列化为字符串。
 export async function GET(_req: Request, { params }: { params: Promise<{ slug: string }> }) {
@@ -29,12 +30,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     user && user.role !== ROLES.SUPER_ADMIN ? getMuteInfo(user.id) : Promise.resolve(null),
   ]);
 
-  return NextResponse.json({
+  const payload: CommentsPayload = {
     comments,
     topLevel: counts.topLevel,
     total: counts.total,
     canModerate,
     currentUserId: user?.id ?? null,
     muteInfo,
-  });
+  };
+  return NextResponse.json(payload, { headers: { "Cache-Control": "private, no-store" } });
 }

@@ -1,11 +1,10 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { deleteComment } from "@/app/(admin)/admin/comments/actions";
 import { CommentForm } from "@/components/comments/CommentForm";
 import { Avatar } from "@/components/ui/Avatar";
-import type { CommentWithReplies } from "@/lib/comments";
+import type { CommentWithReplies } from "@/lib/comment-types";
 import { formatDate } from "@/lib/utils";
 
 // 单条评论
@@ -15,22 +14,30 @@ export function CommentItem({
   slug,
   canModerate,
   currentUserId,
+  onChanged,
 }: {
   comment: CommentWithReplies;
   postId: string;
   slug: string;
   canModerate: boolean;
   currentUserId: string | null;
+  onChanged: () => void;
 }) {
-  const router = useRouter();
+  const [error, setError] = useState<string | null>(null);
   const [replying, setReplying] = useState(false);
   const [pending, startTransition] = useTransition();
 
   function handleDelete(id: string) {
     if (!confirm("确定删除这条评论吗？其下回复也会一并删除。")) return;
+    setError(null);
     startTransition(async () => {
-      await deleteComment(id);
-      router.refresh();
+      try {
+        const result = await deleteComment(id);
+        if (result.ok) onChanged();
+        else setError(result.error ?? "删除失败，请重试");
+      } catch {
+        setError("删除失败，请稍后重试");
+      }
     });
   }
 
@@ -38,6 +45,7 @@ export function CommentItem({
 
   return (
     <li className="py-5">
+      {error && <p role="alert">{error}</p>}
       <CommentBody
         name={comment.author.name}
         image={comment.author.image}
@@ -71,7 +79,7 @@ export function CommentItem({
             postId={postId}
             slug={slug}
             parentId={comment.id}
-            onDone={() => setReplying(false)}
+            onDone={() => { setReplying(false); onChanged(); }}
           />
         </div>
       )}
