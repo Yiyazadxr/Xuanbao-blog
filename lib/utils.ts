@@ -109,12 +109,3 @@ export function findTitleMatch(
   };
 }
 
-// 标题转 URL slug（后台新建文章时用）
-export function slugify(title: string): string {
-  const base = title
-    .toLowerCase()
-    .trim()
-    .replace(/[^\w一-鿿]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return base || `post-${Date.now().toString(36)}`;
-}

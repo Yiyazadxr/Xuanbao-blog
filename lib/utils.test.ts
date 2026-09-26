@@ -11,7 +11,6 @@ import {
   readingTime,
   readingTimeFromWordCount,
   searchSnippet,
-  slugify,
 } from "@/lib/utils";
 
 describe("formatCount", () => {
@@ -134,20 +133,6 @@ describe("searchSnippet", () => {
 
   it("空查询返回 null", () => {
     expect(searchSnippet("abc", "  ")).toBeNull();
-  });
-});
-
-describe("slugify", () => {
-  it("英文标题转 kebab-case", () => {
-    expect(slugify("Hello World")).toBe("hello-world");
-  });
-
-  it("保留中文", () => {
-    expect(slugify("你好 世界")).toBe("你好-世界");
-  });
-
-  it("空标题回落到 post- 前缀", () => {
-    expect(slugify("   ")).toMatch(/^post-/);
   });
 });
 

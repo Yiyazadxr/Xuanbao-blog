@@ -1,6 +1,7 @@
 import { prisma } from "@/lib/prisma";
 import { snapshotPost } from "@/lib/post-revisions";
-import { buildSearchText, countWords, plainExcerpt, slugify } from "@/lib/utils";
+import { buildSearchText, countWords, plainExcerpt } from "@/lib/utils";
+import { slugify } from "@/lib/slug";
 import type { z } from "zod";
 import type { postSchema, batchPostsSchema } from "@/lib/validation";
 

@@ -6,7 +6,7 @@ import { requirePermission } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { revalidatePostContent } from "@/lib/post-cache";
-import { slugify } from "@/lib/utils";
+import { slugify } from "@/lib/slug";
 import { categorySchema, parseId, parseInput, seriesSchema, tagSchema } from "@/lib/validation";
 
 export type TaxonomyActionState = { ok: boolean; error?: string; message?: string };

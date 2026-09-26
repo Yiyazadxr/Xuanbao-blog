@@ -8,7 +8,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { savePost, uploadImage } from "@/app/(admin)/admin/posts/actions";
 import { errorCls, inputCls, labelCls, primaryBtnCls } from "@/components/ui/form-styles";
 import { EXCERPT_MAX } from "@/lib/validation";
-import { slugify } from "@/lib/utils";
+import { slugify } from "@/lib/slug";
 import "@uiw/react-md-editor/markdown-editor.css";
 import "@uiw/react-markdown-preview/markdown.css";
 
