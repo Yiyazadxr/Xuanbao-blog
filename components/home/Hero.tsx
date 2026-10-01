@@ -6,6 +6,9 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import { useEffect, useRef } from "react";
 import { PoemQuote } from "@/components/home/PoemQuote";
+import { FestivalFeature } from "@/components/home/FestivalFeature";
+import { getFestivalsForDay } from "@/lib/festivals";
+import { useFestivalDay } from "@/lib/use-festival-day";
 import { fadeUp, staggerContainer } from "@/lib/motion";
 import { usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { MaskedText } from "@/components/ui/MaskedText";
@@ -13,6 +16,8 @@ import { MaskedText } from "@/components/ui/MaskedText";
 // 首页顶部欢迎区
 export function Hero() {
   const reduceMotion = usePrefersReducedMotion();
+  const day = useFestivalDay();
+  const hasFestival = getFestivalsForDay(day).length > 0;
   const { data: session } = useSession();
   // 登录后显示用户昵称，未登录显示朋友
   const displayName = session?.user?.name ?? "朋友";
@@ -72,24 +77,27 @@ export function Hero() {
         initial={reduceMotion ? false : "hidden"}
         animate="visible"
       >
-        <m.p
-          variants={fadeUp()}
-          className="font-display mb-5 text-sm font-medium uppercase tracking-[0.3em] text-muted"
-        >
-          Xuanbao · XR · Blog
-        </m.p>
+        <FestivalFeature day={day} />
 
-        {/* 大标题 */}
-        <m.h1
-          variants={fadeUp(32, 0.9)}
-          // 不锁 nowrap，昵称过长时允许折行，否则会被 overflow-hidden 裁掉
-          className="font-display break-words text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.05] font-bold tracking-tight"
-        >
-          <MaskedText text="你好，" delay={0.1} />
-          <MaskedText text={displayName} delay={0.45} className="text-accent" />
-        </m.h1>
+        {!hasFestival && (
+          <>
+            <m.p
+              variants={fadeUp()}
+              className="font-display mb-5 text-sm font-medium uppercase tracking-[0.3em] text-muted"
+            >
+              Xuanbao · XR · Blog
+            </m.p>
+            <m.h1
+              variants={fadeUp(32, 0.9)}
+              className="font-display break-words text-[clamp(2.5rem,7vw,5.5rem)] leading-[1.05] font-bold tracking-tight"
+            >
+              <MaskedText text="你好，" delay={0.1} />
+              <MaskedText text={displayName} delay={0.45} className="text-accent" />
+            </m.h1>
+          </>
+        )}
 
-        <m.div variants={fadeUp()}>
+        <m.div variants={fadeUp()} className={hasFestival ? "mt-5" : undefined}>
           <PoemQuote />
         </m.div>
 

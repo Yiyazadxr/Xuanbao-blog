@@ -35,6 +35,48 @@
   --glow-2: rgba(34, 211, 238, 0.12);
 }
 
+html[data-monochrome-day] {
+  --background: #f5f5f5;
+  --foreground: #171717;
+  --muted: #666666;
+  --surface: #ffffff;
+  --border: #d4d4d4;
+  --accent: #404040;
+  --accent-foreground: #ffffff;
+  --glow-1: rgba(80, 80, 80, 0.1);
+  --glow-2: rgba(130, 130, 130, 0.08);
+  color-scheme: light;
+}
+
+html.dark[data-monochrome-day] {
+  --background: #090909;
+  --foreground: #f5f5f5;
+  --muted: #a3a3a3;
+  --surface: #151515;
+  --border: rgba(255, 255, 255, 0.12);
+  --accent: #d4d4d4;
+  --accent-foreground: #171717;
+  --glow-1: rgba(180, 180, 180, 0.12);
+  --glow-2: rgba(110, 110, 110, 0.1);
+  color-scheme: dark;
+}
+
+html[data-monochrome-day] body :is(img, video, canvas, svg) {
+  filter: grayscale(1);
+}
+
+html[data-monochrome-day] .festival-scene,
+html[data-monochrome-day] .festival-letter-dialog {
+  --festival-ink: #404040;
+  --festival-wash: rgba(64, 64, 64, 0.07);
+}
+
+html.dark[data-monochrome-day] .festival-scene,
+html.dark[data-monochrome-day] .festival-letter-dialog {
+  --festival-ink: #d4d4d4;
+  --festival-wash: rgba(212, 212, 212, 0.08);
+}
+
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -51,6 +93,640 @@
   --font-display: var(--font-space-grotesk), system-ui, "PingFang SC",
     "Microsoft YaHei", sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, "Cascadia Code", monospace;
+}
+
+/* 节日 Hero 场景：主题仅作用于局部，不覆盖站点底色和正文语义色。 */
+.festival-scene {
+  --festival-ink: #9f3328;
+  --festival-wash: rgba(159, 51, 40, 0.07);
+  color: var(--festival-ink);
+}
+
+.festival-scene[data-festival="spring-festival"] { --festival-ink: #a02638; --festival-wash: rgba(160, 38, 56, 0.08); }
+.festival-scene[data-festival="mid-autumn"] { --festival-ink: #805b16; --festival-wash: rgba(128, 91, 22, 0.08); }
+.festival-scene[data-festival="dragon-boat"] { --festival-ink: #356859; --festival-wash: rgba(53, 104, 89, 0.08); }
+.festival-scene[data-festival="qingming"] { --festival-ink: #596b68; --festival-wash: rgba(89, 107, 104, 0.06); }
+.festival-scene[data-festival="new-year"] { --festival-ink: #8c5e36; --festival-wash: rgba(173, 126, 76, 0.08); }
+.festival-scene[data-festival="lantern-festival"] { --festival-ink: #b4502e; --festival-wash: rgba(180, 80, 46, 0.08); }
+.festival-scene[data-festival="womens-day"] { --festival-ink: #95507e; --festival-wash: rgba(149, 80, 126, 0.07); }
+.festival-scene[data-festival="arbor-day"] { --festival-ink: #3d7a52; --festival-wash: rgba(61, 122, 82, 0.08); }
+.festival-scene[data-festival="labor-day"] { --festival-ink: #8f6b1f; --festival-wash: rgba(143, 107, 31, 0.08); }
+.festival-scene[data-festival="youth-day"] { --festival-ink: #2f6f8f; --festival-wash: rgba(47, 111, 143, 0.08); }
+.festival-scene[data-festival="mothers-day"] { --festival-ink: #b85c74; --festival-wash: rgba(184, 92, 116, 0.08); }
+.festival-scene[data-festival="fathers-day"] { --festival-ink: #3a5570; --festival-wash: rgba(58, 85, 112, 0.08); }
+.festival-scene[data-festival="childrens-day"] { --festival-ink: #5f63a8; --festival-wash: rgba(95, 99, 168, 0.08); }
+.festival-scene[data-festival="party-anniversary"] { --festival-ink: #b02a24; --festival-wash: rgba(176, 42, 36, 0.08); }
+.festival-scene[data-festival="army-day"] { --festival-ink: #4d6242; --festival-wash: rgba(77, 98, 66, 0.08); }
+/* 汶川、九一八、国家公祭日不设彩色，由 html[data-monochrome-day] 统一灰阶。 */
+
+.dark .festival-scene { --festival-ink: #f6a695; --festival-wash: rgba(246, 166, 149, 0.08); }
+.dark .festival-scene[data-festival="mid-autumn"] { --festival-ink: #e9c978; --festival-wash: rgba(233, 201, 120, 0.08); }
+.dark .festival-scene[data-festival="spring-festival"] { --festival-ink: #f4a4b0; --festival-wash: rgba(244, 164, 176, 0.08); }
+.dark .festival-scene[data-festival="dragon-boat"] { --festival-ink: #96d5bd; --festival-wash: rgba(150, 213, 189, 0.08); }
+.dark .festival-scene[data-festival="qingming"] { --festival-ink: #b8ceca; --festival-wash: rgba(184, 206, 202, 0.08); }
+.dark .festival-scene[data-festival="new-year"] { --festival-ink: #e2bd91; --festival-wash: rgba(226, 189, 145, 0.08); }
+.dark .festival-scene[data-festival="lantern-festival"] { --festival-ink: #f2a887; --festival-wash: rgba(242, 168, 135, 0.08); }
+.dark .festival-scene[data-festival="womens-day"] { --festival-ink: #e0a8cf; --festival-wash: rgba(224, 168, 207, 0.08); }
+.dark .festival-scene[data-festival="arbor-day"] { --festival-ink: #9ed3ae; --festival-wash: rgba(158, 211, 174, 0.08); }
+.dark .festival-scene[data-festival="labor-day"] { --festival-ink: #e3c078; --festival-wash: rgba(227, 192, 120, 0.08); }
+.dark .festival-scene[data-festival="youth-day"] { --festival-ink: #8fc6e0; --festival-wash: rgba(143, 198, 224, 0.08); }
+.dark .festival-scene[data-festival="mothers-day"] { --festival-ink: #efa9bd; --festival-wash: rgba(239, 169, 189, 0.08); }
+.dark .festival-scene[data-festival="fathers-day"] { --festival-ink: #9db8cf; --festival-wash: rgba(157, 184, 207, 0.08); }
+.dark .festival-scene[data-festival="childrens-day"] { --festival-ink: #a5abea; --festival-wash: rgba(165, 171, 234, 0.08); }
+.dark .festival-scene[data-festival="party-anniversary"] { --festival-ink: #f0968a; --festival-wash: rgba(240, 150, 138, 0.08); }
+.dark .festival-scene[data-festival="army-day"] { --festival-ink: #aec79b; --festival-wash: rgba(174, 199, 155, 0.08); }
+
+.festival-title { color: var(--festival-ink); }
+
+/* 右侧抽象节令图形共享构图，节日各自覆盖其中一层。 */
+.festival-art {
+  position: absolute;
+  inset: 0 0 0 auto;
+  width: min(42%, 25rem);
+  overflow: hidden;
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, var(--festival-wash));
+}
+
+.festival-art-orb {
+  position: absolute;
+  top: 50%;
+  right: 15%;
+  width: clamp(6rem, 14vw, 12rem);
+  aspect-ratio: 1;
+  transform: translateY(-58%);
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 42%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, color-mix(in srgb, var(--festival-ink) 16%, transparent), transparent 68%);
+}
+
+.festival-art-horizon {
+  position: absolute;
+  right: -4%;
+  bottom: 15%;
+  width: 82%;
+  height: 34%;
+  transform: rotate(-7deg);
+  border-top: 1px solid color-mix(in srgb, var(--festival-ink) 42%, transparent);
+  border-radius: 50% 50% 0 0;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--festival-ink) 10%, transparent), transparent 72%);
+}
+
+.festival-art-seal {
+  position: absolute;
+  right: 4%;
+  bottom: 13%;
+  display: grid;
+  width: 2.5rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 56%, transparent);
+  color: var(--festival-ink);
+  font-size: 0.8rem;
+  writing-mode: vertical-rl;
+}
+
+/* 节日构图：月轮、晨光、窗影、山河、水纹与清明薄雾。 */
+.festival-scene[data-festival="mid-autumn"] .festival-art-orb {
+  box-shadow: 0 0 2.5rem color-mix(in srgb, var(--festival-ink) 18%, transparent), inset -0.8rem -0.5rem 1.2rem color-mix(in srgb, var(--festival-ink) 11%, transparent);
+}
+
+.festival-scene[data-festival="new-year"] .festival-art-orb {
+  top: 72%;
+  width: clamp(4rem, 9vw, 7rem);
+  border: 0;
+  background: color-mix(in srgb, var(--festival-ink) 24%, transparent);
+  box-shadow: 0 -2.5rem 4rem color-mix(in srgb, var(--festival-ink) 20%, transparent);
+}
+
+.festival-scene[data-festival="spring-festival"] .festival-art-orb {
+  top: 50%;
+  width: clamp(4rem, 8vw, 6rem);
+  aspect-ratio: 0.78;
+  border-radius: 0.15rem;
+  background:
+    linear-gradient(90deg, transparent 47%, color-mix(in srgb, var(--festival-ink) 38%, transparent) 48% 52%, transparent 53%),
+    linear-gradient(0deg, transparent 47%, color-mix(in srgb, var(--festival-ink) 38%, transparent) 48% 52%, transparent 53%),
+    var(--festival-wash);
+  box-shadow: 0 0 0 0.6rem color-mix(in srgb, var(--festival-ink) 8%, transparent);
+}
+
+.festival-scene[data-festival="national-day"] .festival-art-horizon {
+  height: 44%;
+  transform: rotate(-2deg);
+  border-radius: 55% 45% 0 0;
+}
+
+.festival-scene[data-festival="dragon-boat"] .festival-art-orb {
+  top: 42%;
+  width: 70%;
+  height: 1.1rem;
+  aspect-ratio: auto;
+  transform: rotate(-8deg);
+  border-inline: 0;
+  border-radius: 50%;
+  box-shadow: 0 1.2rem 0 -0.4rem color-mix(in srgb, var(--festival-ink) 22%, transparent), 0 2.4rem 0 -0.4rem color-mix(in srgb, var(--festival-ink) 15%, transparent);
+}
+
+.festival-scene[data-festival="qingming"] .festival-art-orb {
+  width: 48%;
+  aspect-ratio: 2.1;
+  border: 0;
+  border-radius: 50%;
+  filter: blur(0.8rem);
+  background: color-mix(in srgb, var(--festival-ink) 11%, transparent);
+}
+
+.festival-scene[data-festival="qingming"] .festival-art-horizon { opacity: 0.45; }
+
+/* 节日线条语言：在共享构图上叠加各自的图形特征——
+   元旦晨光束、春节窗棂格、中秋月晕环、国庆山脊与光芒、端午水纹舟影、清明雨丝。 */
+
+/* 元旦：旭日向上铺开斜向光束 */
+.festival-scene[data-festival="new-year"] .festival-art::before {
+  content: "";
+  position: absolute;
+  right: 8%;
+  bottom: 24%;
+  width: 58%;
+  height: 48%;
+  background: repeating-linear-gradient(100deg, color-mix(in srgb, var(--festival-ink) 14%, transparent) 0 1px, transparent 1px 1.1rem);
+  mask-image: linear-gradient(0deg, black 20%, transparent 88%);
+  -webkit-mask-image: linear-gradient(0deg, black 20%, transparent 88%);
+}
+
+/* 春节：窗棂在十字主棂内再铺一层细格线 */
+.festival-scene[data-festival="spring-festival"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(90deg, transparent 0 calc(25% - 1px), color-mix(in srgb, var(--festival-ink) 20%, transparent) calc(25% - 1px) 25%),
+    repeating-linear-gradient(0deg, transparent 0 calc(25% - 1px), color-mix(in srgb, var(--festival-ink) 20%, transparent) calc(25% - 1px) 25%);
+}
+
+/* 中秋：满月外扩两圈月晕，地平线一角添云纹弧线 */
+.festival-scene[data-festival="mid-autumn"] .festival-art-orb::before,
+.festival-scene[data-festival="mid-autumn"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 26%, transparent);
+  border-radius: 50%;
+}
+.festival-scene[data-festival="mid-autumn"] .festival-art-orb::before { inset: -14%; }
+.festival-scene[data-festival="mid-autumn"] .festival-art-orb::after {
+  inset: -30%;
+  border-color: color-mix(in srgb, var(--festival-ink) 13%, transparent);
+}
+.festival-scene[data-festival="mid-autumn"] .festival-art-horizon::before {
+  content: "";
+  position: absolute;
+  left: 6%;
+  top: -1.5rem;
+  width: 46%;
+  height: 2.2rem;
+  border-top: 1px solid color-mix(in srgb, var(--festival-ink) 30%, transparent);
+  border-radius: 50% 50% 0 0;
+}
+
+/* 国庆：日轮外放细密光芒，山脊在地平线后再起一重 */
+.festival-scene[data-festival="national-day"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  inset: -38%;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, color-mix(in srgb, var(--festival-ink) 16%, transparent) 0deg 2.5deg, transparent 2.5deg 24deg);
+  mask-image: radial-gradient(circle, black 55%, transparent 72%);
+  -webkit-mask-image: radial-gradient(circle, black 55%, transparent 72%);
+}
+.festival-scene[data-festival="national-day"] .festival-art-horizon::before {
+  content: "";
+  position: absolute;
+  left: -14%;
+  top: 30%;
+  width: 72%;
+  height: 62%;
+  border-top: 1px solid color-mix(in srgb, var(--festival-ink) 28%, transparent);
+  border-radius: 62% 38% 0 0;
+}
+
+/* 端午：地平线收为舟形浅弧，水面铺开同心波纹 */
+.festival-scene[data-festival="dragon-boat"] .festival-art-horizon {
+  right: 6%;
+  bottom: 24%;
+  width: 64%;
+  height: 15%;
+  transform: rotate(-4deg);
+  border-top: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--festival-ink) 42%, transparent);
+  border-radius: 0 0 50% 50% / 0 0 100% 100%;
+  background: linear-gradient(0deg, color-mix(in srgb, var(--festival-ink) 12%, transparent), transparent 80%);
+}
+.festival-scene[data-festival="dragon-boat"] .festival-art::before {
+  content: "";
+  position: absolute;
+  left: 10%;
+  right: -6%;
+  bottom: 2%;
+  height: 40%;
+  background: repeating-radial-gradient(ellipse 120% 100% at 50% 135%, transparent 0 0.85rem, color-mix(in srgb, var(--festival-ink) 15%, transparent) 0.85rem calc(0.85rem + 1px));
+}
+
+/* 清明：薄雾上覆一层斜织雨丝 */
+.festival-scene[data-festival="qingming"] .festival-art::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(112deg, transparent 0 1.15rem, color-mix(in srgb, var(--festival-ink) 17%, transparent) 1.15rem calc(1.15rem + 1px));
+  mask-image: linear-gradient(200deg, black 25%, transparent 92%);
+  -webkit-mask-image: linear-gradient(200deg, black 25%, transparent 92%);
+}
+
+/* 新增节日的图形特征：元宵灯笼、妇女节花瓣、植树节树干、劳动节织纹田垄、
+   青年节星形、母亲节双圆相扣、父亲节方山、儿童节气球、建党星芒、
+   建军环内星、汶川烛焰、九一八警钟、国家公祭日花环。 */
+
+/* 元宵：圆灯笼加纵向竹骨线，灯下垂一缕灯穗 */
+.festival-scene[data-festival="lantern-festival"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-linear-gradient(90deg, color-mix(in srgb, var(--festival-ink) 22%, transparent) 0 1px, transparent 1px 1.05rem);
+}
+.festival-scene[data-festival="lantern-festival"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 2.2rem;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--festival-ink) 45%, transparent), transparent);
+}
+
+/* 妇女节：圆形收为花瓣轮廓，中心一点花蕊 */
+.festival-scene[data-festival="womens-day"] .festival-art-orb {
+  border-radius: 62% 38% 60% 40% / 42% 58% 42% 58%;
+}
+.festival-scene[data-festival="womens-day"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  inset: 34%;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 40%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--festival-ink) 10%, transparent);
+}
+
+/* 植树节：圆为树冠，向下伸出一段树干 */
+.festival-scene[data-festival="arbor-day"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  top: 96%;
+  left: 50%;
+  width: 2px;
+  height: 3rem;
+  transform: translateX(-50%);
+  background: color-mix(in srgb, var(--festival-ink) 40%, transparent);
+}
+
+/* 劳动节：圆内铺 45° 织纹，地平线改为一组田垄平行线 */
+.festival-scene[data-festival="labor-day"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: repeating-linear-gradient(45deg, color-mix(in srgb, var(--festival-ink) 16%, transparent) 0 1px, transparent 1px 0.75rem);
+}
+.festival-scene[data-festival="labor-day"] .festival-art-horizon::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: repeating-linear-gradient(180deg, color-mix(in srgb, var(--festival-ink) 22%, transparent) 0 1px, transparent 1px 0.9rem);
+  mask-image: linear-gradient(180deg, black, transparent 80%);
+  -webkit-mask-image: linear-gradient(180deg, black, transparent 80%);
+}
+
+/* 青年节：星形剪影，地平线上扬 */
+.festival-scene[data-festival="youth-day"] .festival-art-orb {
+  width: clamp(4.5rem, 10vw, 8rem);
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--festival-ink) 20%, transparent);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.festival-scene[data-festival="youth-day"] .festival-art-horizon { transform: rotate(-11deg); }
+
+/* 母亲节：大圆一角相扣一个小圆 */
+.festival-scene[data-festival="mothers-day"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  right: -22%;
+  bottom: -14%;
+  width: 52%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 40%, transparent);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--festival-ink) 8%, transparent);
+}
+
+/* 父亲节：圆收为稳重的方山，内嵌一道细框 */
+.festival-scene[data-festival="fathers-day"] .festival-art-orb { border-radius: 0.3rem; }
+.festival-scene[data-festival="fathers-day"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 24%, transparent);
+}
+
+/* 儿童节：一大一小两只气球，各垂一根绳线 */
+.festival-scene[data-festival="childrens-day"] .festival-art-orb { width: clamp(4rem, 9vw, 7rem); }
+.festival-scene[data-festival="childrens-day"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  left: -72%;
+  top: 30%;
+  width: 58%;
+  aspect-ratio: 1;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 36%, transparent);
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, color-mix(in srgb, var(--festival-ink) 14%, transparent), transparent 68%);
+}
+.festival-scene[data-festival="childrens-day"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  width: 1px;
+  height: 2.6rem;
+  transform: rotate(7deg);
+  transform-origin: top;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--festival-ink) 40%, transparent), transparent);
+}
+
+/* 建党纪念日：星形剪影，背后铺开一圈放射光芒 */
+.festival-scene[data-festival="party-anniversary"] .festival-art-orb {
+  width: clamp(4.5rem, 10vw, 8rem);
+  border: 0;
+  border-radius: 0;
+  background: color-mix(in srgb, var(--festival-ink) 26%, transparent);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+.festival-scene[data-festival="party-anniversary"] .festival-art::before {
+  content: "";
+  position: absolute;
+  top: 10%;
+  right: 2%;
+  width: 76%;
+  aspect-ratio: 1;
+  background: repeating-conic-gradient(from 4deg, color-mix(in srgb, var(--festival-ink) 12%, transparent) 0deg 3deg, transparent 3deg 30deg);
+  mask-image: radial-gradient(circle, black 30%, transparent 68%);
+  -webkit-mask-image: radial-gradient(circle, black 30%, transparent 68%);
+}
+
+/* 建军节：圆环之内嵌一颗星 */
+.festival-scene[data-festival="army-day"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  inset: 20%;
+  background: color-mix(in srgb, var(--festival-ink) 32%, transparent);
+  clip-path: polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%);
+}
+
+/* 汶川地震纪念日：一簇安静的烛焰 */
+.festival-scene[data-festival="wenchuan-remembrance"] .festival-art-orb {
+  width: clamp(3.2rem, 6.5vw, 5rem);
+  aspect-ratio: 0.74;
+  border: 0;
+  border-radius: 50% 50% 50% 50% / 64% 64% 36% 36%;
+  background: radial-gradient(circle at 50% 68%, color-mix(in srgb, var(--festival-ink) 34%, transparent), color-mix(in srgb, var(--festival-ink) 10%, transparent) 72%);
+  box-shadow: 0 0 2.2rem color-mix(in srgb, var(--festival-ink) 22%, transparent);
+}
+
+/* 九一八纪念日：一口警钟，垂一粒钟锤 */
+.festival-scene[data-festival="september-eighteenth"] .festival-art-orb {
+  width: clamp(4rem, 9vw, 7rem);
+  border-radius: 50% 50% 10% 10% / 70% 70% 8% 8%;
+}
+.festival-scene[data-festival="september-eighteenth"] .festival-art-orb::after {
+  content: "";
+  position: absolute;
+  top: 104%;
+  left: 50%;
+  width: 0.55rem;
+  aspect-ratio: 1;
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--festival-ink) 45%, transparent);
+}
+
+/* 国家公祭日：虚线花环套一道实线内环 */
+.festival-scene[data-festival="national-memorial-day"] .festival-art-orb {
+  border-style: dashed;
+  background: none;
+}
+.festival-scene[data-festival="national-memorial-day"] .festival-art-orb::before {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 30%, transparent);
+  border-radius: 50%;
+}
+
+/* 盖印交互保持低动效，并保留键盘焦点可见。 */
+.festival-kicker-mark {
+  display: inline-block;
+  width: 0.45rem;
+  aspect-ratio: 1;
+  margin-inline-end: 0.55rem;
+  border-radius: 50%;
+  background: var(--festival-ink);
+  vertical-align: 0.05rem;
+}
+
+.festival-stamp-button {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.55rem;
+  color: var(--festival-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.festival-stamp-button:focus-visible { outline: 2px solid var(--festival-ink); outline-offset: 4px; }
+
+.festival-stamp-button-mark {
+  display: grid;
+  width: 1.75rem;
+  aspect-ratio: 1;
+  place-items: center;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 58%, transparent);
+  border-radius: 50%;
+  font-size: 1rem;
+  transition: transform 240ms ease, background-color 240ms ease, color 240ms ease;
+}
+
+.festival-stamp-button.is-imprinted .festival-stamp-button-mark {
+  transform: rotate(-12deg) scale(1.08);
+  background: var(--festival-ink);
+  color: var(--background);
+}
+
+.festival-stamp-button.reduced-motion .festival-stamp-button-mark { transition: none; }
+
+.festival-stamp {
+  position: relative;
+  z-index: 1;
+  display: none;
+  width: clamp(7rem, 12vw, 10rem);
+  aspect-ratio: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 58%, transparent);
+  outline: 1px solid color-mix(in srgb, var(--festival-ink) 35%, transparent);
+  outline-offset: 5px;
+  color: var(--festival-ink);
+  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  font-weight: 700;
+  writing-mode: vertical-rl;
+}
+
+.festival-stamp-date { margin-top: 0.4rem; font-size: 0.6rem; font-weight: 400; letter-spacing: 0.08em; }
+.festival-stamp.is-imprinted { background: color-mix(in srgb, var(--festival-ink) 10%, transparent); }
+
+/* 印形随节日变化：中秋/元宵/母亲节圆印、春节双线方印、元旦圆角朱印、端午/儿童节虚线边、
+   妇女节柔角印、父亲节重线印、清明与肃穆纪念日素线印。 */
+.festival-scene[data-festival="mid-autumn"] .festival-stamp,
+.festival-scene[data-festival="mid-autumn"] .festival-art-seal { border-radius: 50%; }
+
+.festival-scene[data-festival="lantern-festival"] .festival-stamp,
+.festival-scene[data-festival="lantern-festival"] .festival-art-seal,
+.festival-scene[data-festival="mothers-day"] .festival-stamp,
+.festival-scene[data-festival="mothers-day"] .festival-art-seal { border-radius: 50%; }
+
+.festival-scene[data-festival="spring-festival"] .festival-stamp,
+.festival-scene[data-festival="spring-festival"] .festival-art-seal {
+  border-width: 3px;
+  border-style: double;
+}
+
+.festival-scene[data-festival="new-year"] .festival-stamp,
+.festival-scene[data-festival="new-year"] .festival-art-seal { border-radius: 0.55rem; }
+
+.festival-scene[data-festival="womens-day"] .festival-stamp,
+.festival-scene[data-festival="womens-day"] .festival-art-seal { border-radius: 1.1rem; }
+
+.festival-scene[data-festival="dragon-boat"] .festival-stamp,
+.festival-scene[data-festival="childrens-day"] .festival-stamp { outline-style: dashed; }
+
+.festival-scene[data-festival="fathers-day"] .festival-stamp {
+  border-width: 2px;
+  outline: none;
+}
+
+.festival-scene[data-festival="qingming"] .festival-stamp,
+.festival-scene[data-festival="wenchuan-remembrance"] .festival-stamp,
+.festival-scene[data-festival="september-eighteenth"] .festival-stamp,
+.festival-scene[data-festival="national-memorial-day"] .festival-stamp {
+  outline: none;
+  border-color: color-mix(in srgb, var(--festival-ink) 40%, transparent);
+}
+.festival-letter-trigger {
+  border-color: color-mix(in srgb, var(--festival-ink) 35%, transparent);
+}
+
+.festival-letter-dialog {
+  --festival-ink: #9f3328;
+  --festival-wash: rgba(159, 51, 40, 0.07);
+  width: min(42rem, calc(100vw - 2rem));
+  max-width: 42rem;
+  margin: auto;
+  padding: 0;
+  border: 1px solid color-mix(in srgb, var(--festival-ink) 30%, var(--border));
+  border-radius: 1.25rem;
+  color: var(--foreground);
+  background: color-mix(in srgb, var(--background) 94%, var(--festival-wash));
+  box-shadow: 0 1.5rem 5rem rgba(0, 0, 0, 0.2);
+}
+
+.festival-letter-dialog[data-festival="spring-festival"] { --festival-ink: #a02638; --festival-wash: rgba(160, 38, 56, 0.08); }
+.festival-letter-dialog[data-festival="mid-autumn"] { --festival-ink: #805b16; --festival-wash: rgba(128, 91, 22, 0.08); }
+.festival-letter-dialog[data-festival="dragon-boat"] { --festival-ink: #356859; --festival-wash: rgba(53, 104, 89, 0.08); }
+.festival-letter-dialog[data-festival="qingming"] { --festival-ink: #596b68; --festival-wash: rgba(89, 107, 104, 0.06); }
+.festival-letter-dialog[data-festival="new-year"] { --festival-ink: #8c5e36; --festival-wash: rgba(173, 126, 76, 0.08); }
+.festival-letter-dialog[data-festival="lantern-festival"] { --festival-ink: #b4502e; --festival-wash: rgba(180, 80, 46, 0.08); }
+.festival-letter-dialog[data-festival="womens-day"] { --festival-ink: #95507e; --festival-wash: rgba(149, 80, 126, 0.07); }
+.festival-letter-dialog[data-festival="arbor-day"] { --festival-ink: #3d7a52; --festival-wash: rgba(61, 122, 82, 0.08); }
+.festival-letter-dialog[data-festival="labor-day"] { --festival-ink: #8f6b1f; --festival-wash: rgba(143, 107, 31, 0.08); }
+.festival-letter-dialog[data-festival="youth-day"] { --festival-ink: #2f6f8f; --festival-wash: rgba(47, 111, 143, 0.08); }
+.festival-letter-dialog[data-festival="mothers-day"] { --festival-ink: #b85c74; --festival-wash: rgba(184, 92, 116, 0.08); }
+.festival-letter-dialog[data-festival="fathers-day"] { --festival-ink: #3a5570; --festival-wash: rgba(58, 85, 112, 0.08); }
+.festival-letter-dialog[data-festival="childrens-day"] { --festival-ink: #5f63a8; --festival-wash: rgba(95, 99, 168, 0.08); }
+.festival-letter-dialog[data-festival="party-anniversary"] { --festival-ink: #b02a24; --festival-wash: rgba(176, 42, 36, 0.08); }
+.festival-letter-dialog[data-festival="army-day"] { --festival-ink: #4d6242; --festival-wash: rgba(77, 98, 66, 0.08); }
+/* 汶川、九一八、国家公祭日沿用默认墨色，肃穆日由 html[data-monochrome-day] 统一灰阶。 */
+.dark .festival-letter-dialog { --festival-ink: #f6a695; --festival-wash: rgba(246, 166, 149, 0.08); }
+.dark .festival-letter-dialog[data-festival="mid-autumn"] { --festival-ink: #e9c978; --festival-wash: rgba(233, 201, 120, 0.08); }
+.dark .festival-letter-dialog[data-festival="spring-festival"] { --festival-ink: #f4a4b0; --festival-wash: rgba(244, 164, 176, 0.08); }
+.dark .festival-letter-dialog[data-festival="dragon-boat"] { --festival-ink: #96d5bd; --festival-wash: rgba(150, 213, 189, 0.08); }
+.dark .festival-letter-dialog[data-festival="qingming"] { --festival-ink: #b8ceca; --festival-wash: rgba(184, 206, 202, 0.08); }
+.dark .festival-letter-dialog[data-festival="new-year"] { --festival-ink: #e2bd91; --festival-wash: rgba(226, 189, 145, 0.08); }
+.dark .festival-letter-dialog[data-festival="lantern-festival"] { --festival-ink: #f2a887; --festival-wash: rgba(242, 168, 135, 0.08); }
+.dark .festival-letter-dialog[data-festival="womens-day"] { --festival-ink: #e0a8cf; --festival-wash: rgba(224, 168, 207, 0.08); }
+.dark .festival-letter-dialog[data-festival="arbor-day"] { --festival-ink: #9ed3ae; --festival-wash: rgba(158, 211, 174, 0.08); }
+.dark .festival-letter-dialog[data-festival="labor-day"] { --festival-ink: #e3c078; --festival-wash: rgba(227, 192, 120, 0.08); }
+.dark .festival-letter-dialog[data-festival="youth-day"] { --festival-ink: #8fc6e0; --festival-wash: rgba(143, 198, 224, 0.08); }
+.dark .festival-letter-dialog[data-festival="mothers-day"] { --festival-ink: #efa9bd; --festival-wash: rgba(239, 169, 189, 0.08); }
+.dark .festival-letter-dialog[data-festival="fathers-day"] { --festival-ink: #9db8cf; --festival-wash: rgba(157, 184, 207, 0.08); }
+.dark .festival-letter-dialog[data-festival="childrens-day"] { --festival-ink: #a5abea; --festival-wash: rgba(165, 171, 234, 0.08); }
+.dark .festival-letter-dialog[data-festival="party-anniversary"] { --festival-ink: #f0968a; --festival-wash: rgba(240, 150, 138, 0.08); }
+.dark .festival-letter-dialog[data-festival="army-day"] { --festival-ink: #aec79b; --festival-wash: rgba(174, 199, 155, 0.08); }
+
+.festival-letter-dialog::backdrop {
+  background: color-mix(in srgb, var(--foreground) 28%, transparent);
+  backdrop-filter: blur(4px);
+}
+
+.festival-letter-dialog-inner {
+  padding: clamp(1.25rem, 4vw, 2.25rem);
+}
+
+.festival-dialog-close {
+  display: grid;
+  width: 2.5rem;
+  height: 2.5rem;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 1.5rem;
+  line-height: 1;
+}
+
+.festival-dialog-close:hover { background: color-mix(in srgb, var(--foreground) 7%, transparent); }
+.festival-dialog-close:focus-visible { outline: 2px solid var(--festival-ink); outline-offset: 3px; }
+
+@media (max-width: 767px) {
+  .festival-letter-dialog {
+    width: 100%;
+    max-width: none;
+    margin: auto 0 0;
+    border-bottom: 0;
+    border-radius: 1.25rem 1.25rem 0 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .festival-letter-dialog { scroll-behavior: auto; }
+}
+
+@media (min-width: 768px) {
+  .festival-stamp { display: flex; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .festival-stamp-button-mark { transition: none; }
 }
 
 /* 桌面根字号随视口缩放并限制范围；移动端固定 16px，避免 iOS 缩放。
