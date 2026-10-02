@@ -1,7 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   clearReadNotifications,
   deleteNotification,
@@ -53,42 +53,60 @@ export function NotificationCenter({
   const [unread, setUnread] = useState(initialUnread);
   const [loading, setLoading] = useState(false);
   const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const busy = useRef(false);
   // 记录已加载过的分类（含空结果），避免每次切换 Tab 都重复请求
   const [loadedTabs, setLoadedTabs] = useState<Set<Tab>>(() => new Set(["all"]));
 
   function selectTab(t: Tab) {
+    if (busy.current) return;
     setTab(t);
     if (t !== "all" && !loadedTabs.has(t) && !loading) {
-      setLoadedTabs((prev) => new Set(prev).add(t));
+      busy.current = true;
       setLoading(true);
+      setError(null);
       getNotifications(t)
         .then((res) => {
           setItems((prev) => ({ ...prev, [t]: res.items }));
           setNextCursor((prev) => ({ ...prev, [t]: res.nextCursor }));
           setUnread(res.unread);
+          setLoadedTabs((prev) => new Set(prev).add(t));
         })
-        .finally(() => setLoading(false));
+        .catch(() => setError("通知加载失败，请稍后重试"))
+        .finally(() => { busy.current = false; setLoading(false); });
     }
   }
 
   function handleLoadMore() {
     const t = tab;
     const cursor = nextCursor[t];
-    if (!cursor || loading) return;
+    if (!cursor || busy.current) return;
+    busy.current = true;
     setLoading(true);
+    setError(null);
     getNotifications(t, cursor)
       .then((res) => {
         setItems((prev) => ({ ...prev, [t]: [...prev[t], ...res.items] }));
         setNextCursor((prev) => ({ ...prev, [t]: res.nextCursor }));
         setUnread(res.unread);
       })
-      .finally(() => setLoading(false));
+      .catch(() => setError("通知加载失败，请稍后重试"))
+      .finally(() => { busy.current = false; setLoading(false); });
   }
 
-  function handleItemClick(item: NotificationItem) {
-    if (!item.read) {
-      markNotificationRead(item.id);
+  async function handleItemClick(item: NotificationItem) {
+    if (item.read || busy.current) return;
+    busy.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      await markNotificationRead(item.id);
       markLocalRead(item.id, item.category);
+    } catch {
+      setError("标记已读失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
     }
   }
 
@@ -110,56 +128,98 @@ export function NotificationCenter({
   }
 
   async function handleMarkAll() {
+    if (busy.current) return;
+    busy.current = true;
     setPending(true);
-    await markAllNotificationsRead();
-    setItems((prev) => {
-      const next = { ...prev };
-      for (const key of Object.keys(next) as Tab[]) {
-        next[key] = next[key].map((n) => ({ ...n, read: true }));
-      }
-      return next;
-    });
-    setUnread(EMPTY_SUMMARY);
-    setPending(false);
+    setError(null);
+    try {
+      await markAllNotificationsRead();
+      setItems((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(next) as Tab[]) next[key] = next[key].map((n) => ({ ...n, read: true }));
+        return next;
+      });
+      setUnread(EMPTY_SUMMARY);
+    } catch {
+      setError("操作失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
   async function handleMarkCategory(t: Tab) {
     if (t === "all") return handleMarkAll();
+    if (busy.current) return;
+    busy.current = true;
     setPending(true);
-    await markCategoryRead(t);
-    setItems((prev) => ({
-      ...prev,
-      [t]: prev[t].map((n) => ({ ...n, read: true })),
-    }));
-    setUnread((prev) => ({
-      total: Math.max(0, prev.total - prev.byCategory[t]),
-      byCategory: { ...prev.byCategory, [t]: 0 },
-    }));
-    setPending(false);
+    setError(null);
+    try {
+      await markCategoryRead(t);
+      setItems((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(next) as Tab[]) {
+          next[key] = next[key].map((n) => n.category === t ? { ...n, read: true } : n);
+        }
+        return next;
+      });
+      setUnread((prev) => ({
+        total: Math.max(0, prev.total - prev.byCategory[t]),
+        byCategory: { ...prev.byCategory, [t]: 0 },
+      }));
+    } catch {
+      setError("操作失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
   async function handleClearRead() {
+    if (busy.current) return;
+    busy.current = true;
     setPending(true);
-    await clearReadNotifications();
-    setItems((prev) => {
-      const next = { ...prev };
-      for (const key of Object.keys(next) as Tab[]) {
-        next[key] = next[key].filter((n) => !n.read);
-      }
-      return next;
-    });
-    setPending(false);
+    setError(null);
+    try {
+      await clearReadNotifications();
+      setItems((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(next) as Tab[]) next[key] = next[key].filter((n) => !n.read);
+        return next;
+      });
+    } catch {
+      setError("操作失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
-  function handleDelete(id: string) {
-    deleteNotification(id);
-    setItems((prev) => {
-      const next = { ...prev };
-      for (const key of Object.keys(next) as Tab[]) {
-        next[key] = next[key].filter((n) => n.id !== id);
+  async function handleDelete(id: string) {
+    if (busy.current) return;
+    const target = items[tab].find((item) => item.id === id);
+    busy.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      await deleteNotification(id);
+      setItems((prev) => {
+        const next = { ...prev };
+        for (const key of Object.keys(next) as Tab[]) next[key] = next[key].filter((n) => n.id !== id);
+        return next;
+      });
+      if (target && !target.read) {
+        setUnread((prev) => ({
+          total: Math.max(0, prev.total - 1),
+          byCategory: { ...prev.byCategory, [target.category]: Math.max(0, prev.byCategory[target.category] - 1) },
+        }));
       }
-      return next;
-    });
+    } catch {
+      setError("删除失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
   const currentItems = items[tab];
@@ -177,13 +237,14 @@ export function NotificationCenter({
           <button
             type="button"
             onClick={handleClearRead}
-            disabled={pending}
+            disabled={pending || loading}
             className="cursor-pointer rounded-full border border-border px-4 py-2 text-sm text-muted transition-colors duration-200 hover:border-accent hover:text-accent disabled:opacity-50"
           >
             清空已读
           </button>
         </div>
       </div>
+      {error && <p role="alert" className="mt-4 text-sm text-red-500">{error}</p>}
 
       {/* 分类 Tab */}
       <div role="tablist" className="mt-8 flex gap-2 overflow-x-auto pb-1">
@@ -196,6 +257,7 @@ export function NotificationCenter({
               key={t}
               role="tab"
               aria-selected={active}
+              disabled={loading || pending}
               onClick={() => selectTab(t)}
               className={`flex shrink-0 cursor-pointer items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition-colors duration-200 ${
                 active
@@ -220,7 +282,7 @@ export function NotificationCenter({
           <button
             type="button"
             onClick={() => handleMarkCategory(tab)}
-            disabled={pending}
+            disabled={pending || loading}
             className="cursor-pointer text-sm text-accent hover:underline disabled:opacity-50"
           >
             全部已读
@@ -246,9 +308,7 @@ export function NotificationCenter({
           </div>
         ) : (
           currentItems.map((item) => (
-            <div key={item.id} onClick={() => handleItemClick(item)}>
-              <NotificationRow item={item} onDelete={handleDelete} />
-            </div>
+            <NotificationRow key={item.id} item={item} onDelete={handleDelete} onActivate={() => handleItemClick(item)} disabled={pending || loading} />
           ))
         )}
       </div>
@@ -258,7 +318,7 @@ export function NotificationCenter({
           <button
             type="button"
             onClick={handleLoadMore}
-            disabled={loading}
+            disabled={loading || pending}
             className="cursor-pointer rounded-full border border-border px-6 py-2.5 text-sm font-medium text-foreground transition-colors duration-200 hover:border-accent hover:text-accent disabled:opacity-50"
           >
             {loading ? "加载中…" : "加载更多"}

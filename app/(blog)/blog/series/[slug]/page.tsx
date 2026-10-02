@@ -7,6 +7,7 @@ import { websiteOpenGraph } from "@/lib/metadata";
 import { getPosts, getSeriesBySlug } from "@/lib/posts";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { POSTS_PER_PAGE } from "@/lib/pagination";
 
 export const revalidate = 60;
 
@@ -41,7 +42,7 @@ export default async function SeriesPage({
   const series = await getSeriesBySlug(slug);
   if (!series) notFound();
 
-  const { posts, total } = await getPosts({ seriesSlug: slug });
+  const { posts, total } = await getPosts({ seriesSlug: slug, take: POSTS_PER_PAGE });
 
   return (
     <>
@@ -50,7 +51,7 @@ export default async function SeriesPage({
       <p className="mt-1 text-sm text-muted">共 {total} 篇文章</p>
       <div className="mt-8">
         <Suspense fallback={<PostGridSkeleton />}>
-          <PostListPaginated posts={posts} basePath={`/blog/series/${slug}`} />
+          <PostListPaginated posts={posts} total={total} basePath={`/blog/series/${slug}`} serverPaginated filters={{ seriesSlug: slug }} />
         </Suspense>
       </div>
     </>

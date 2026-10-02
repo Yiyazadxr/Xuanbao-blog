@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 
 // 后台行操作按钮统一封装：处理 pending、确认框、transition + router.refresh()，
 // 消除各处重复的 btnCls + useTransition + router.refresh 样板代码
@@ -35,24 +35,29 @@ export function AdminActionButton({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
 
   function run() {
     if (confirmText && !window.confirm(confirmText)) return;
+    setError(null);
     startTransition(async () => {
-      const result = await action();
-      onDone?.(result);
-      router.refresh();
+      try {
+        const result = await action();
+        onDone?.(result);
+        if (!result.ok) setError(result.error ?? "操作失败，请稍后重试");
+        else router.refresh();
+      } catch {
+        setError("操作失败，请稍后重试");
+      }
     });
   }
 
   return (
-    <button
-      type="button"
-      disabled={pending}
-      onClick={run}
-      className={className ?? `${baseCls} ${variantCls[variant]}`}
-    >
-      {children}
-    </button>
+    <span className="inline-flex items-center gap-2">
+      <button type="button" disabled={pending} onClick={run} className={className ?? `${baseCls} ${variantCls[variant]}`}>
+        {children}
+      </button>
+      {error && <span role="alert" className="text-xs text-red-500">{error}</span>}
+    </span>
   );
 }

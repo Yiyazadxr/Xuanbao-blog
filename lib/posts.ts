@@ -1,6 +1,6 @@
 import { unstable_cache } from "next/cache";
 import { cache } from "react";
-import { SITE } from "@/lib/constants";
+import { QUERY_LIMITS, SITE } from "@/lib/constants";
 import { recordDailyView } from "@/lib/daily-stats";
 import { prisma } from "@/lib/prisma";
 import { readingTimeFromWordCount } from "@/lib/utils";
@@ -66,11 +66,13 @@ export async function getPosts({
   categorySlug,
   tagSlug,
   seriesSlug,
+  skip = 0,
   take,
 }: {
   categorySlug?: string;
   tagSlug?: string;
   seriesSlug?: string;
+  skip?: number;
   take?: number;
 } = {}) {
   const where = {
@@ -80,15 +82,21 @@ export async function getPosts({
     ...(seriesSlug ? { series: { slug: seriesSlug } } : {}),
   };
 
+  const pageSize = typeof take === "number" && Number.isSafeInteger(take) && take > 0
+    ? Math.min(take, QUERY_LIMITS.postList) : QUERY_LIMITS.postList;
+  const offset = Number.isSafeInteger(skip) && skip >= 0 ? skip : 0;
+  const total = await prisma.post.count({ where });
+  const effectiveSkip = total === 0 ? 0 : Math.min(offset, Math.floor((total - 1) / pageSize) * pageSize);
   const rows = await prisma.post.findMany({
     where,
-    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }],
+    orderBy: [{ pinned: "desc" }, { createdAt: "desc" }, { id: "desc" }],
     select: listSelect,
-    take,
+    skip: effectiveSkip,
+    take: pageSize,
   });
 
   const posts = rows.map(toListItem);
-  return { posts, total: posts.length };
+  return { posts, total };
 }
 
 // 首页精选文章
@@ -107,15 +115,10 @@ export async function getSearchIndex() {
   const rows = await prisma.post.findMany({
     where: PUBLISHED_FILTER,
     orderBy: { createdAt: "desc" },
-    select: { slug: true, title: true, excerpt: true, searchText: true, createdAt: true },
+    select: { ...listSelect, searchText: true },
+    take: QUERY_LIMITS.searchIndex,
   });
-  return rows.map((r) => ({
-    slug: r.slug,
-    title: r.title,
-    excerpt: r.excerpt ?? "",
-    text: r.searchText ?? r.excerpt ?? "",
-    createdAt: r.createdAt,
-  }));
+  return rows.map((r) => ({ ...toListItem(r), text: r.searchText ?? r.excerpt ?? "" }));
 }
 
 export type SearchIndexItem = Awaited<ReturnType<typeof getSearchIndex>>[number];
@@ -152,16 +155,29 @@ export const getSeriesBySlug = cache(async (slug: string) => {
 // 同一系列内的上一篇 / 下一篇（按发布时间升序，即系列连载顺序）
 export async function getSeriesAdjacent(seriesId: string, postId: string) {
   const select = { id: true, title: true, slug: true, createdAt: true } as const;
-  const posts = await prisma.post.findMany({
-    where: { ...PUBLISHED_FILTER, seriesId },
-    orderBy: { createdAt: "asc" },
-    select,
-  });
-  const index = posts.findIndex((p) => p.id === postId);
-  if (index === -1) return { prev: null, next: null };
+  const current = await prisma.post.findFirst({ where: { ...PUBLISHED_FILTER, id: postId, seriesId }, select });
+  if (!current) return { prev: null, next: null };
+  const [prev, next] = await Promise.all([
+    prisma.post.findFirst({
+      where: { ...PUBLISHED_FILTER, seriesId, OR: [
+        { createdAt: { lt: current.createdAt } },
+        { createdAt: current.createdAt, id: { lt: current.id } },
+      ] },
+      orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+      select,
+    }),
+    prisma.post.findFirst({
+      where: { ...PUBLISHED_FILTER, seriesId, OR: [
+        { createdAt: { gt: current.createdAt } },
+        { createdAt: current.createdAt, id: { gt: current.id } },
+      ] },
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+      select,
+    }),
+  ]);
   return {
-    prev: index > 0 ? { title: posts[index - 1].title, slug: posts[index - 1].slug } : null,
-    next: index < posts.length - 1 ? { title: posts[index + 1].title, slug: posts[index + 1].slug } : null,
+    prev: prev ? { title: prev.title, slug: prev.slug } : null,
+    next: next ? { title: next.title, slug: next.slug } : null,
   };
 }
 
@@ -267,6 +283,7 @@ export async function getArchive() {
     where: PUBLISHED_FILTER,
     orderBy: { createdAt: "desc" },
     select: { title: true, slug: true, createdAt: true },
+    take: QUERY_LIMITS.archive,
   });
   const byYear = new Map<number, typeof posts>();
   for (const post of posts) {

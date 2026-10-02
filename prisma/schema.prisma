@@ -113,6 +113,10 @@ model Post {
   revisions  PostRevision[]
 
   @@index([published, createdAt])
+  @@index([published, archived, createdAt])
+  @@index([categoryId])
+  @@index([seriesId, createdAt])
+  @@index([viewCount, createdAt])
 }
 
 // 文章-标签 中间表
@@ -123,6 +127,7 @@ model PostTag {
   tag    Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
 
   @@id([postId, tagId])
+  @@index([tagId])
 }
 
 // 评论：审核制（isApproved 默认 false），parentId 支持嵌套回复
@@ -143,6 +148,9 @@ model Comment {
   replies  Comment[] @relation("CommentReplies")
 
   @@index([postId, isApproved])
+  @@index([parentId])
+  @@index([postId, createdAt])
+  @@index([isApproved, createdAt])
 }
 
 // 点赞：一个用户对一篇文章只能赞一次
@@ -154,6 +162,8 @@ model Like {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@id([userId, postId])
+  @@index([postId])
+  @@index([userId, createdAt])
 }
 
 // 收藏：一个用户对一篇文章只能收藏一次（书签）
@@ -165,6 +175,8 @@ model Bookmark {
   post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
 
   @@id([userId, postId])
+  @@index([postId])
+  @@index([userId, createdAt])
 }
 
 // 阅读记录：登录用户读过的文章（去重），wordCount 为首次阅读时该文章的字数快照，
@@ -203,6 +215,7 @@ model AccountRequest {
   updatedAt DateTime @updatedAt
 
   @@index([status, createdAt])
+  @@index([email, createdAt])
 }
 
 // 邀请码：游客可凭码申请账号（仍走审核），格式 XR-XX-xxxxxxxxxxxx

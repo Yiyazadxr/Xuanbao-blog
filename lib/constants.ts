@@ -11,6 +11,14 @@ export const SITE = {
   launchedAt: "2026-07-17",
 };
 
+// 查询保护上限；分页 UI 仍在客户端工作，避免一次请求拖入整张表。
+export const QUERY_LIMITS = {
+  postList: 50,
+  searchIndex: 200,
+  archive: 1000,
+  seriesAdjacent: 200,
+} as const;
+
 // 邮箱与 QQ 号仅在客户端组件中拼接渲染，不出现在 SSR HTML（见 EmailCard / QQCard）
 export const CONTACT = {
   email: "412110785@qq.com",

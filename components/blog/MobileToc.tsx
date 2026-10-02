@@ -1,14 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
 import type { TocItem } from "@/lib/markdown";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // 移动端目录：右下角悬浮按钮 + 底部抽屉（xl 及以上用桌面 Sidebar，故此处 xl:hidden）
 export function MobileToc({ toc }: { toc: TocItem[] }) {
   const [open, setOpen] = useState(false);
   const [activeId, setActiveId] = useState("");
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // 高亮当前阅读小节（与桌面 Sidebar 同款 IntersectionObserver 逻辑）
   useEffect(() => {
@@ -40,6 +43,7 @@ export function MobileToc({ toc }: { toc: TocItem[] }) {
       document.body.style.overflow = prev;
     };
   }, [open]);
+  useFocusTrap(panelRef, open);
 
   // Escape 关闭抽屉
   useEffect(() => {
@@ -57,6 +61,7 @@ export function MobileToc({ toc }: { toc: TocItem[] }) {
     <>
       <button
         type="button"
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         aria-label="打开目录"
         className="fixed bottom-6 right-4 z-[60] flex items-center gap-1.5 rounded-full border border-border bg-surface px-4 py-2.5 text-sm font-medium shadow-lg transition-colors duration-200 hover:border-accent xl:hidden"
@@ -77,7 +82,7 @@ export function MobileToc({ toc }: { toc: TocItem[] }) {
             onClick={() => setOpen(false)}
             aria-hidden
           />
-          <div className="absolute inset-x-0 bottom-0 max-h-[72vh] overflow-y-auto rounded-t-2xl border-t border-border bg-background p-5 pb-8">
+          <div ref={panelRef} className="absolute inset-x-0 bottom-0 max-h-[72vh] overflow-y-auto rounded-t-2xl border-t border-border bg-background p-5 pb-8">
             <div className="flex items-center justify-between">
               <p className="text-xs font-semibold uppercase tracking-widest text-muted">目录</p>
               <button

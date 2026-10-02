@@ -114,6 +114,13 @@ export const likeSchema = z.object({
   slug: z.string({ error: "文章标识不合法" }).trim().min(1, "缺少文章标识").max(200, "文章标识过长"),
 });
 
+export const postPageQuerySchema = z.object({
+  page: z.string().max(16).optional(),
+  categorySlug: z.string().trim().min(1).max(200).optional(),
+  tagSlug: z.string().trim().min(1).max(200).optional(),
+  seriesSlug: z.string().trim().min(1).max(200).optional(),
+}).strict();
+
 export const commentCursorSchema = z.object({
   id: z.string().min(1).max(100),
   createdAt: z.iso.datetime(),

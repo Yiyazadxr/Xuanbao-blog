@@ -6,6 +6,7 @@ import { useState, useTransition } from "react";
 import { submitComment } from "@/app/(blog)/blog/actions";
 import { errorCls, primaryBtnCls, successCls } from "@/components/ui/form-styles";
 import type { MuteInfo } from "@/lib/mute-types";
+import { formatDateTime } from "@/lib/utils";
 
 // 评论表单：顶层评论与回复共用（parentId 区分）
 export function CommentForm({
@@ -66,7 +67,7 @@ export function CommentForm({
     <form onSubmit={handleSubmit} className="space-y-3">
       {muted ? (
         <p className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-4 py-3 text-sm text-amber-600 dark:text-amber-400">
-          你当前已被{muteInfo.permanent ? "永久禁言" : muteInfo.until ? `禁言至 ${new Date(muteInfo.until).toLocaleString("zh-CN")}` : "禁言"}
+          你当前已被{muteInfo.permanent ? "永久禁言" : muteInfo.until ? `禁言至 ${formatDateTime(muteInfo.until)}` : "禁言"}
           {muteInfo.reason ? `，原因：${muteInfo.reason}` : ""}，暂不能发表评论。
         </p>
       ) : (

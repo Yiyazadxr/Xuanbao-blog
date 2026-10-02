@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { PRIVACY_POLICY, TERMS_OF_SERVICE } from "@/lib/legal";
+import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // 告知-同意的合规强化：点击勾选会弹出包含《用户协议》与《隐私政策》的窗口，
 // 需停留阅读 3 秒后「我已阅读并同意」按钮才可用，确认后复选框才真正勾选成功
@@ -63,6 +64,8 @@ function ConsentDialog({
 }) {
   const [remaining, setRemaining] = useState(3);
   const ready = remaining <= 0;
+  const dialogRef = useRef<HTMLDivElement>(null);
+  useFocusTrap(dialogRef, true);
 
   useEffect(() => {
     if (remaining <= 0) return;
@@ -93,7 +96,7 @@ function ConsentDialog({
     >
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
 
-      <div className="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
+      <div ref={dialogRef} className="relative flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-border bg-background shadow-2xl">
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <h2 className="font-display text-lg font-bold tracking-tight">阅读并同意</h2>
           <button

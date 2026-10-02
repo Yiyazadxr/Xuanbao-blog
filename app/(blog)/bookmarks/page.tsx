@@ -21,7 +21,7 @@ export default async function BookmarksPage() {
       <p className="mt-3 text-muted">共 {bookmarks.length} 篇收藏文章</p>
       <div className="mt-10">
         <Suspense>
-          <PostListPaginated posts={bookmarks} basePath="/bookmarks" />
+          <PostListPaginated posts={bookmarks} total={bookmarks.length} basePath="/bookmarks" />
         </Suspense>
       </div>
     </>

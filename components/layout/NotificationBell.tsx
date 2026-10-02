@@ -25,25 +25,44 @@ export function NotificationBell() {
   const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationItem[]>([]);
   const [unread, setUnread] = useState<NotificationUnreadSummary>(EMPTY_SUMMARY);
+  const [error, setError] = useState<string | null>(null);
+  const [pending, setPending] = useState(false);
+  const busy = useRef(false);
+  const requestVersion = useRef(0);
   const rootRef = useRef<HTMLDivElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
 
   const refresh = useCallback(async () => {
-    const data = await getNotifications("all");
-    setItems(data.items);
-    setUnread(data.unread);
+    if (busy.current) return;
+    const version = ++requestVersion.current;
+    try {
+      const data = await getNotifications("all");
+      if (version !== requestVersion.current) return;
+      setItems(data.items);
+      setUnread(data.unread);
+      setError(null);
+    } catch {
+      if (version === requestVersion.current) setError("通知加载失败");
+    }
   }, []);
 
   useEffect(() => {
     if (status !== "authenticated") return;
     let cancelled = false;
-    getNotifications("all").then((data) => {
-      if (cancelled) return;
-      setItems(data.items);
-      setUnread(data.unread);
-    });
+    const versions = requestVersion;
+    const version = ++requestVersion.current;
+    getNotifications("all")
+      .then((data) => {
+        if (cancelled || version !== requestVersion.current) return;
+        setItems(data.items);
+        setUnread(data.unread);
+      })
+      .catch(() => {
+        if (!cancelled && version === requestVersion.current) setError("通知加载失败");
+      });
     return () => {
       cancelled = true;
+      versions.current++;
     };
   }, [status]);
 
@@ -78,9 +97,18 @@ export function NotificationBell() {
     if (next) refresh();
   }
 
-  function handleItemClick(item: NotificationItem) {
-    if (!item.read) {
-      markNotificationRead(item.id);
+  async function handleItemClick(item: NotificationItem) {
+    if (busy.current) return;
+    if (item.read) {
+      setOpen(false);
+      return;
+    }
+    busy.current = true;
+    requestVersion.current++;
+    setPending(true);
+    setError(null);
+    try {
+      await markNotificationRead(item.id);
       setItems((prev) => prev.map((n) => (n.id === item.id ? { ...n, read: true } : n)));
       setUnread((prev) => ({
         total: Math.max(0, prev.total - 1),
@@ -89,28 +117,57 @@ export function NotificationBell() {
           [item.category]: Math.max(0, prev.byCategory[item.category] - 1),
         },
       }));
+      setOpen(false);
+    } catch {
+      setError("标记已读失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
     }
-    setOpen(false);
   }
 
   async function handleMarkAll() {
-    await markAllNotificationsRead();
-    setItems((prev) => prev.map((n) => ({ ...n, read: true })));
-    setUnread(EMPTY_SUMMARY);
+    if (busy.current) return;
+    busy.current = true;
+    requestVersion.current++;
+    setPending(true);
+    setError(null);
+    try {
+      await markAllNotificationsRead();
+      setItems((prev) => prev.map((n) => ({ ...n, read: true })));
+      setUnread(EMPTY_SUMMARY);
+    } catch {
+      setError("操作失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
+    }
   }
 
-  function handleDelete(id: string) {
+  async function handleDelete(id: string) {
+    if (busy.current) return;
     const target = items.find((n) => n.id === id);
-    deleteNotification(id);
-    setItems((prev) => prev.filter((n) => n.id !== id));
-    if (target && !target.read) {
-      setUnread((prevUnread) => ({
-        total: Math.max(0, prevUnread.total - 1),
-        byCategory: {
-          ...prevUnread.byCategory,
-          [target.category]: Math.max(0, prevUnread.byCategory[target.category] - 1),
-        },
-      }));
+    busy.current = true;
+    requestVersion.current++;
+    setPending(true);
+    setError(null);
+    try {
+      await deleteNotification(id);
+      setItems((prev) => prev.filter((n) => n.id !== id));
+      if (target && !target.read) {
+        setUnread((prev) => ({
+          total: Math.max(0, prev.total - 1),
+          byCategory: {
+            ...prev.byCategory,
+            [target.category]: Math.max(0, prev.byCategory[target.category] - 1),
+          },
+        }));
+      }
+    } catch {
+      setError("删除失败，请稍后重试");
+    } finally {
+      busy.current = false;
+      setPending(false);
     }
   }
 
@@ -144,21 +201,21 @@ export function NotificationBell() {
               <button
                 type="button"
                 onClick={handleMarkAll}
+                disabled={pending}
                 className="cursor-pointer text-xs text-accent hover:underline"
               >
                 全部已读
               </button>
             )}
           </div>
+          {error && <p role="alert" className="px-4 py-2 text-xs text-red-500">{error}</p>}
 
           <div className="max-h-[24rem] overflow-y-auto divide-y divide-border">
             {items.length === 0 ? (
               <p className="px-4 py-10 text-center text-sm text-muted">暂无通知</p>
             ) : (
               items.map((item) => (
-                <div key={item.id} onClick={() => handleItemClick(item)}>
-                  <NotificationRow item={item} onDelete={handleDelete} compact />
-                </div>
+                <NotificationRow key={item.id} item={item} onDelete={handleDelete} onActivate={() => handleItemClick(item)} disabled={pending} compact />
               ))
             )}
           </div>

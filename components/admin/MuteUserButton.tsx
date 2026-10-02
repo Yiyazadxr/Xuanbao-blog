@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { muteUser, unmuteUser } from "@/app/(admin)/admin/users/actions";
+import { formatDateTime } from "@/lib/utils";
 
 // 用户列表行「禁言/解禁」：展开小面板，输入禁言天数（0=永久）与原因
 export function MuteUserButton({
@@ -81,7 +82,7 @@ export function MuteUserButton({
                 {muteInfo.permanent
                   ? "（永久）"
                   : muteInfo.until
-                    ? `，解禁时间 ${new Date(muteInfo.until).toLocaleString("zh-CN")}`
+                    ? `，解禁时间 ${formatDateTime(muteInfo.until)}`
                     : ""}
                 {muteInfo.reason ? `，原因：${muteInfo.reason}` : ""}
               </p>

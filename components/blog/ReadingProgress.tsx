@@ -8,7 +8,10 @@ export function ReadingProgress() {
 
   useEffect(() => {
     let ticking = false;
+    let frame = 0;
+    let disposed = false;
     const update = () => {
+      if (disposed) return;
       const total = document.documentElement.scrollHeight - window.innerHeight;
       setProgress(total > 0 ? Math.min(100, (window.scrollY / total) * 100) : 0);
       ticking = false;
@@ -16,15 +19,17 @@ export function ReadingProgress() {
     const onScroll = () => {
       if (!ticking) {
         ticking = true;
-        requestAnimationFrame(update);
+        frame = requestAnimationFrame(update);
       }
     };
-    update();
+    frame = requestAnimationFrame(update);
     window.addEventListener("scroll", onScroll, { passive: true });
     window.addEventListener("resize", onScroll, { passive: true });
     return () => {
       window.removeEventListener("scroll", onScroll);
       window.removeEventListener("resize", onScroll);
+      disposed = true;
+      cancelAnimationFrame(frame);
     };
   }, []);
 

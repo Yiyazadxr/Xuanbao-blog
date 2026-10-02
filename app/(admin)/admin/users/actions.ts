@@ -8,6 +8,7 @@ import { NOTIFICATION_CATEGORIES } from "@/lib/notification-types";
 import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { ROLES } from "@/lib/roles";
+import { formatDateTime } from "@/lib/utils";
 import { muteSchema, parseInput, roleSchema } from "@/lib/validation";
 
 export type UserActionState = { ok: boolean; error?: string; message?: string };
@@ -87,7 +88,7 @@ export async function muteUser(
   if (target.role !== ROLES.SUPER_ADMIN) {
     const untilText = permanent
       ? "永久禁言"
-      : `禁言至 ${new Date(mutedDuring!).toLocaleString("zh-CN")}`;
+      : `禁言至 ${formatDateTime(mutedDuring!)}`;
     await createNotification(uid, {
       category: NOTIFICATION_CATEGORIES.SYSTEM,
       type: "muted",

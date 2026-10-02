@@ -24,6 +24,10 @@ export function formatRelativeTime(date: Date | string): string {
   return formatDate(date);
 }
 
+export function formatDateTime(date: Date | string): string {
+  return new Date(date).toLocaleString("zh-CN");
+}
+
 // 统计中文字符数 + 英文/数字词数（去除 Markdown 符号/标点）。
 // Unicode 脚本属性覆盖扩展汉字、假名和谚文。
 const CJK_RE =

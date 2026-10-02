@@ -1,28 +1,74 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
+import { useEffect, useState } from "react";
 import { PostCard } from "@/components/blog/PostCard";
+import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { Pagination } from "@/components/ui/Pagination";
 import type { PostListItem } from "@/lib/posts";
+import type { PostPageFilters, PostPageResponse } from "@/lib/post-page-types";
+import { clampPage, parsePage, POSTS_PER_PAGE } from "@/lib/pagination";
 
-const PAGE_SIZE = 9;
-
-// ISR 数据在客户端分页；?page= 仅用于分享和历史定位。
+// 首屏由 ISR 提供；公开列表后续页按需请求，收藏列表在客户端切片。
 export function PostListPaginated({
   posts,
+  total,
   basePath,
+  serverPaginated = false,
+  filters,
 }: {
   posts: PostListItem[];
+  total: number;
   basePath: string;
+  serverPaginated?: boolean;
+  filters?: PostPageFilters;
 }) {
   const searchParams = useSearchParams();
-  const requested = Math.max(1, Number(searchParams.get("page")) || 1);
-  const totalPages = Math.max(1, Math.ceil(posts.length / PAGE_SIZE));
-  // 越界页码收敛到最后一页。
-  const page = Math.min(requested, totalPages);
-  const current = posts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const requested = parsePage(searchParams.get("page"));
+  const query = new URLSearchParams({ page: String(requested) });
+  if (filters?.categorySlug) query.set("categorySlug", filters.categorySlug);
+  if (filters?.tagSlug) query.set("tagSlug", filters.tagSlug);
+  if (filters?.seriesSlug) query.set("seriesSlug", filters.seriesSlug);
+  const requestUrl = serverPaginated && requested > 1 ? `/api/post-pages?${query}` : null;
+  const [response, setResponse] = useState<{ url: string; data?: PostPageResponse; error?: string } | null>(null);
+  const [retry, setRetry] = useState(0);
 
-  if (posts.length === 0) {
+  useEffect(() => {
+    if (!requestUrl) return;
+    const controller = new AbortController();
+    void fetch(requestUrl, { signal: controller.signal })
+      .then(async (result) => {
+        if (!result.ok) throw new Error("PAGE_LOAD_FAILED");
+        return await result.json() as PostPageResponse;
+      })
+      .then((data) => {
+        if (!controller.signal.aborted) setResponse({ url: requestUrl, data });
+      })
+      .catch(() => {
+        if (!controller.signal.aborted) setResponse({ url: requestUrl, error: "文章加载失败，请重试" });
+      });
+    return () => controller.abort();
+  }, [requestUrl, retry]);
+
+  const fetched = response?.url === requestUrl ? response : null;
+  const pageTotal = fetched?.data?.total ?? total;
+  const totalPages = Math.max(1, Math.ceil(pageTotal / POSTS_PER_PAGE));
+  const page = fetched?.data?.page ?? clampPage(requested, total);
+  const current = serverPaginated
+    ? requestUrl
+      ? fetched?.data?.posts.map((post) => ({ ...post, createdAt: new Date(post.createdAt) })) ?? []
+      : posts
+    : posts.slice((page - 1) * POSTS_PER_PAGE, page * POSTS_PER_PAGE);
+
+  if (requestUrl && !fetched) return <PostGridSkeleton />;
+  if (fetched?.error) return (
+    <div role="alert" className="py-10 text-center">
+      <p>{fetched.error}</p>
+      <button type="button" onClick={() => { setResponse(null); setRetry((value) => value + 1); }} className="mt-3 text-accent underline">重新加载</button>
+    </div>
+  );
+
+  if (current.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-border py-20 text-center">
         <p className="text-lg font-medium">这里空空如也</p>

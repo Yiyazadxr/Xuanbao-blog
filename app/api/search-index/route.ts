@@ -6,7 +6,5 @@ export const revalidate = 60;
 
 export async function GET() {
   const index = await getSearchIndex();
-  return NextResponse.json(
-    index.map(({ slug, title, excerpt, text }) => ({ slug, title, excerpt, text }))
-  );
+  return NextResponse.json(index);
 }
