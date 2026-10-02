@@ -1,6 +1,7 @@
 "use client";
 
 import { Icon } from "@/components/ui/Icon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useSession } from "next-auth/react";
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -212,7 +213,7 @@ export function NotificationBell() {
 
           <div className="max-h-[24rem] overflow-y-auto divide-y divide-border">
             {items.length === 0 ? (
-              <p className="px-4 py-10 text-center text-sm text-muted">暂无通知</p>
+              <EmptyState title="暂无通知" className="py-10" />
             ) : (
               items.map((item) => (
                 <NotificationRow key={item.id} item={item} onDelete={handleDelete} onActivate={() => handleItemClick(item)} disabled={pending} compact />

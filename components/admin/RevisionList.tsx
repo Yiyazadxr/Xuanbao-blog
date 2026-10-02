@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { restorePostRevision } from "@/app/(admin)/admin/posts/actions";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDate, formatRelativeTime, plainExcerpt } from "@/lib/utils";
 
 type Revision = {
@@ -27,11 +28,7 @@ export function RevisionList({ revisions }: { revisions: Revision[] }) {
   }
 
   if (revisions.length === 0) {
-    return (
-      <p className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted">
-        暂无历史版本，保存文章后会自动记录
-      </p>
-    );
+    return <EmptyState size="lg" title="暂无历史版本" description="保存文章后会自动记录" />;
   }
 
   return (

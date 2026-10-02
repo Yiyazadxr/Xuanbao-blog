@@ -39,7 +39,8 @@ const nextConfig: NextConfig = {
     optimizePackageImports: ["framer-motion"],
   },
   images: {
-    formats: ["image/webp"],
+    // AVIF 优先，压缩率更高；不支持的浏览器回退 WebP。
+    formats: ["image/avif", "image/webp"],
     remotePatterns: [
       { protocol: "https", hostname: "avatars.githubusercontent.com" },
       { protocol: "https", hostname: "**.githubusercontent.com" },

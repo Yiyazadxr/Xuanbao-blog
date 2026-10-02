@@ -3,36 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 
 import { Icon } from "@/components/ui/Icon";
+import { TocList } from "@/components/blog/TocList";
 import type { TocItem } from "@/lib/markdown";
+import { useActiveHeading } from "@/lib/use-active-heading";
 import { useFocusTrap } from "@/lib/use-focus-trap";
 
 // 移动端目录：右下角悬浮按钮 + 底部抽屉（xl 及以上用桌面 Sidebar，故此处 xl:hidden）
 export function MobileToc({ toc }: { toc: TocItem[] }) {
   const [open, setOpen] = useState(false);
-  const [activeId, setActiveId] = useState("");
+  // 当前小节高亮与桌面 Sidebar 共用逻辑
+  const activeId = useActiveHeading(toc);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
-
-  // 高亮当前阅读小节（与桌面 Sidebar 同款 IntersectionObserver 逻辑）
-  useEffect(() => {
-    if (toc.length === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-            break;
-          }
-        }
-      },
-      { rootMargin: "-80px 0px -70% 0px" }
-    );
-    for (const item of toc) {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [toc]);
 
   // 打开时锁定页面滚动，关闭后还原
   useEffect(() => {
@@ -94,25 +76,12 @@ export function MobileToc({ toc }: { toc: TocItem[] }) {
                 <Icon icon="ph:x-bold" width={18} height={18} aria-hidden />
               </button>
             </div>
-            <ul className="mt-3 space-y-1 text-sm">
-              {toc.map((item) => (
-                <li key={item.id}>
-                  <a
-                    href={`#${item.id}`}
-                    onClick={() => setOpen(false)}
-                    className={`block border-l-2 py-1.5 pr-2 leading-snug transition-colors duration-200 ${
-                      item.level === 3 ? "pl-7" : "pl-4"
-                    } ${
-                      activeId === item.id
-                        ? "-ml-px border-accent font-medium text-accent"
-                        : "border-transparent text-muted hover:text-foreground"
-                    }`}
-                  >
-                    {item.text}
-                  </a>
-                </li>
-              ))}
-            </ul>
+            <TocList
+              toc={toc}
+              activeId={activeId}
+              variant="drawer"
+              onNavigate={() => setOpen(false)}
+            />
           </div>
         </div>
       )}

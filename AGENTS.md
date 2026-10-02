@@ -41,6 +41,7 @@ This version has breaking changes — APIs, conventions, and file structure may 
 - **改一端必须同步另一端**：Server Action 的入参或返回值变更时，必须同步更新所有客户端调用方。曾有 `savePost` 从 `PostPayload` 改为 `unknown`，但遗漏 `PostEditor` 的问题。
 - **纯常量与 DB 查询分离但须一致**：`lib/permissions.ts`（纯）与 `lib/permissions-server.ts`（DB）的权限定义必须一一对应；新增权限同时更新两处。
 - **复用而非重写**：权限判断、日期和相对时间格式化、slugify 等统一使用 `lib/`。前端禁止重复实现服务端已有逻辑。
+- **空状态统一**：列表、表格、图表、页面的空状态一律使用 `components/ui/EmptyState.tsx`（`sm` 轻量文案 / `lg` 虚线大卡，支持 `icon`、`description`、`action`），禁止手写散落的空态样式与文案结构。
 
 ## 邮件与通知
 

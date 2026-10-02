@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { batchPosts } from "@/app/(admin)/admin/posts/actions";
 import { PostRowActions } from "@/components/admin/PostRowActions";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDate } from "@/lib/utils";
 
 type AdminPost = {
@@ -35,7 +36,7 @@ export function AdminPostList({
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
   if (posts.length === 0) {
-    return <p className="p-10 text-center text-sm text-muted">还没有文章，点右上角「写文章」开始。</p>;
+    return <EmptyState title="还没有文章，点右上角「写文章」开始。" />;
   }
 
   const allSelected = posts.every((p) => selected.has(p.id));

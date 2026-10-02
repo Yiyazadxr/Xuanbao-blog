@@ -1,5 +1,5 @@
-import Image from "next/image";
 import Link from "next/link";
+import { FadeInImage } from "@/components/ui/FadeInImage";
 import type { PostListItem } from "@/lib/posts";
 import { findTitleMatch, formatDate } from "@/lib/utils";
 
@@ -22,13 +22,13 @@ export function PostCard({
       <div className="relative -mx-6 -mt-6 mb-4 h-40 overflow-hidden rounded-t-2xl">
         {post.coverImage ? (
           <>
-            <Image
+            <FadeInImage
               src={post.coverImage}
               alt={post.title}
               fill
               priority={priority}
               sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-              className="object-cover transition-transform duration-300 group-hover:scale-105"
+              className="object-cover transition-[opacity,transform] duration-300 motion-reduce:duration-0 group-hover:scale-105"
             />
             {/* 封面底部收边：多段色标渐隐，收在 transparent 上会掺黑发灰，
                 故全程用 color-mix 只降 alpha、保住 --surface 色相 */}

@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { PostCard } from "@/components/blog/PostCard";
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import type { PostListItem } from "@/lib/posts";
 import type { PostPageFilters, PostPageResponse } from "@/lib/post-page-types";
@@ -69,12 +70,7 @@ export function PostListPaginated({
   );
 
   if (current.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-border py-20 text-center">
-        <p className="text-lg font-medium">这里空空如也</p>
-        <p className="mt-2 text-sm text-muted">没有匹配的文章，换个分类或标签试试</p>
-      </div>
-    );
+    return <EmptyState size="lg" title="这里空空如也" description="没有匹配的文章，换个分类或标签试试" />;
   }
 
   return (

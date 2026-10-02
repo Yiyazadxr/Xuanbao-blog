@@ -14,6 +14,7 @@ import {
   updateTag,
 } from "@/app/(admin)/admin/taxonomy/actions";
 import { AdminActionButton } from "@/components/admin/AdminActionButton";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { errorCls, inputCls, labelCls, successCls } from "@/components/ui/form-styles";
 
 type NamedItem = { id: string; name: string; slug: string; description: string | null; postCount: number };
@@ -153,7 +154,7 @@ function NamedSection({
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-border">
         {items.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted">{emptyText}</p>
+          <EmptyState title={emptyText} />
         ) : (
           <ul className="divide-y divide-border">
             {items.map((c) => (
@@ -245,7 +246,7 @@ function TagSection({ tags }: { tags: Tag[] }) {
 
       <div className="mt-4 overflow-hidden rounded-2xl border border-border">
         {tags.length === 0 ? (
-          <p className="p-6 text-center text-sm text-muted">还没有标签</p>
+          <EmptyState title="还没有标签" />
         ) : (
           <ul className="divide-y divide-border">
             {tags.map((t) => (

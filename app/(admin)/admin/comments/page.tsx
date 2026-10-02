@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { CommentModerationActions } from "@/components/admin/CommentModerationActions";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
@@ -44,7 +45,7 @@ export default async function AdminCommentsPage({
 
       <div className="mt-8 overflow-hidden rounded-2xl border border-border">
         {comments.length === 0 ? (
-          <p className="p-10 text-center text-sm text-muted">没有待审核的评论</p>
+          <EmptyState title="没有待审核的评论" />
         ) : (
           <ul className="divide-y divide-border">
             {comments.map((comment) => (

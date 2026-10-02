@@ -7,6 +7,7 @@ import { PostCard } from "@/components/blog/PostCard";
 import { PostGridSkeleton } from "@/components/blog/PostCardSkeleton";
 import { PostListPaginated } from "@/components/blog/PostListPaginated";
 import { PostSearch } from "@/components/blog/PostSearch";
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { PostListItem, SearchIndexItem } from "@/lib/posts";
 import { searchSnippet } from "@/lib/utils";
 
@@ -137,10 +138,7 @@ export function BlogPostsClient({
               })}
             </div>
           ) : (
-            <div className="rounded-2xl border border-dashed border-border py-20 text-center">
-              <p className="text-lg font-medium">没有找到相关文章</p>
-              <p className="mt-2 text-sm text-muted">换个关键词试试</p>
-            </div>
+            <EmptyState size="lg" title="没有找到相关文章" description="换个关键词试试" />
           )
         ) : (
           <Suspense fallback={<PostGridSkeleton />}>

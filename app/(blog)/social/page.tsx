@@ -1,6 +1,7 @@
 import { Icon } from "@/components/ui/Icon";
 import type { Metadata } from "next";
 import { EmailCard, MailtoButton } from "@/components/ui/EmailCard";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { QQCard } from "@/components/ui/QQCard";
 import { FRIEND_LINKS, SOCIAL_LINKS } from "@/lib/constants";
 import { websiteOpenGraph } from "@/lib/metadata";
@@ -46,13 +47,17 @@ export default function SocialPage() {
 
       <h2 className="mt-16 text-2xl font-bold tracking-tight">友情链接</h2>
       {FRIEND_LINKS.length === 0 ? (
-        <div className="mt-6 flex flex-col items-center gap-4 rounded-2xl border border-dashed border-border p-10 text-center">
-          <p className="text-sm text-muted">想和我交换友链？随时欢迎联系我</p>
-          <MailtoButton className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90">
-            <Icon icon="ph:envelope-bold" width={16} height={16} aria-hidden />
-            联系我
-          </MailtoButton>
-        </div>
+        <EmptyState
+          size="lg"
+          title="想和我交换友链？随时欢迎联系我"
+          className="mt-6"
+          action={
+            <MailtoButton className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-full bg-accent px-5 text-sm font-semibold text-accent-foreground transition-opacity duration-200 hover:opacity-90">
+              <Icon icon="ph:envelope-bold" width={16} height={16} aria-hidden />
+              联系我
+            </MailtoButton>
+          }
+        />
       ) : (
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {FRIEND_LINKS.map((link) => (

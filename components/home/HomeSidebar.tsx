@@ -3,37 +3,10 @@ import { Avatar } from "@/components/ui/Avatar";
 import { SITE } from "@/lib/constants";
 import { SocialLinks } from "@/components/home/SocialLinks";
 
-// 头像 + 昵称 + 签名（桌面侧栏与移动端顶部卡共用）
-function Profile({
-  owner,
-  showSocial = false,
-}: {
-  owner?: { name: string; image: string | null } | null;
-  showSocial?: boolean;
-}) {
-  const name = owner?.name ?? SITE.shortName;
-  return (
-    <>
-      <Avatar
-        image={owner?.image}
-        name={name}
-        seed={owner?.name ?? name}
-        className="size-24 text-6xl lg:size-28 lg:text-7xl"
-      />
-      <div>
-        <p className="font-bold lg:text-lg">{name}</p>
-        <p className="mt-1 text-sm text-muted">遗憾你自己留着吧，我有小怡了。</p>
-        {showSocial && (
-          <div className="mt-2">
-            <SocialLinks />
-          </div>
-        )}
-      </div>
-    </>
-  );
-}
-
-// 首页左侧信息栏（桌面 sticky）+ 移动端顶部简介卡
+// 首页左侧信息栏：单一 DOM 响应式切换——
+// 移动端为顶部水平简介卡（头像居左），lg 起变为 sticky 纵向栏（资料卡 + 分类 + 标签）。
+// 资料卡内层用 lg:contents 打平：移动端「昵称签名 + 社交」裹在一列里跟在头像右侧，
+// lg 起社交链接提升为纵排卡片的直接子项，恢复居中三段式，无需两套 DOM。
 export function HomeSidebar({
   owner,
   categories,
@@ -43,57 +16,62 @@ export function HomeSidebar({
   categories: { id: string; name: string; slug: string; postCount: number }[];
   tags: { id: string; name: string; slug: string; postCount: number }[];
 }) {
+  const name = owner?.name ?? SITE.shortName;
   return (
-    <>
-      {/* 移动端/平板：顶部水平简介卡（头像在左，昵称签名+社交在右） */}
-      <div className="lg:hidden">
-        <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5">
-          <Profile owner={owner} showSocial />
+    <aside className="flex flex-col gap-6 lg:sticky lg:top-[calc(var(--header-h)+1.5rem)] lg:w-72 lg:self-start">
+      {/* 资料卡：移动端横排，lg 起居中纵排 */}
+      <div className="flex items-center gap-4 rounded-2xl border border-border bg-surface p-5 lg:flex-col lg:p-6 lg:text-center">
+        <Avatar
+          image={owner?.image}
+          name={name}
+          seed={owner?.name ?? name}
+          className="size-24 shrink-0 text-6xl lg:size-28 lg:text-7xl"
+        />
+        <div className="lg:contents">
+          <div>
+            <p className="font-bold lg:text-lg">{name}</p>
+            <p className="mt-1 text-sm text-muted">遗憾你自己留着吧，我有小怡了。</p>
+          </div>
+          <div className="mt-2 lg:mt-0">
+            <SocialLinks />
+          </div>
         </div>
       </div>
 
-      {/* 桌面端：sticky 左侧信息栏 */}
-      <aside className="sticky top-[calc(var(--header-h)+1.5rem)] hidden flex-col gap-6 self-start lg:flex lg:w-72">
-        <div className="flex flex-col items-center gap-4 rounded-2xl border border-border bg-surface p-6 text-center">
-          <Profile owner={owner} />
-          <SocialLinks />
+      {categories.length > 0 && (
+        <div className="hidden rounded-2xl border border-border bg-surface p-5 lg:block">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted">分类</p>
+          <div className="mt-3 flex flex-col gap-1">
+            {categories.map((cat) => (
+              <Link
+                key={cat.id}
+                href={`/blog/category/${cat.slug}`}
+                className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground"
+              >
+                <span>{cat.name}</span>
+                <span className="text-xs tabular-nums text-muted/60">{cat.postCount}</span>
+              </Link>
+            ))}
+          </div>
         </div>
+      )}
 
-        {categories.length > 0 && (
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted">分类</p>
-            <div className="mt-3 flex flex-col gap-1">
-              {categories.map((cat) => (
-                <Link
-                  key={cat.id}
-                  href={`/blog/category/${cat.slug}`}
-                  className="flex items-center justify-between rounded-lg px-2 py-1.5 text-sm text-muted transition-colors duration-150 hover:bg-foreground/5 hover:text-foreground"
-                >
-                  <span>{cat.name}</span>
-                  <span className="text-xs tabular-nums text-muted/60">{cat.postCount}</span>
-                </Link>
-              ))}
-            </div>
+      {tags.length > 0 && (
+        <div className="hidden rounded-2xl border border-border bg-surface p-5 lg:block">
+          <p className="text-xs font-semibold uppercase tracking-widest text-muted">标签</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {tags.slice(0, 12).map((tag) => (
+              <Link
+                key={tag.id}
+                href={`/blog/tag/${tag.slug}`}
+                className="rounded-full border border-border px-3 py-1 text-xs text-muted transition-colors duration-150 hover:border-accent hover:text-accent"
+              >
+                #{tag.name}
+              </Link>
+            ))}
           </div>
-        )}
-
-        {tags.length > 0 && (
-          <div className="rounded-2xl border border-border bg-surface p-5">
-            <p className="text-xs font-semibold uppercase tracking-widest text-muted">标签</p>
-            <div className="mt-3 flex flex-wrap gap-2">
-              {tags.slice(0, 12).map((tag) => (
-                <Link
-                  key={tag.id}
-                  href={`/blog/tag/${tag.slug}`}
-                  className="rounded-full border border-border px-3 py-1 text-xs text-muted transition-colors duration-150 hover:border-accent hover:text-accent"
-                >
-                  #{tag.name}
-                </Link>
-              ))}
-            </div>
-          </div>
-        )}
-      </aside>
-    </>
+        </div>
+      )}
+    </aside>
   );
 }

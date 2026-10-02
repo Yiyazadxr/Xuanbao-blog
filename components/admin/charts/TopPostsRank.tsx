@@ -1,12 +1,13 @@
 import Link from "next/link";
 
+import { EmptyState } from "@/components/ui/EmptyState";
 import type { TopPostStat } from "@/lib/stats";
 import { formatCount } from "@/lib/utils";
 
 // 热门文章排行：横向条形图，条长按浏览量占比（入场用 CSS scaleX 动画，无需 JS）
 export function TopPostsRank({ posts }: { posts: TopPostStat[] }) {
   if (posts.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">还没有已发布的文章</p>;
+    return <EmptyState title="还没有已发布的文章" />;
   }
 
   const max = Math.max(...posts.map((p) => p.viewCount), 1);

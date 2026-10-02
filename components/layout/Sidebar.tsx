@@ -1,32 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { TocList } from "@/components/blog/TocList";
 import type { TocItem } from "@/lib/markdown";
+import { useActiveHeading } from "@/lib/use-active-heading";
 
-// 浮动目录（TOC）：IntersectionObserver 高亮当前阅读的小节
+// 浮动目录（TOC）：xl 以上挂在正文右侧的 sticky 栏，当前小节高亮与移动端抽屉共用逻辑
 export function Sidebar({ toc }: { toc: TocItem[] }) {
-  const [activeId, setActiveId] = useState<string>("");
-
-  useEffect(() => {
-    if (toc.length === 0) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (entry.isIntersecting) {
-            setActiveId(entry.target.id);
-            break;
-          }
-        }
-      },
-      // 顶部导航占位 + 提前高亮
-      { rootMargin: "-80px 0px -70% 0px" }
-    );
-    for (const item of toc) {
-      const el = document.getElementById(item.id);
-      if (el) observer.observe(el);
-    }
-    return () => observer.disconnect();
-  }, [toc]);
+  const activeId = useActiveHeading(toc);
 
   if (toc.length === 0) return null;
 
@@ -35,24 +15,7 @@ export function Sidebar({ toc }: { toc: TocItem[] }) {
       <p className="mb-3 text-xs font-semibold uppercase tracking-widest text-muted">
         目录
       </p>
-      <ul className="space-y-1 border-l border-border text-sm">
-        {toc.map((item) => (
-          <li key={item.id}>
-            <a
-              href={`#${item.id}`}
-              className={`block border-l-2 py-1 pr-2 leading-snug transition-colors duration-200 ${
-                item.level === 3 ? "pl-7" : "pl-4"
-              } ${
-                activeId === item.id
-                  ? "-ml-px border-accent font-medium text-accent"
-                  : "border-transparent text-muted hover:text-foreground"
-              }`}
-            >
-              {item.text}
-            </a>
-          </li>
-        ))}
-      </ul>
+      <TocList toc={toc} activeId={activeId} />
     </nav>
   );
 }

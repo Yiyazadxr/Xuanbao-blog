@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { EmptyState } from "@/components/ui/EmptyState";
 import { DONUT_PALETTE } from "@/lib/chart";
 import type { CategoryStat } from "@/lib/stats";
 import { formatCount } from "@/lib/utils";
@@ -37,7 +38,7 @@ export function CategoryDonut({ data }: { data: CategoryStat[] }) {
   const unit = metric === "posts" ? "篇文章" : "次浏览";
 
   if (data.length === 0) {
-    return <p className="py-8 text-center text-sm text-muted">还没有已发布的文章</p>;
+    return <EmptyState title="还没有已发布的文章" />;
   }
 
   return (

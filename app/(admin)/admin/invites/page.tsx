@@ -4,6 +4,7 @@ import {
   DeleteInviteButton,
   RequestActions,
 } from "@/components/admin/InviteActions";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
 import { prisma } from "@/lib/prisma";
 import { formatDate } from "@/lib/utils";
@@ -59,7 +60,7 @@ export default async function AdminInvitesPage({
       <h2 className="mt-10 text-lg font-bold">账号申请</h2>
       <div className="mt-4 overflow-hidden rounded-2xl border border-border">
         {requests.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted">暂无申请</p>
+          <EmptyState title="暂无申请" />
         ) : (
           <ul className="divide-y divide-border">
             {requests.map((req) => {
@@ -102,7 +103,7 @@ export default async function AdminInvitesPage({
       <h2 className="mt-10 text-lg font-bold">邀请码</h2>
       <div className="mt-4 overflow-hidden rounded-2xl border border-border">
         {invites.length === 0 ? (
-          <p className="p-8 text-center text-sm text-muted">暂无邀请码</p>
+          <EmptyState title="暂无邀请码" />
         ) : (
           <ul className="divide-y divide-border">
             {invites.map((invite) => {

@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import Image from "next/image";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EngagementBar } from "@/components/blog/EngagementBar";
@@ -12,6 +11,7 @@ import { ViewTracker } from "@/components/blog/ViewTracker";
 import { CommentSection } from "@/components/comments/CommentSection";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { Reveal } from "@/components/ui/Reveal";
+import { FadeInImage } from "@/components/ui/FadeInImage";
 import { SITE } from "@/lib/constants";
 import { extractToc } from "@/lib/markdown";
 import {
@@ -107,13 +107,13 @@ export default async function BlogPostPage({
           </h1>
           {post.coverImage && (
             <div className="relative mt-6 aspect-[16/9] w-full overflow-hidden rounded-2xl border border-border">
-              <Image
+              <FadeInImage
                 src={post.coverImage}
                 alt={post.title}
                 fill
                 priority
                 sizes="(max-width: 896px) 100vw, 896px"
-                className="object-cover"
+                className="object-cover transition-opacity duration-500 motion-reduce:duration-0"
               />
             </div>
           )}

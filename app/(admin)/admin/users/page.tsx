@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { UserRowActions } from "@/components/admin/UserRowActions";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { getFreshUser } from "@/lib/auth";
 import { PERMISSIONS } from "@/lib/permissions";
 import { hasPermission } from "@/lib/permissions-server";
@@ -85,8 +86,8 @@ export default async function AdminUsersPage({
           <tbody className="divide-y divide-border">
             {users.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-5 py-10 text-center text-muted">
-                  没有匹配的用户
+                <td colSpan={7}>
+                  <EmptyState title="没有匹配的用户" />
                 </td>
               </tr>
             ) : (

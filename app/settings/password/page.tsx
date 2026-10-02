@@ -13,7 +13,7 @@ export default async function ChangePasswordPage() {
   if (!user) redirect("/");
 
   return (
-    <div className="mx-auto w-full max-w-md px-4 pb-24 pt-28 sm:px-6">
+    <div className="mx-auto w-full max-w-md px-4 pb-24 pt-[var(--content-pt)] sm:px-6">
       <Link
         href="/settings"
         className="text-sm text-muted transition-colors duration-200 hover:text-accent"

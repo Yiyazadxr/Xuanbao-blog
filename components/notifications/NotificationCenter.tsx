@@ -1,6 +1,6 @@
 "use client";
 
-import { Icon } from "@/components/ui/Icon";
+import { EmptyState } from "@/components/ui/EmptyState";
 import { useRef, useState } from "react";
 import {
   clearReadNotifications,
@@ -227,7 +227,7 @@ export function NotificationCenter({
 
   return (
     // 不透明底，遮挡水墨背景
-    <div className="mx-auto mt-28 w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
+    <div className="mx-auto mt-[var(--content-pt)] w-full max-w-3xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
       <div className="flex items-end justify-between gap-4">
         <div>
           <h1 className="font-display text-3xl font-bold tracking-tight sm:text-4xl">通知</h1>
@@ -292,20 +292,11 @@ export function NotificationCenter({
 
       <div className="mt-2 divide-y divide-border">
         {currentItems.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-20 text-center">
-            <Icon
-              icon={
-                tab === "all"
-                  ? "ph:bell-light"
-                  : NOTIFICATION_CATEGORY_META[tab as NotificationCategory].icon
-              }
-              width={40}
-              height={40}
-              className="text-muted/40"
-              aria-hidden
-            />
-            <p className="text-sm text-muted">暂无通知</p>
-          </div>
+          <EmptyState
+            icon={tab === "all" ? "ph:bell-light" : NOTIFICATION_CATEGORY_META[tab as NotificationCategory].icon}
+            title="暂无通知"
+            className="py-20"
+          />
         ) : (
           currentItems.map((item) => (
             <NotificationRow key={item.id} item={item} onDelete={handleDelete} onActivate={() => handleItemClick(item)} disabled={pending || loading} />

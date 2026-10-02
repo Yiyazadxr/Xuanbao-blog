@@ -39,7 +39,7 @@ export function SettingsPanel({
 
   return (
     // 不透明底，遮挡水墨背景
-    <div className="mx-auto mt-28 w-full max-w-xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
+    <div className="mx-auto mt-[var(--content-pt)] w-full max-w-xl rounded-2xl border border-border bg-background px-4 pt-8 pb-24 sm:px-6">
       <h1 className="font-display text-3xl font-bold tracking-tight">设置</h1>
       <p className="mt-2 text-sm text-muted">管理你的个人资料与显示偏好</p>
 
