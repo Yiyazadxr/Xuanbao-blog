@@ -12,6 +12,7 @@ import { PERMISSIONS } from "@/lib/permissions";
 import { prisma } from "@/lib/prisma";
 import { getClientIp, rateLimit } from "@/lib/rate-limit";
 import { ROLES } from "@/lib/roles";
+import { formatDateTime } from "@/lib/utils";
 import { commentPageSchema, commentSchema, likeSchema, parseId, parseInput } from "@/lib/validation";
 
 export type CommentActionState = { ok: boolean; error?: string; message?: string };
@@ -28,7 +29,7 @@ export async function submitComment(payload: unknown): Promise<CommentActionStat
       const untilText = mute.permanent
         ? ""
         : mute.until
-          ? `，解禁时间为 ${new Date(mute.until).toLocaleString("zh-CN")}`
+          ? `，解禁时间为 ${formatDateTime(mute.until)}`
           : "";
       return { ok: false, error: `你已被禁言${untilText}${mute.reason ? `，原因：${mute.reason}` : ""}` };
     }
@@ -115,14 +116,19 @@ export async function toggleLike(
   });
   if (!post) return { ok: false, error: "文章不存在" };
 
-  const key = { userId_postId: { userId: user.id, postId: pid } };
-  const existing = await prisma.like.findUnique({ where: key });
-  if (existing) {
-    await prisma.like.delete({ where: key });
-  } else {
-    await prisma.like.create({ data: { userId: user.id, postId: pid } });
+  const key = { userId: user.id, postId: pid };
+  const removed = await prisma.like.deleteMany({ where: key });
+  const liked = removed.count === 0;
+  if (liked) {
+    let created = false;
+    try {
+      await prisma.like.create({ data: key });
+      created = true;
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+    }
     // 站内通知文章作者有人点赞（自己赞自己不通知）
-    if (post.authorId !== user.id) {
+    if (created && post.authorId !== user.id) {
       await createNotification(post.authorId, {
         category: NOTIFICATION_CATEGORIES.LIKE,
         type: "like",
@@ -137,7 +143,7 @@ export async function toggleLike(
   const count = await prisma.like.count({ where: { postId: pid } });
 
   revalidatePath(`/blog/${parsed.data.slug}`);
-  return { ok: true, liked: !existing, count };
+  return { ok: true, liked, count };
 }
 
 // 收藏仅要求登录，不设独立权限。
@@ -157,15 +163,22 @@ export async function toggleBookmark(
   });
   if (!post) return { ok: false, error: "文章不存在" };
 
-  const key = { userId_postId: { userId: user.id, postId: parsed.data } };
-  const existing = await prisma.bookmark.findUnique({ where: key });
-  if (existing) {
-    await prisma.bookmark.delete({ where: key });
-  } else {
-    await prisma.bookmark.create({ data: { userId: user.id, postId: parsed.data } });
+  const key = { userId: user.id, postId: parsed.data };
+  const removed = await prisma.bookmark.deleteMany({ where: key });
+  const bookmarked = removed.count === 0;
+  if (bookmarked) {
+    try {
+      await prisma.bookmark.create({ data: key });
+    } catch (error) {
+      if (!isUniqueConstraintError(error)) throw error;
+    }
   }
 
-  return { ok: true, bookmarked: !existing };
+  return { ok: true, bookmarked };
+}
+
+function isUniqueConstraintError(error: unknown): boolean {
+  return typeof error === "object" && error !== null && "code" in error && error.code === "P2002";
 }
 
 // 评论公开读取，分页按稳定的时间和 ID 游标继续。

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getFreshUser } from "@/lib/auth";
 import { incrementViewCount } from "@/lib/posts";
 import { recordRead } from "@/lib/reading";
 
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
   const wordCountRaw = (body as { wordCount?: unknown }).wordCount;
   const wordCount = typeof wordCountRaw === "number" ? wordCountRaw : null;
 
-  const user = await getCurrentUser();
+  const user = await getFreshUser();
   await Promise.all([incrementViewCount(postId), recordRead(postId, user?.id, wordCount)]);
   return NextResponse.json({ ok: true });
 }

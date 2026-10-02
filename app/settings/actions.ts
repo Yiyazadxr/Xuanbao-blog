@@ -146,5 +146,6 @@ export async function changePassword(
     where: { id: user.id },
     data: { password: await bcrypt.hash(newPassword, 10) },
   });
+  await rateLimit.reset("settings-password", user.id);
   return { ok: true, message: "密码已修改" };
 }

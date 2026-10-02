@@ -90,10 +90,14 @@ export const rateLimit = {
   },
 };
 
-// 反向代理下取 x-forwarded-for 第一跳。
+// 仅信任配置声明的代理层；从右侧剥离可信代理后取最右侧地址。
 export async function getClientIp(): Promise<string> {
   const h = await headers();
   const fwd = h.get("x-forwarded-for");
-  if (fwd) return fwd.split(",")[0]?.trim() || "unknown";
+  const trustedHops = Math.max(0, Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "1", 10) || 0);
+  if (fwd) {
+    const addresses = fwd.split(",").map((value) => value.trim()).filter(Boolean);
+    return addresses[Math.max(0, addresses.length - trustedHops - 1)] ?? addresses[0] ?? "unknown";
+  }
   return h.get("x-real-ip") ?? "unknown";
 }

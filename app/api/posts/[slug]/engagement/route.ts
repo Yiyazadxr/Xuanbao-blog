@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
+import { getFreshUser } from "@/lib/auth";
 import { getBookmarkInfo } from "@/lib/bookmarks";
 import { getLikeInfo } from "@/lib/likes";
 import { prisma } from "@/lib/prisma";
@@ -15,7 +15,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ slug: s
     return NextResponse.json({ error: "not_found" }, { status: 404 });
   }
 
-  const user = await getCurrentUser();
+  const user = await getFreshUser();
   const [like, bookmark] = await Promise.all([
     getLikeInfo(post.id, user?.id),
     getBookmarkInfo(post.id, user?.id),

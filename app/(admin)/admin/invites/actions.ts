@@ -56,6 +56,9 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
   const hashed = await bcrypt.hash(password, 10);
 
   const currentUser = await prisma.user.findUnique({ where: { email } });
+  if (currentUser?.role === ROLES.SUPER_ADMIN) {
+    return { ok: false, error: "不能通过申请重置超级管理员账号" };
+  }
   if (currentUser && !currentUser.disabled && currentUser.activatedAt) {
     return { ok: false, error: "该邮箱已有可用账号，请直接登录" };
   }
@@ -184,6 +187,16 @@ export async function rejectRequest(requestId: string): Promise<AdminActionState
       data: { status: "REJECTED", password: null },
     });
     if (claimed.count !== 1) return false;
+    const pendingUser = await tx.user.findFirst({
+      where: { email: request.email, role: ROLES.MEMBER, activatedAt: null },
+      select: { id: true, inviteCodeId: true },
+    });
+    if (pendingUser?.inviteCodeId) {
+      await tx.inviteCode.updateMany({
+        where: { id: pendingUser.inviteCodeId, usedCount: { gt: 0 } },
+        data: { usedCount: { decrement: 1 } },
+      });
+    }
     // 拒绝邀请码申请时删除预建账号，释放邮箱。
     await tx.user.deleteMany({
       where: { email: request.email, role: ROLES.MEMBER, activatedAt: null },

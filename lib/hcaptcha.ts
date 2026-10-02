@@ -1,4 +1,4 @@
-// hCaptcha 服务端校验；未配置密钥时跳过。
+// hCaptcha 服务端校验；开发环境允许本地未配置时继续调试，生产环境拒绝写入。
 
 let warnedNoSecret = false;
 
@@ -14,9 +14,9 @@ export async function verifyHCaptcha(token: string): Promise<boolean> {
   if (!secret) {
     if (process.env.NODE_ENV === "production" && !warnedNoSecret) {
       warnedNoSecret = true;
-      console.error("[安全] 生产环境未配置 HCAPTCHA_SECRET_KEY，人机验证已降级放行");
+      console.error("[安全] 生产环境未配置 HCAPTCHA_SECRET_KEY，写入类操作已拒绝");
     }
-    return true;
+    return process.env.NODE_ENV !== "production";
   }
   if (!token) return false;
 

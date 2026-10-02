@@ -12,6 +12,7 @@ import { loginSchema } from "@/lib/validation";
 
 // JWT 展示字段定期回源，避免每次请求查库。
 const SYNC_INTERVAL_MS = 5 * 60 * 1000;
+const DUMMY_PASSWORD_HASH = "$2b$10$7EqJtq98hPqEX7fNZaFWoO7u0w8bJ0Vnq1o8gJr5l9hL0yKc6V8mK";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   // 生产默认不信任 Host 头；AUTH_TRUST_HOST=true 可显式开启。
@@ -29,19 +30,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         if (!parsed.success) return null;
         const { email, password } = parsed.data;
         const ip = await getClientIp();
-        const emailKey = `${email}:${ip}`;
         // 放在认证入口，页面 Action 与 Auth.js 回调均受限流约束。
         const ipCheck = await rateLimit.checkAndHit("login-ip", ip, 20, 15 * 60 * 1000);
         if (ipCheck.blocked) return null;
-        const emailCheck = await rateLimit.checkAndHit("login", emailKey, 5, 15 * 60 * 1000);
+        const emailCheck = await rateLimit.checkAndHit("login-email", email, 5, 15 * 60 * 1000);
         if (emailCheck.blocked) return null;
 
         const user = await prisma.user.findUnique({ where: { email } });
-        if (!user) return null;
+        if (!user) {
+          await bcrypt.compare(password, DUMMY_PASSWORD_HASH);
+          return null;
+        }
 
-        if (user.disabled) return null;
+        if (user.disabled) {
+          await bcrypt.compare(password, user.password);
+          return null;
+        }
 
-        if (!user.activatedAt) return null;
+        if (!user.activatedAt) {
+          await bcrypt.compare(password, user.password);
+          return null;
+        }
 
         // 激活后未首次登录则回收：邀请码申请 14 天，普通申请 7 天。
         const graceDays = user.inviteCodeId ? 14 : 7;
@@ -50,12 +59,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           Date.now() - user.activatedAt.getTime() > graceDays * 24 * 60 * 60 * 1000
         ) {
           await prisma.user.update({ where: { id: user.id }, data: { disabled: true } });
+          await bcrypt.compare(password, user.password);
           return null;
         }
 
         const valid = await bcrypt.compare(password, user.password);
         if (!valid) return null;
-        await rateLimit.reset("login", emailKey);
+        await rateLimit.reset("login-email", email);
 
         // 首次登录时间用于后续回收判定。
         if (!user.lastLoginAt) {
