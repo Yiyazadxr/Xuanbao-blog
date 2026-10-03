@@ -111,6 +111,7 @@ export async function approveRequest(requestId: string): Promise<AdminActionStat
           data: {
             ...(isInvitePath && request.message ? { name: request.message } : {}),
             password: hashed,
+            sessionVersion: { increment: 1 },
             role: ROLES.MEMBER,
             activatedAt: new Date(),
             disabled: false,

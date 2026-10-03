@@ -2,8 +2,8 @@ import type { MetadataRoute } from "next";
 import { SITE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
 
-// 实时生成，使新发布文章立即进入站点地图。
-export const dynamic = "force-dynamic";
+// 与公开页面一致，避免爬虫每次请求直达数据库。
+export const revalidate = 60;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const [posts, categories, series, tags] = await Promise.all([

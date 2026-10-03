@@ -52,19 +52,19 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
-        // 激活后未首次登录则回收：邀请码申请 14 天，普通申请 7 天。
+        const valid = await bcrypt.compare(password, user.password);
+        if (!valid) return null;
+
+        // 只有凭据正确才能触发未首次登录账号的回收。
         const graceDays = user.inviteCodeId ? 14 : 7;
         if (
           !user.lastLoginAt &&
           Date.now() - user.activatedAt.getTime() > graceDays * 24 * 60 * 60 * 1000
         ) {
           await prisma.user.update({ where: { id: user.id }, data: { disabled: true } });
-          await bcrypt.compare(password, user.password);
           return null;
         }
 
-        const valid = await bcrypt.compare(password, user.password);
-        if (!valid) return null;
         await rateLimit.reset("login-email", email);
 
         // 首次登录时间用于后续回收判定。
@@ -78,6 +78,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           email: user.email,
           image: user.image,
           role: user.role as Role,
+          sessionVersion: user.sessionVersion,
         };
       },
     }),
@@ -87,10 +88,18 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (user) {
         token.id = (user as { id: string }).id;
         token.role = user.role;
+        token.sessionVersion = user.sessionVersion;
         (token as { syncedAt?: number }).syncedAt = Date.now();
         return token;
       }
-      // 客户端 update() 同步刷新 token 展示字段。
+      // 每次校验会话版本；旧 token（无版本）也需要重新登录。
+      if (!token.id || typeof token.sessionVersion !== "number") return null;
+      const account = await prisma.user.findUnique({
+        where: { id: token.id as string },
+        select: { sessionVersion: true, disabled: true, activatedAt: true },
+      });
+      if (!account || account.disabled || !account.activatedAt || account.sessionVersion !== token.sessionVersion) return null;
+      // 客户端 update() 仅同步展示字段，不能修改会话版本。
       if (trigger === "update") {
         const s = session as { name?: string; image?: string } | undefined;
         if (s?.name) token.name = s.name;
@@ -124,6 +133,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       if (session.user) {
         session.user.id = token.id as string;
         session.user.role = token.role as Role;
+        session.user.sessionVersion = token.sessionVersion as number;
       }
       return session;
     },
@@ -152,11 +162,13 @@ export const getFreshUser = cache(async () => {
       createdAt: true,
       disabled: true,
       activatedAt: true,
+      sessionVersion: true,
     },
   });
   // 停用和回收不受 JWT 有效期影响。
   const role = user?.role;
-  if (!user || user.disabled || !user.activatedAt || !isRole(role)) return null;
+  if (!user || user.disabled || !user.activatedAt || !isRole(role) ||
+      user.sessionVersion !== session.user.sessionVersion) return null;
   return { ...user, role };
 });
 

@@ -1,5 +1,11 @@
 // Server Action 和 Route Handler 不信任客户端入参。
 import { z } from "zod";
+
+export const postViewSchema = z.object({
+  postId: z.string().min(1).max(100),
+  // 兼容旧客户端；统计字数始终使用数据库值。
+  wordCount: z.number().int().min(0).max(10_000_000).nullable().optional(),
+}).strict();
 import {
   FONT_SCALE_MAX,
   FONT_SCALE_MIN,

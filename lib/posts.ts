@@ -242,19 +242,14 @@ export async function getRelatedPosts(post: {
   return picked;
 }
 
-// 浏览量 +1（详情页触发，失败不影响页面渲染）
-// 同时给当日统计表记一笔（趋势图的时间维度来源）。两条写入互不依赖，
-// 分开执行：统计表一旦出问题也不能拖累文章自身的计数。
+// 仅统计仍然公开的文章；无效 ID 或撤稿不会污染每日统计。
 export async function incrementViewCount(id: string) {
-  await Promise.all([
-    prisma.post
-      .update({ where: { id }, data: { viewCount: { increment: 1 } } })
-      .catch((e: unknown) => {
-        // 计数失败不影响渲染，记录日志便于排查
-        console.error("浏览量计数失败：", e);
-      }),
-    recordDailyView(),
-  ]);
+  const result = await prisma.post.updateMany({
+    where: { id, ...PUBLISHED_FILTER }, data: { viewCount: { increment: 1 } },
+  });
+  if (!result.count) return false;
+  await recordDailyView();
+  return true;
 }
 
 // 分类列表（带公开文章数）

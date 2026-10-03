@@ -146,8 +146,8 @@ ${items}
   return new Response(xml, {
     headers: {
       "Content-Type": "application/rss+xml; charset=utf-8",
-      // 不缓存，确保分页和新文章即时可见。
-      "Cache-Control": "public, max-age=0, s-maxage=0, must-revalidate",
+      // CDN 按完整 URL（包括页码）缓存，减少重复抓取的数据库开销。
+      "Cache-Control": "public, max-age=0, s-maxage=60, stale-while-revalidate=60",
     },
   });
 }

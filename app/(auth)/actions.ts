@@ -56,10 +56,8 @@ export async function applyAction(
     return { ok: false, error: `申请过于频繁，请 ${check.retryAfterSec} 秒后再试` };
   }
 
-  const result = await submitAccountRequest(parsed.data.email, parsed.data.message);
-  return result.ok
-    ? { ok: true, message: "申请已提交，博主审核通过后会将登录凭据发至你的邮箱" }
-    : { ok: false, error: result.error };
+  await submitAccountRequest(parsed.data.email, parsed.data.message);
+  return { ok: true, message: "请求已受理；若邮箱符合申请条件，审核通过后会收到邮件。已注册用户可直接登录" };
 }
 
 // 邀请码申请按 IP 限流，并预建待审核账号。
@@ -88,6 +86,6 @@ export async function registerAction(
 
   const result = await submitInviteRequest(parsed.data);
   return result.ok
-    ? { ok: true, message: "申请已提交，博主审核通过后即可登录" }
+    ? { ok: true, message: "请求已受理；若邮箱符合申请条件，审核通过后会收到邮件。已注册用户可直接登录" }
     : { ok: false, error: result.error };
 }

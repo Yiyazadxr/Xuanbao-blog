@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { PostEditor } from "@/components/admin/PostEditor";
 import { prisma } from "@/lib/prisma";
 
@@ -12,6 +14,7 @@ export default async function EditPostPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!(await requirePermission(PERMISSIONS.MANAGE_POSTS))) redirect("/admin");
   const { id } = await params;
   const [post, categories, series] = await Promise.all([
     prisma.post.findUnique({

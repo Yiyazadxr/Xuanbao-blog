@@ -142,10 +142,12 @@ export async function changePassword(
     };
   }
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { password: await bcrypt.hash(newPassword, 10) },
+  const changed = await prisma.user.updateMany({
+    // 并发改密时旧凭据不能覆盖已更新的密码。
+    where: { id: user.id, password: full.password, sessionVersion: user.sessionVersion },
+    data: { password: await bcrypt.hash(newPassword, 10), sessionVersion: { increment: 1 } },
   });
+  if (changed.count !== 1) return { ok: false, error: "账号状态已变化，请重新登录后再试" };
   await rateLimit.reset("settings-password", user.id);
-  return { ok: true, message: "密码已修改" };
+  return { ok: true, message: "密码已修改，请重新登录" };
 }

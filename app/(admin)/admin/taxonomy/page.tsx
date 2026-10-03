@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { TaxonomyManager } from "@/components/admin/TaxonomyManager";
 import { prisma } from "@/lib/prisma";
 
@@ -7,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 // 分类/系列/标签管理：列表 + 新建 + 编辑 + 删除
 export default async function TaxonomyPage() {
+  if (!(await requirePermission(PERMISSIONS.MANAGE_POSTS))) redirect("/admin");
   const [categories, series, tags] = await Promise.all([
     prisma.category.findMany({
       orderBy: { name: "asc" },

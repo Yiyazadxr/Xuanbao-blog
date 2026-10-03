@@ -1,12 +1,25 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-const { count, findMany, findFirst } = vi.hoisted(() => ({ count: vi.fn(), findMany: vi.fn(), findFirst: vi.fn() }));
-vi.mock("@/lib/prisma", () => ({ prisma: { post: { count, findMany, findFirst } } }));
-vi.mock("@/lib/daily-stats", () => ({ recordDailyView: vi.fn() }));
+const { count, findMany, findFirst, updateMany, recordDailyView } = vi.hoisted(() => ({ count: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), updateMany: vi.fn(), recordDailyView: vi.fn() }));
+vi.mock("@/lib/prisma", () => ({ prisma: { post: { count, findMany, findFirst, updateMany } } }));
+vi.mock("@/lib/daily-stats", () => ({ recordDailyView }));
 vi.mock("next/cache", () => ({ unstable_cache: (fn: unknown) => fn }));
-import { getPosts, getSeriesAdjacent } from "@/lib/posts";
+import { getPosts, getSeriesAdjacent, incrementViewCount } from "@/lib/posts";
 import { QUERY_LIMITS } from "@/lib/constants";
 
 beforeEach(() => { vi.resetAllMocks(); count.mockResolvedValue(20); findMany.mockResolvedValue([]); });
+
+it("不存在或已撤稿的文章不能增加日统计", async () => {
+  updateMany.mockResolvedValue({ count: 0 });
+  expect(await incrementViewCount("missing")).toBe(false);
+  expect(recordDailyView).not.toHaveBeenCalled();
+  expect(updateMany).toHaveBeenCalledWith({ where: { id: "missing", published: true, archived: false }, data: { viewCount: { increment: 1 } } });
+});
+
+it("文章写入失败不会污染日统计", async () => {
+  updateMany.mockRejectedValue(new Error("unavailable"));
+  await expect(incrementViewCount("post1")).rejects.toThrow("unavailable");
+  expect(recordDailyView).not.toHaveBeenCalled();
+});
 
 describe("文章列表查询边界", () => {
   it("越界页定位末页，计数与查询使用同一公开筛选", async () => {

@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import {
   CreateInviteButton,
   DeleteInviteButton,
@@ -27,24 +30,27 @@ export default async function AdminInvitesPage({
 }: {
   searchParams: Promise<{ req?: string; inv?: string }>;
 }) {
+  const canReview = Boolean(await requirePermission(PERMISSIONS.REVIEW_REQUESTS));
+  const canManage = Boolean(await requirePermission(PERMISSIONS.MANAGE_INVITES));
+  if (!canReview && !canManage) redirect("/admin");
   const { req: reqParam, inv: invParam } = await searchParams;
   const reqPage = Math.max(1, Number(reqParam) || 1);
   const invPage = Math.max(1, Number(invParam) || 1);
 
   const [requests, reqTotal, invites, invTotal] = await Promise.all([
-    prisma.accountRequest.findMany({
+    canReview ? prisma.accountRequest.findMany({
       orderBy: { createdAt: "desc" },
       skip: (reqPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
-    }),
-    prisma.accountRequest.count(),
-    prisma.inviteCode.findMany({
+    }) : [],
+    canReview ? prisma.accountRequest.count() : 0,
+    canManage ? prisma.inviteCode.findMany({
       orderBy: { createdAt: "desc" },
       skip: (invPage - 1) * PAGE_SIZE,
       take: PAGE_SIZE,
       include: { usedBy: { select: { name: true, email: true } } },
-    }),
-    prisma.inviteCode.count(),
+    }) : [],
+    canManage ? prisma.inviteCode.count() : 0,
   ]);
   const reqTotalPages = Math.max(1, Math.ceil(reqTotal / PAGE_SIZE));
   const invTotalPages = Math.max(1, Math.ceil(invTotal / PAGE_SIZE));
@@ -53,10 +59,11 @@ export default async function AdminInvitesPage({
     <>
       <div className="flex items-center justify-between">
         <h1 className="font-display text-3xl font-bold tracking-tight">申请与邀请码</h1>
-        <CreateInviteButton />
+        {canManage && <CreateInviteButton />}
       </div>
 
       {/* 账号申请 */}
+      {canReview && <>
       <h2 className="mt-10 text-lg font-bold">账号申请</h2>
       <div className="mt-4 overflow-hidden rounded-2xl border border-border">
         {requests.length === 0 ? (
@@ -100,6 +107,8 @@ export default async function AdminInvitesPage({
       />
 
       {/* 邀请码 */}
+      </>}
+      {canManage && <>
       <h2 className="mt-10 text-lg font-bold">邀请码</h2>
       <div className="mt-4 overflow-hidden rounded-2xl border border-border">
         {invites.length === 0 ? (
@@ -154,6 +163,7 @@ export default async function AdminInvitesPage({
         basePath="/admin/invites"
         searchParams={{ req: reqPage > 1 ? String(reqPage) : undefined }}
       />
+      </>}
     </>
   );
 }

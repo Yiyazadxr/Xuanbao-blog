@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import Link from "next/link";
 import { AdminPostList } from "@/components/admin/AdminPostList";
 import { Pagination } from "@/components/ui/Pagination";
@@ -15,6 +18,7 @@ export default async function AdminPostsPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  if (!(await requirePermission(PERMISSIONS.MANAGE_POSTS))) redirect("/admin");
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 

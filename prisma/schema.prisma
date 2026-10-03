@@ -15,6 +15,7 @@ model User {
   name      String
   email     String   @unique
   password  String // bcrypt 哈希
+  sessionVersion Int @default(0)
   image     String?
   role      String   @default("MEMBER")
   // 账号激活时间（审核通过时间）；null 表示待审核（邀请码路径提交时建号待激活）

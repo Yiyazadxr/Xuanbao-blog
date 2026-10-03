@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useState } from "react";
+import { signOut } from "next-auth/react";
 import { changePassword, type SettingsState } from "@/app/settings/actions";
 import { HCaptcha } from "@/components/ui/HCaptcha";
 import { errorCls, inputCls, labelCls, primaryBtnCls, successCls } from "@/components/ui/form-styles";
@@ -10,7 +11,11 @@ const initialState: SettingsState = { ok: false };
 
 // 修改密码表单（独立页，带 hCaptcha）
 export function PasswordForm() {
-  const [state, formAction, pending] = useActionState(changePassword, initialState);
+  const [state, formAction, pending] = useActionState(async (previous: SettingsState, data: FormData) => {
+    const result = await changePassword(previous, data);
+    if (result.ok) await signOut({ callbackUrl: "/login" });
+    return result;
+  }, initialState);
   const [captchaToken, setCaptchaToken] = useState("");
   const captchaRequired = Boolean(HCAPTCHA_SITE_KEY);
   const canSubmit = !captchaRequired || captchaToken;

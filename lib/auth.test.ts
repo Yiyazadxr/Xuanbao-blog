@@ -3,9 +3,11 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const mocks = vi.hoisted(() => ({
   findUnique: vi.fn(), update: vi.fn(), checkAndHit: vi.fn(), reset: vi.fn(), compare: vi.fn(),
   authorize: undefined as undefined | ((credentials: unknown) => Promise<unknown>),
+  jwt: undefined as undefined | ((args: { token: Record<string, unknown>; user?: Record<string, unknown>; trigger?: string; session?: Record<string, unknown> }) => Promise<unknown>),
 }));
-vi.mock("next-auth", () => ({ default: (config: { providers: { authorize: typeof mocks.authorize }[] }) => {
+vi.mock("next-auth", () => ({ default: (config: { providers: { authorize: typeof mocks.authorize }[]; callbacks: { jwt: typeof mocks.jwt } }) => {
   mocks.authorize = config.providers[0].authorize;
+  mocks.jwt = config.callbacks.jwt;
   return {};
 } }));
 vi.mock("next-auth/providers/credentials", () => ({ default: (config: unknown) => config }));
@@ -40,5 +42,32 @@ describe("认证入口限流", () => {
     await import("@/lib/auth");
     expect(await mocks.authorize!({ email: "invalid", password: "" })).toBeNull();
     expect(mocks.checkAndHit).not.toHaveBeenCalled();
+  });
+
+  it("错误密码不能停用超过首次登录宽限期的账号", async () => {
+    await import("@/lib/auth");
+    mocks.findUnique.mockResolvedValue({ id: "u1", password: "hash", activatedAt: new Date(0), lastLoginAt: null, disabled: false });
+    mocks.compare.mockResolvedValue(false);
+    expect(await mocks.authorize!({ email: "test@example.com", password: "wrong123" })).toBeNull();
+    expect(mocks.update).not.toHaveBeenCalled();
+  });
+
+  it("旧会话不能通过 update 提交新版本来恢复权限", async () => {
+    await import("@/lib/auth");
+    mocks.findUnique.mockResolvedValue({ sessionVersion: 2, activatedAt: new Date(), disabled: false });
+    expect(await mocks.jwt!({ token: { id: "u1", sessionVersion: 1 }, trigger: "update", session: { sessionVersion: 2 } })).toBeNull();
+  });
+
+  it("无版本的历史会话需要重新登录", async () => {
+    await import("@/lib/auth");
+    expect(await mocks.jwt!({ token: { id: "u1" } })).toBeNull();
+    expect(mocks.findUnique).not.toHaveBeenCalled();
+  });
+
+  it("版本一致的会话继续可用", async () => {
+    await import("@/lib/auth");
+    mocks.findUnique.mockResolvedValue({ sessionVersion: 2, activatedAt: new Date(), disabled: false });
+    const token = { id: "u1", sessionVersion: 2, syncedAt: Date.now() };
+    expect(await mocks.jwt!({ token })).toEqual(token);
   });
 });

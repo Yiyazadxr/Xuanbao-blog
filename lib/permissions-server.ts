@@ -9,7 +9,7 @@ import {
   type Permission,
 } from "@/lib/permissions";
 
-// SUPER_ADMIN 全开；配置缺失或损坏时回落默认值。缓存仅限单次请求。
+// SUPER_ADMIN 全开；未配置使用默认值，已有配置损坏则拒绝授权。
 export const getRolePermissions = cache(async (role: Role): Promise<Permission[]> => {
   if (role === ROLES.SUPER_ADMIN) return [...ALL_PERMISSIONS];
   const row = await prisma.rolePermission.findUnique({ where: { role } });
@@ -17,12 +17,12 @@ export const getRolePermissions = cache(async (role: Role): Promise<Permission[]
   try {
     const parsed = JSON.parse(row.permissions);
     const valid = normalizePermissions(parsed);
-    if (!valid) return [...DEFAULT_ROLE_PERMISSIONS[role]];
+    if (!valid) return [];
     // 空数组表示主动撤销全部权限。
     return valid;
   } catch (e) {
-    console.error(`角色 ${role} 的权限配置解析失败，回落到默认值：`, e);
-    return [...DEFAULT_ROLE_PERMISSIONS[role]];
+    console.error(`角色 ${role} 的权限配置解析失败，拒绝授权：`, e);
+    return [];
   }
 });
 

@@ -1,6 +1,7 @@
 // 数据库固定窗口限流；多实例共享计数。
 import { headers } from "next/headers";
 import { prisma } from "@/lib/prisma";
+import { isIP } from "node:net";
 
 function keyName(prefix: string, value: string) {
   return `${prefix}:${value}`;
@@ -53,8 +54,7 @@ export const rateLimit = {
       RETURNING "count", "resetAt"
     `;
     const row = rows[0];
-    // 无返回值时放行，避免限流故障阻断业务。
-    if (!row) return { blocked: false, retryAfterSec: 0 };
+    if (!row) throw new Error("限流计数未返回结果");
     if (row.count > limit) {
       return {
         blocked: true,
@@ -90,14 +90,20 @@ export const rateLimit = {
   },
 };
 
-// 仅信任配置声明的代理层；从右侧剥离可信代理后取最右侧地址。
+// 入口必须清洗/追加 XFF；默认取最右侧地址，额外跳过数仅用于已知代理链。
 export async function getClientIp(): Promise<string> {
   const h = await headers();
   const fwd = h.get("x-forwarded-for");
-  const trustedHops = Math.max(0, Number.parseInt(process.env.TRUSTED_PROXY_HOPS ?? "1", 10) || 0);
+  const configured = process.env.TRUSTED_PROXY_HOPS ?? "0";
+  if (!/^\d+$/.test(configured) || !Number.isSafeInteger(Number(configured))) {
+    throw new Error("TRUSTED_PROXY_HOPS 必须为非负整数");
+  }
+  const trustedHops = Number(configured);
   if (fwd) {
     const addresses = fwd.split(",").map((value) => value.trim()).filter(Boolean);
-    return addresses[Math.max(0, addresses.length - trustedHops - 1)] ?? addresses[0] ?? "unknown";
+    const address = addresses[Math.max(0, addresses.length - trustedHops - 1)];
+    return address && isIP(address) ? address : "unknown";
   }
-  return h.get("x-real-ip") ?? "unknown";
+  const address = h.get("x-real-ip");
+  return address && isIP(address) ? address : "unknown";
 }

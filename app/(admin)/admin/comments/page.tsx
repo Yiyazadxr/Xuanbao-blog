@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import Link from "next/link";
 import { CommentModerationActions } from "@/components/admin/CommentModerationActions";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -17,6 +20,8 @@ export default async function AdminCommentsPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  if (!(await requirePermission(PERMISSIONS.APPROVE_COMMENTS)) &&
+      !(await requirePermission(PERMISSIONS.DELETE_COMMENTS))) redirect("/admin");
   const { page: pageParam } = await searchParams;
   const page = Math.max(1, Number(pageParam) || 1);
 

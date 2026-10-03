@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { PostEditor } from "@/components/admin/PostEditor";
 import { prisma } from "@/lib/prisma";
 
@@ -6,6 +9,7 @@ export const metadata: Metadata = { title: "写文章" };
 export const dynamic = "force-dynamic";
 
 export default async function NewPostPage() {
+  if (!(await requirePermission(PERMISSIONS.MANAGE_POSTS))) redirect("/admin");
   const [categories, series] = await Promise.all([
     prisma.category.findMany({ orderBy: { name: "asc" } }),
     prisma.series.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true } }),

@@ -30,6 +30,7 @@ const cspHeader = {
 };
 
 const nextConfig: NextConfig = {
+  poweredByHeader: false,
   experimental: {
     serverActions: {
       // 6MB 覆盖 5MB 图片及 multipart 开销。
@@ -52,7 +53,9 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/(.*)",
-        headers: isProd ? [...baseSecurityHeaders, cspHeader] : baseSecurityHeaders,
+        headers: isProd ? [...baseSecurityHeaders, cspHeader,
+          { key: "Strict-Transport-Security", value: "max-age=31536000" },
+        ] : baseSecurityHeaders,
       },
     ];
   },

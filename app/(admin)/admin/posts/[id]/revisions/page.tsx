@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
+import { requirePermission } from "@/lib/auth";
+import { PERMISSIONS } from "@/lib/permissions";
 import { RevisionList } from "@/components/admin/RevisionList";
 import { prisma } from "@/lib/prisma";
 
@@ -13,6 +15,7 @@ export default async function PostRevisionsPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
+  if (!(await requirePermission(PERMISSIONS.MANAGE_POSTS))) redirect("/admin");
   const { id } = await params;
   const post = await prisma.post.findUnique({
     where: { id },

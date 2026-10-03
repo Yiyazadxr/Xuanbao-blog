@@ -21,20 +21,20 @@ export async function submitAccountRequest(email: string, message?: string) {
     },
   });
   if (recentForEmail >= 3) {
-    return { ok: false, error: "该邮箱今日申请次数过多，请稍后再试" };
+    return { ok: true };
   }
 
   // 停用账号可重新申请；通过后降为 MEMBER，凭据仅发往原邮箱。
   const existingUser = await prisma.user.findUnique({ where: { email: normalized } });
   if (existingUser && !existingUser.disabled) {
-    return { ok: false, error: "该邮箱已注册，请直接登录" };
+    return { ok: true };
   }
 
   const pending = await prisma.accountRequest.findFirst({
     where: { email: normalized, status: { in: ["PENDING", "PROCESSING"] } },
   });
   if (pending) {
-    return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
+    return { ok: true };
   }
 
   try {
@@ -43,7 +43,7 @@ export async function submitAccountRequest(email: string, message?: string) {
     });
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
+      return { ok: true };
     }
     throw error;
   }
@@ -71,28 +71,24 @@ export async function submitInviteRequest({
 }) {
   const normalized = email.trim().toLowerCase();
 
+  // 邀请码验证必须先于邮箱分支，避免用无效邀请码探测账号。
+  const invite = await prisma.inviteCode.findUnique({ where: { code: code.trim() } });
+  if (!invite || (invite.expiresAt && invite.expiresAt < new Date()) || invite.usedCount >= invite.maxUses) {
+    return { ok: false, error: "邀请码无效或已失效" };
+  }
+  const hashed = await bcrypt.hash(password, 10);
   const existing = await prisma.user.findUnique({ where: { email: normalized } });
   if (existing && !existing.disabled) {
-    return { ok: false, error: "该邮箱已注册，请直接登录" };
+    return { ok: true };
   }
 
   const pending = await prisma.accountRequest.findFirst({
     where: { email: normalized, status: { in: ["PENDING", "PROCESSING"] } },
   });
   if (pending) {
-    return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
+    return { ok: true };
   }
 
-  const invite = await prisma.inviteCode.findUnique({ where: { code: code.trim() } });
-  if (!invite) return { ok: false, error: "邀请码不存在" };
-  if (invite.expiresAt && invite.expiresAt < new Date()) {
-    return { ok: false, error: "邀请码已过期" };
-  }
-  if (invite.usedCount >= invite.maxUses) {
-    return { ok: false, error: "邀请码使用次数已达上限" };
-  }
-
-  const hashed = await bcrypt.hash(password, 10);
   try {
     await prisma.$transaction(async (tx) => {
       // 停用账号在审核通过前保持不可用。
@@ -135,10 +131,10 @@ export async function submitInviteRequest({
     });
   } catch (e) {
     if (e instanceof Error && e.message === "INVITE_TAKEN") {
-      return { ok: false, error: "邀请码刚刚被使用了" };
+      return { ok: false, error: "邀请码无效或已失效" };
     }
     if (isUniqueConstraintError(e)) {
-      return { ok: false, error: "该邮箱已有待处理的申请，请耐心等待博主审核" };
+      return { ok: true };
     }
     throw e;
   }
