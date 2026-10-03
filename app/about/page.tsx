@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { SITE, SKILLS, TIMELINE } from "@/lib/constants";
 import { prisma } from "@/lib/prisma";
+import { Timeline } from "@/components/about/Timeline";
 import { Avatar } from "@/components/ui/Avatar";
 import { ROLES } from "@/lib/roles";
 import { websiteOpenGraph } from "@/lib/metadata";
@@ -52,16 +53,7 @@ export default async function AboutPage() {
       </div>
 
       <h2 className="mt-16 text-2xl font-bold tracking-tight">时间线</h2>
-      <ol className="mt-6 space-y-8 border-l-2 border-border pl-6">
-        {TIMELINE.map((item) => (
-          <li key={item.time} className="relative">
-            <span className="absolute -left-[calc(1.5rem+5px)] top-1.5 block size-2.5 rounded-full bg-accent" />
-            <p className="font-display text-sm font-bold text-accent">{item.time}</p>
-            <p className="mt-1 font-bold">{item.title}</p>
-            <p className="mt-1 text-sm leading-relaxed text-muted">{item.description}</p>
-          </li>
-        ))}
-      </ol>
+      <Timeline items={TIMELINE} />
 
       <p className="mt-16 rounded-2xl border border-border bg-surface p-6 text-sm leading-relaxed text-muted">
         想和我交流？去{" "}

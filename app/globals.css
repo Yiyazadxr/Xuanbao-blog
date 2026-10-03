@@ -928,6 +928,10 @@ body,
 .prose {
   overflow-wrap: break-word;
 }
+/* 正文行距：由显示设置的「正文行距」滑块控制（--prose-leading 由预水合脚本提前写入） */
+.prose p {
+  line-height: var(--prose-leading, 1.75);
+}
 .prose table {
   display: block;
   max-width: 100%;
@@ -944,4 +948,9 @@ body,
 /* react-markdown 输出的正文图片。 */
 .prose img {
   border-radius: 0.75rem;
+}
+
+/* 阅读进度条：水合前由预水合脚本按本地偏好隐藏，避免已关闭的进度条闪现 */
+html[data-reading-progress="off"] .reading-progress {
+  display: none;
 }

@@ -13,6 +13,8 @@ import {
   FOOTER_PY_MIN,
   HEADER_H_MAX,
   HEADER_H_MIN,
+  PROSE_LEADING_MAX,
+  PROSE_LEADING_MIN,
   SPACING_SCALE_MAX,
   SPACING_SCALE_MIN,
   WAVE_INTENSITY_MAX,
@@ -193,6 +195,13 @@ export const displayPreferencesSchema = z.object({
     .nullable(),
   inkEnabled: z.boolean().nullable(),
   reduceMotion: z.boolean().nullable(),
+  proseLeading: z
+    .number()
+    .min(PROSE_LEADING_MIN, "正文行距参数不合法")
+    .max(PROSE_LEADING_MAX, "正文行距参数不合法")
+    .nullable(),
+  smoothScroll: z.boolean().nullable(),
+  readingProgress: z.boolean().nullable(),
 });
 
 export const batchPostsSchema = z.object({

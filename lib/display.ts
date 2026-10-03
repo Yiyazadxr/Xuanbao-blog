@@ -62,6 +62,42 @@ export function isWaveIntensity(value: unknown): value is number {
 // 水墨墨迹（InkBackground）开关：默认开
 export const INK_ENABLED_DEFAULT = true;
 
+// 正文行距：作用于 .prose p 的 line-height（文章阅读体验）
+export const PROSE_LEADING_MIN = 1.5;
+export const PROSE_LEADING_MAX = 2.2;
+export const PROSE_LEADING_STEP = 0.05;
+export const PROSE_LEADING_DEFAULT = 1.75;
+
+export function isProseLeading(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    value >= PROSE_LEADING_MIN &&
+    value <= PROSE_LEADING_MAX
+  );
+}
+
+// 平滑滚动（Lenis）/ 阅读进度条开关：默认开
+export const SMOOTH_SCROLL_DEFAULT = true;
+export const READING_PROGRESS_DEFAULT = true;
+
+// 显示偏好变更事件：写入函数派发，消费组件（SmoothScroll 等）监听以即时生效
+export const DISPLAY_CHANGE_EVENT = "xr-display-change";
+
+// 显示偏好契约：客户端（DisplayForm/DisplaySync）与服务端（display-actions）共用
+export type DisplayPreferenceValues = {
+  fontScale: number;
+  spacingScale: number;
+  density: Density;
+  headerH: number | null;
+  footerPy: number | null;
+  waveIntensity: number | null;
+  inkEnabled: boolean | null;
+  reduceMotion: boolean | null;
+  proseLeading: number | null;
+  smoothScroll: boolean | null;
+  readingProgress: boolean | null;
+};
+
 const LS_FONT_SCALE = "xr-font-scale";
 const LS_DENSITY = "xr-density";
 const LS_HEADER_H = "xr-header-h";
@@ -70,6 +106,9 @@ const LS_SPACING = "xr-spacing";
 const LS_SYNC = "xr-sync";
 const LS_WAVE_INTENSITY = "xr-wave-intensity";
 const LS_INK_ENABLED = "xr-ink-enabled";
+const LS_PROSE_LEADING = "xr-prose-leading";
+const LS_SMOOTH_SCROLL = "xr-smooth-scroll";
+const LS_READING_PROGRESS = "xr-reading-progress";
 
 function clampNum(v: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, v));
@@ -185,6 +224,58 @@ export function writeInkEnabled(enabled: boolean): void {
   }
 }
 
+export function readProseLeading(): number {
+  if (typeof window === "undefined") return PROSE_LEADING_DEFAULT;
+  const v = Number(localStorage.getItem(LS_PROSE_LEADING));
+  return isProseLeading(v) ? v : PROSE_LEADING_DEFAULT;
+}
+
+export function writeProseLeading(v: number): void {
+  try {
+    localStorage.setItem(LS_PROSE_LEADING, String(v));
+  } catch {
+    /* 忽略 */
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.style.setProperty("--prose-leading", String(v));
+  }
+}
+
+export function readSmoothScroll(): boolean {
+  if (typeof window === "undefined") return SMOOTH_SCROLL_DEFAULT;
+  return localStorage.getItem(LS_SMOOTH_SCROLL) !== "0";
+}
+
+export function writeSmoothScroll(enabled: boolean): void {
+  try {
+    localStorage.setItem(LS_SMOOTH_SCROLL, enabled ? "1" : "0");
+  } catch {
+    /* 忽略 */
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(DISPLAY_CHANGE_EVENT));
+  }
+}
+
+export function readReadingProgress(): boolean {
+  if (typeof window === "undefined") return READING_PROGRESS_DEFAULT;
+  return localStorage.getItem(LS_READING_PROGRESS) !== "0";
+}
+
+export function writeReadingProgress(enabled: boolean): void {
+  try {
+    localStorage.setItem(LS_READING_PROGRESS, enabled ? "1" : "0");
+  } catch {
+    /* 忽略 */
+  }
+  if (typeof document !== "undefined") {
+    document.documentElement.setAttribute("data-reading-progress", enabled ? "on" : "off");
+  }
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event(DISPLAY_CHANGE_EVENT));
+  }
+}
+
 export function setSyncEnabled(enabled: boolean): void {
   try {
     if (enabled) localStorage.setItem(LS_SYNC, "1");
@@ -218,4 +309,4 @@ export function applyDisplay(
 }
 
 // 预水合内联脚本（注入到 <head>，React 挂载前执行，避免 FOUC）
-export const DISPLAY_PREHYDRATE_SCRIPT = `(function(){try{var s=localStorage.getItem("xr-font-scale"),sp=localStorage.getItem("xr-spacing"),d=localStorage.getItem("xr-density"),hh=localStorage.getItem("xr-header-h"),fp=localStorage.getItem("xr-footer-py"),wv=localStorage.getItem("xr-wave-intensity"),ink=localStorage.getItem("xr-ink-enabled"),h=document.documentElement;if(s)h.style.setProperty("--font-scale",s);if(sp)h.style.setProperty("--spacing-scale",sp);if(wv)h.style.setProperty("--wave-intensity",wv);if(ink==="0")h.setAttribute("data-ink","off");if(d==="custom"){if(hh)h.style.setProperty("--header-h",hh+"px");if(fp)h.style.setProperty("--footer-py",fp+"px");}else if(d){h.setAttribute("data-density",d);}}catch(e){}})();`;
+export const DISPLAY_PREHYDRATE_SCRIPT = `(function(){try{var s=localStorage.getItem("xr-font-scale"),sp=localStorage.getItem("xr-spacing"),d=localStorage.getItem("xr-density"),hh=localStorage.getItem("xr-header-h"),fp=localStorage.getItem("xr-footer-py"),wv=localStorage.getItem("xr-wave-intensity"),ink=localStorage.getItem("xr-ink-enabled"),pl=localStorage.getItem("xr-prose-leading"),rp=localStorage.getItem("xr-reading-progress"),h=document.documentElement;if(s)h.style.setProperty("--font-scale",s);if(sp)h.style.setProperty("--spacing-scale",sp);if(wv)h.style.setProperty("--wave-intensity",wv);if(pl)h.style.setProperty("--prose-leading",pl);if(ink==="0")h.setAttribute("data-ink","off");if(rp==="0")h.setAttribute("data-reading-progress","off");if(d==="custom"){if(hh)h.style.setProperty("--header-h",hh+"px");if(fp)h.style.setProperty("--footer-py",fp+"px");}else if(d){h.setAttribute("data-density",d);}}catch(e){}})();`;

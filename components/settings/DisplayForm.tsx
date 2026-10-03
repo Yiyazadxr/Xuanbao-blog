@@ -17,11 +17,17 @@ import {
   HEADER_H_MAX,
   HEADER_H_MIN,
   isSyncEnabled,
+  PROSE_LEADING_MAX,
+  PROSE_LEADING_MIN,
+  PROSE_LEADING_STEP,
   readDensity,
   readFooterPy,
   readFontScale,
   readHeaderH,
   readInkEnabled,
+  readProseLeading,
+  readReadingProgress,
+  readSmoothScroll,
   readSpacingScale,
   readWaveIntensity,
   setSyncEnabled,
@@ -36,9 +42,13 @@ import {
   writeFooterPy,
   writeHeaderH,
   writeInkEnabled,
+  writeProseLeading,
+  writeReadingProgress,
+  writeSmoothScroll,
   writeSpacingScale,
   writeWaveIntensity,
   type Density,
+  type DisplayPreferenceValues,
 } from "@/lib/display";
 import { setReducedMotion, usePrefersReducedMotion } from "@/lib/use-reduced-motion";
 import { successCls } from "@/components/ui/form-styles";
@@ -58,6 +68,9 @@ export function DisplayForm() {
   const [msg, setMsg] = useState("");
   const [waveIntensity, setWaveIntensity] = useState(readWaveIntensity);
   const [inkEnabled, setInkEnabled] = useState(readInkEnabled);
+  const [proseLeading, setProseLeading] = useState(readProseLeading);
+  const [smoothScroll, setSmoothScroll] = useState(readSmoothScroll);
+  const [readingProgress, setReadingProgress] = useState(readReadingProgress);
   const reduceMotion = usePrefersReducedMotion();
   const persistTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -69,84 +82,101 @@ export function DisplayForm() {
   }, []);
 
   // 防抖后同步到账号：拖动滑块不触发请求风暴，失败时提示而非静默丢弃
-  function persist(
-    scale: number,
-    sp: number,
-    d: Density,
-    hh: number,
-    fp: number,
-    wv: number,
-    ink: boolean,
-    motion: boolean
-  ) {
+  function persist(v: DisplayPreferenceValues) {
     if (!sync) return;
     if (persistTimer.current) clearTimeout(persistTimer.current);
     persistTimer.current = setTimeout(() => {
-      void saveDisplayPreferences(
-        scale,
-        sp,
-        d,
-        d === "custom" ? hh : null,
-        d === "custom" ? fp : null,
-        wv,
-        ink,
-        motion
-      ).then((res) => {
+      void saveDisplayPreferences(v).then((res) => {
         if (!res.ok) setMsg(res.error ?? "同步失败");
       });
     }, 500);
+  }
+
+  // 以当前状态为基础构造待保存偏好，调用方覆盖变更的字段
+  function basePrefs(): DisplayPreferenceValues {
+    return {
+      fontScale,
+      spacingScale,
+      density,
+      headerH: density === "custom" ? headerH : null,
+      footerPy: density === "custom" ? footerPy : null,
+      waveIntensity,
+      inkEnabled,
+      reduceMotion,
+      proseLeading,
+      smoothScroll,
+      readingProgress,
+    };
   }
 
   function changeFontScale(v: number) {
     setFontScale(v);
     writeFontScale(v);
     applyDisplay(v, density, headerH, footerPy, spacingScale);
-    persist(v, spacingScale, density, headerH, footerPy, waveIntensity, inkEnabled, reduceMotion);
+    persist({ ...basePrefs(), fontScale: v });
   }
 
   function changeSpacingScale(v: number) {
     setSpacingScale(v);
     writeSpacingScale(v);
     applyDisplay(fontScale, density, headerH, footerPy, v);
-    persist(fontScale, v, density, headerH, footerPy, waveIntensity, inkEnabled, reduceMotion);
+    persist({ ...basePrefs(), spacingScale: v });
   }
 
   function changeDensity(d: Density) {
     setDensity(d);
     writeDensity(d);
     applyDisplay(fontScale, d, headerH, footerPy, spacingScale);
-    persist(fontScale, spacingScale, d, headerH, footerPy, waveIntensity, inkEnabled, reduceMotion);
+    persist({ ...basePrefs(), density: d });
   }
 
   function changeHeaderH(px: number) {
     setHeaderH(px);
     writeHeaderH(px);
     applyDisplay(fontScale, density, px, footerPy, spacingScale);
-    persist(fontScale, spacingScale, density, px, footerPy, waveIntensity, inkEnabled, reduceMotion);
+    persist({ ...basePrefs(), headerH: px });
   }
 
   function changeFooterPy(px: number) {
     setFooterPy(px);
     writeFooterPy(px);
     applyDisplay(fontScale, density, headerH, px, spacingScale);
-    persist(fontScale, spacingScale, density, headerH, px, waveIntensity, inkEnabled, reduceMotion);
+    persist({ ...basePrefs(), footerPy: px });
   }
 
   function changeWaveIntensity(v: number) {
     setWaveIntensity(v);
     writeWaveIntensity(v);
-    persist(fontScale, spacingScale, density, headerH, footerPy, v, inkEnabled, reduceMotion);
+    persist({ ...basePrefs(), waveIntensity: v });
   }
 
   function changeInkEnabled(enabled: boolean) {
     setInkEnabled(enabled);
     writeInkEnabled(enabled);
-    persist(fontScale, spacingScale, density, headerH, footerPy, waveIntensity, enabled, reduceMotion);
+    persist({ ...basePrefs(), inkEnabled: enabled });
+  }
+
+  function changeProseLeading(v: number) {
+    setProseLeading(v);
+    writeProseLeading(v);
+    persist({ ...basePrefs(), proseLeading: v });
+  }
+
+  function changeSmoothScroll(enabled: boolean) {
+    setSmoothScroll(enabled);
+    writeSmoothScroll(enabled);
+    persist({ ...basePrefs(), smoothScroll: enabled });
+  }
+
+  function changeReadingProgress(enabled: boolean) {
+    setReadingProgress(enabled);
+    writeReadingProgress(enabled);
+    persist({ ...basePrefs(), readingProgress: enabled });
   }
 
   function changeReduceMotion(enabled: boolean) {
     setReducedMotion(enabled);
-    persist(fontScale, spacingScale, density, headerH, footerPy, waveIntensity, inkEnabled, enabled);
+    persist({ ...basePrefs(), reduceMotion: enabled });
   }
 
   async function toggleSync(enabled: boolean) {
@@ -169,6 +199,9 @@ export function DisplayForm() {
       const finalWave = prefs?.waveIntensity ?? waveIntensity;
       const finalInk = prefs?.inkEnabled ?? inkEnabled;
       const finalMotion = prefs?.reduceMotion ?? reduceMotion;
+      const finalLeading = prefs?.proseLeading ?? proseLeading;
+      const finalSmooth = prefs?.smoothScroll ?? smoothScroll;
+      const finalProgress = prefs?.readingProgress ?? readingProgress;
       setFontScale(finalScale);
       setSpacingScale(finalSpacing);
       setDensity(finalDensity);
@@ -176,6 +209,9 @@ export function DisplayForm() {
       setFooterPy(finalFp);
       setWaveIntensity(finalWave);
       setInkEnabled(finalInk);
+      setProseLeading(finalLeading);
+      setSmoothScroll(finalSmooth);
+      setReadingProgress(finalProgress);
       setReducedMotion(finalMotion);
       writeFontScale(finalScale);
       writeSpacingScale(finalSpacing);
@@ -184,17 +220,23 @@ export function DisplayForm() {
       writeFooterPy(finalFp);
       writeWaveIntensity(finalWave);
       writeInkEnabled(finalInk);
+      writeProseLeading(finalLeading);
+      writeSmoothScroll(finalSmooth);
+      writeReadingProgress(finalProgress);
       applyDisplay(finalScale, finalDensity, finalH, finalFp, finalSpacing);
-      await saveDisplayPreferences(
-        finalScale,
-        finalSpacing,
-        finalDensity,
-        finalDensity === "custom" ? finalH : null,
-        finalDensity === "custom" ? finalFp : null,
-        finalWave,
-        finalInk,
-        finalMotion
-      );
+      await saveDisplayPreferences({
+        fontScale: finalScale,
+        spacingScale: finalSpacing,
+        density: finalDensity,
+        headerH: finalDensity === "custom" ? finalH : null,
+        footerPy: finalDensity === "custom" ? finalFp : null,
+        waveIntensity: finalWave,
+        inkEnabled: finalInk,
+        reduceMotion: finalMotion,
+        proseLeading: finalLeading,
+        smoothScroll: finalSmooth,
+        readingProgress: finalProgress,
+      });
       setMsg("已开启跨设备同步，登录其他设备会自动同步");
     } finally {
       setSyncPending(false);
@@ -249,6 +291,29 @@ export function DisplayForm() {
           <span>80%</span>
           <span>100%</span>
           <span>120%</span>
+        </div>
+      </div>
+
+      {/* 正文行距 */}
+      <div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm font-medium">正文行距</span>
+          <span className="text-sm tabular-nums text-muted">{proseLeading.toFixed(2)}×</span>
+        </div>
+        <input
+          id="prose-leading"
+          type="range"
+          min={PROSE_LEADING_MIN}
+          max={PROSE_LEADING_MAX}
+          step={PROSE_LEADING_STEP}
+          value={proseLeading}
+          onChange={(e) => changeProseLeading(Number(e.target.value))}
+          className={rangeCls}
+        />
+        <div className="mt-1 flex justify-between text-xs text-muted">
+          <span>1.50×</span>
+          <span>1.75×</span>
+          <span>2.20×</span>
         </div>
       </div>
 
@@ -361,6 +426,40 @@ export function DisplayForm() {
           type="checkbox"
           checked={reduceMotion}
           onChange={(e) => changeReduceMotion(e.target.checked)}
+          className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+          role="switch"
+        />
+      </label>
+
+      {/* 平滑滚动开关 */}
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border p-4">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">平滑滚动</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            惯性滚动让页面滑动更顺滑，关闭后使用系统原生滚动
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={smoothScroll}
+          onChange={(e) => changeSmoothScroll(e.target.checked)}
+          className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
+          role="switch"
+        />
+      </label>
+
+      {/* 阅读进度条开关 */}
+      <label className="flex cursor-pointer items-center justify-between gap-4 rounded-xl border border-border p-4">
+        <span className="min-w-0">
+          <span className="block text-sm font-medium">阅读进度条</span>
+          <span className="mt-0.5 block text-xs text-muted">
+            文章页顶部随滚动填充的进度条
+          </span>
+        </span>
+        <input
+          type="checkbox"
+          checked={readingProgress}
+          onChange={(e) => changeReadingProgress(e.target.checked)}
           className="size-5 shrink-0 cursor-pointer accent-[var(--accent)]"
           role="switch"
         />

@@ -11,6 +11,9 @@ import {
   writeFooterPy,
   writeHeaderH,
   writeInkEnabled,
+  writeProseLeading,
+  writeReadingProgress,
+  writeSmoothScroll,
   writeSpacingScale,
   writeWaveIntensity,
 } from "@/lib/display";
@@ -33,6 +36,9 @@ export function DisplaySync() {
       if (prefs.waveIntensity != null) writeWaveIntensity(prefs.waveIntensity);
       if (prefs.inkEnabled != null) writeInkEnabled(prefs.inkEnabled);
       if (prefs.reduceMotion != null) setReducedMotion(prefs.reduceMotion);
+      if (prefs.proseLeading != null) writeProseLeading(prefs.proseLeading);
+      if (prefs.smoothScroll != null) writeSmoothScroll(prefs.smoothScroll);
+      if (prefs.readingProgress != null) writeReadingProgress(prefs.readingProgress);
       applyDisplay(
         prefs.fontScale,
         prefs.density,

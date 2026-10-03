@@ -42,6 +42,10 @@ model User {
   waveIntensity Float? // 远山水墨强度 0~1.5
   inkEnabled    Boolean? // 水墨墨迹开关
   reduceMotion  Boolean? // 减少动效开关
+  // 阅读体验偏好（跨设备同步）
+  proseLeading    Float? // 正文行距 1.5~2.2
+  smoothScroll    Boolean? // 平滑滚动开关
+  readingProgress Boolean? // 阅读进度条开关
 
   posts        Post[]
   comments     Comment[]

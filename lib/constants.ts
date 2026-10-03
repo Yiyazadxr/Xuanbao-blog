@@ -317,6 +317,34 @@ export const SKILLS = [
 
 // 时间线
 export const TIMELINE = [
-  { time: "2026", title: "博客全站重构", description: "用 Next.js 全栈重写个人博客" },
-  { time: "2025", title: "开始搭建个人博客", description: "从纯手写 HTML/CSS 起步" },
+  {
+    time: "2025",
+    dateTime: "2025",
+    title: "手写博客起步",
+    description: "从零用 HTML/CSS 手写页面，搭起最早的个人站点",
+  },
+  {
+    time: "2026.07",
+    dateTime: "2026-07",
+    title: "全栈重构启动",
+    description: "用 Next.js 16 + Prisma 7 重建项目，完成布局、文章、认证、后台与评论系统",
+  },
+  {
+    time: "2026.08",
+    dateTime: "2026-08",
+    title: "功能体系成型",
+    description: "四级权限、站内通知与邀请制注册落地，接入 Vercel 与 PostgreSQL",
+  },
+  {
+    time: "2026.09",
+    dateTime: "2026-09",
+    title: "质量与体验打磨",
+    description: "补单元测试与 CI，完善文档与合规，加入动效体系、中文 slug 与首页节日彩蛋",
+  },
+  {
+    time: "2026.10",
+    dateTime: "2026-10",
+    title: "安全与性能加固",
+    description: "服务端分页、认证与写入一致性、浏览统计防刷与安全审计修复",
+  },
 ] as const;
